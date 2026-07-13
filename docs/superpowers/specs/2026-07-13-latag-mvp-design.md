@@ -27,6 +27,8 @@ Latag is an **offline-first pocket ops tool for ukay-ukay / vintage clothing res
 
 **Out of scope for MVP (deliberate):** auth/licensing, telemetry, bottoms/non-top categories, cross-session inventory search, backups/CSV export, editable condition scales, light theme.
 
+**Added by the platform & monetization spec (companion doc):** the MVP additionally ships inside a pnpm **monorepo** (`apps/mobile` + stub `apps/web`) and includes the **free-tier log counter** — 20 lifetime item creations tracked in a local `entitlements` table, a remaining-logs indicator in the Rapid Console header once ≤ 10 remain, and a **Go Pro sheet** at 0 that links to the website (no in-app purchase flow). See `2026-07-13-latag-platform-monetization-design.md`.
+
 ## 3. Tech Stack (fixed by blueprint)
 
 - **Mobile:** React Native / Expo (latest SDK), **Expo Router**, TypeScript strict.
@@ -205,4 +207,4 @@ Latag-App-Context.md    original context (kept)
 1. **Spec** — this document. ✅
 2. **Design mockups** — design system + phone-framed HTML mockups via **impeccable**; published as a clickable artifact. Gate: user approves the look. *Expanded during this phase to the full production surface (15 screens): the MVP core loop (sessions, dashboards, Rapid Console, camera, item detail, mark-sold, IG export, empty states) plus first-run screens (welcome/activation, email OTP, onboarding ×2) and Settings, designed ahead of their build phases. Build scope is unchanged — auth/licensing and telemetry remain post-MVP.*
 3. **Build** — **writing-plans** produces the implementation plan; executed via **subagent-driven-development**: scaffold Expo Router + Drizzle → schema/migrations → math lib (test-first) → media pipeline → repo layer → screens matching approved mockups.
-4. **Parked for later phases:** Next.js + Upstash telemetry, Supabase auth/licensing, bottoms & other categories, CSV export/backup.
+4. **Parked for later phases:** web platform (landing, portal, admin console, payments, legal pages — see companion platform spec), Next.js + Upstash telemetry, Supabase auth/licensing + license receipt caching, bottoms & other categories, CSV export/backup.
