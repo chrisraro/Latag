@@ -67,18 +67,21 @@ Rules:
 - Sizes: 16px inline with body/buttons, 18–20px in touch targets, 12–14px in badges/captions.
 - Emoji are reserved exclusively for the IG caption output (👕 📏 ✨ 💸 📍) — they are product data (what buyers see on Instagram), not UI.
 - Core vocabulary: `plus` (create), `caret-left/right/down` (nav/disclosure), `check` (confirm/selected), `camera` (photo capture), `magnifying-glass` (search), `pencil-simple` (edit), `trash` (delete), `clipboard-text` (copy/export), `airplane-tilt` (offline indicator, mockups only).
+- **Brand-mark exception:** the Google sign-in button uses Google's official four-color "G" on a 26px white circular tile (per Google identity guidelines) — never a single-color icon-pack substitute.
 
 ## Spacing, Shape, Touch
 
 - 4pt grid: 4 / 8 / 12 / 16 / 24 / 32.
+- Rhythm rule: tight within groups (8–12px: label→control, icon→text), generous between groups (16–24px: section→section, content→primary action). Never uniform spacing everywhere.
 - Screen gutter: 16px. Card padding: 16px.
+- Safe areas: sheets get ≥28px bottom padding (home indicator); content respects status-bar top inset.
 - Radii: chips & buttons **pill**; cards 12px; modal sheets 20px top corners; photo slots 10px.
 - Touch targets ≥ 48×48px. Primary action buttons: full-width, 56px tall, bottom-anchored in thumb zone.
 - Z-scale: `base(0) < sticky-header(10) < sheet-backdrop(20) < sheet(30) < toast(40)`.
 
 ## Components
 
-- **Chip** — pill, 40px tall (48px hit area), `surface-2` + hairline at rest; selected = `acid` bg + `acid-ink` text + haptic light. One group = one selection.
+- **Chip** — pill, 44px tall (≥48px hit area with row padding), `surface-2` + hairline at rest; selected = `acid` bg + `acid-ink` text + haptic light. One group = one selection.
 - **Scroll wheel** — horizontal detent strip; center value in `wheel-value` + acid underline tick; neighbors dim + scale 0.8; haptic tick per detent. Unit label (`in`, `₱`) in `ink-faint` beside value.
 - **Primary button** — full-width pill, acid bg, `acid-ink` bold label, pressed = scale 0.97 + haptic medium. One per screen.
 - **Destructive button** — `danger` outline style; confirm dialog always.
@@ -97,3 +100,15 @@ Every interactive component ships default / pressed / selected / disabled states
 - Motion = state feedback only: SAVE flash (acid sweep 200ms), counter increment roll, sheet slide-up, toast. No page-load choreography.
 - Every animation has a `prefers-reduced-motion` fallback: instant or crossfade.
 - Haptics vocabulary (expo-haptics): `light` = chip select / wheel detent; `medium` = SAVE, mark sold; `error` buzz = failed write, delete confirm.
+
+## Build Notes (React Native / Expo)
+
+From the React Native best-practices ruleset — binding for the build phase:
+
+- **Lists:** FlashList (not FlatList/ScrollView-map) for item grids and session lists; memoized item components; stable callbacks; no inline style objects in items.
+- **Images:** `expo-image` everywhere (thumbnails, carousel) with `recyclingKey` in lists; thumbnails render the compressed local file, never full-res.
+- **Animations:** Reanimated on transform/opacity only (SAVE flash, sheet slide, counter roll); wheel detents via `useDerivedValue`; `Gesture.Tap`/`Gesture.Pan` from gesture-handler for wheels and chips.
+- **Pressables:** `Pressable` (never TouchableOpacity) with `hitSlop` to guarantee ≥48px targets where visuals are smaller.
+- **Navigation:** Expo Router native stack; New Session / Mark Sold as native modal presentation (`presentation: 'modal'`).
+- **Safe areas:** `react-native-safe-area-context` insets on every screen; bottom-anchored primary buttons sit above the home indicator.
+- **Fonts:** Archivo static TTFs via config plugin (`expo-font` plugin in app.json), not runtime `loadAsync` — zero flash of fallback type.
