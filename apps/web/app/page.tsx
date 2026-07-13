@@ -1,5 +1,6 @@
 import { PhoneDemo } from "@/components/PhoneDemo";
 import { Pricing } from "@/components/Pricing";
+import { Showcase } from "@/components/Showcase";
 import { Badge, CheckItem, CtaButton, SectionTitle } from "@/components/ui";
 
 export default function Home() {
@@ -59,6 +60,15 @@ export default function Home() {
             <CheckItem>Sold tracking with real haggled prices</CheckItem>
           </ul>
         </div>
+      </section>
+
+      {/* SHOWCASE */}
+      <section aria-label="See the console in action" className="border-t border-hairline">
+        <div className="mx-auto max-w-5xl px-5 py-20">
+          <SectionTitle>Straight from the console.</SectionTitle>
+          <p className="mt-4 max-w-[60ch] text-inkdim">Swipe through the actual screens — tap any card to look closer.</p>
+        </div>
+        <Showcase />
       </section>
 
       {/* OFFLINE / PRIVACY */}
