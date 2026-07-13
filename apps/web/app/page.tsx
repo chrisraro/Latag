@@ -20,6 +20,9 @@ export default function Home() {
             <CtaButton href="/pro">Get Latag</CtaButton>
             <CtaButton href="/data" secondary>How your data stays yours</CtaButton>
           </div>
+          <p className="mt-4 text-sm text-inkfaint">
+            Latag for Android is in final QA — downloads and Pro purchases open together.
+          </p>
         </div>
         <PhoneDemo />
       </section>
