@@ -4,6 +4,8 @@
   "scripts": {
     "mobile": "pnpm -C apps/mobile start",
     "test": "pnpm -C apps/mobile test",
-    "typecheck": "pnpm -C apps/mobile exec tsc --noEmit"
+    "typecheck": "pnpm -C apps/mobile exec tsc --noEmit",
+    "web": "pnpm -C apps/web dev",
+    "web:build": "pnpm -C apps/web build"
   }
 }
