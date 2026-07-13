@@ -169,7 +169,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 **Files:** Create `apps/web/components/ui.tsx`
 
 **Interfaces:**
-- Produces: `CtaButton({ href, children, secondary? })` (display voice pill, acid or outline) · `Badge({ children })` · `SectionTitle({ kicker?, children })` (h2, display voice — kicker used at most once site-wide) · `CheckItem({ children })` (acid ✓ list row).
+- Produces: `CtaButton({ href, children, secondary? })` (display voice pill, acid or outline) · `Badge({ children })` · `SectionTitle({ children })` (h2, display voice) · `CheckItem({ children })` (acid ✓ list row).
 
 - [ ] **Step 1:**
 ```tsx
