@@ -24,6 +24,7 @@
     font-size:15px; line-height:1.5; padding:48px 24px 96px;
   }
   .num{font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
+  .ic{fill:currentColor;flex:none;display:inline-block;vertical-align:-.15em}
 
   /* ---------- page chrome ---------- */
   .intro{max-width:720px;margin:0 auto 40px}
@@ -177,10 +178,24 @@
   @media (max-width:430px){ .phone{zoom:.88} }
   @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
 </style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-caret-left" viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/></symbol>
+<symbol id="i-check" viewBox="0 0 256 256"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></symbol>
+<symbol id="i-camera" viewBox="0 0 256 256"><path d="M208,52H182.42L170,33.34A12,12,0,0,0,160,28H96a12,12,0,0,0-10,5.34L73.57,52H48A28,28,0,0,0,20,80V192a28,28,0,0,0,28,28H208a28,28,0,0,0,28-28V80A28,28,0,0,0,208,52Zm4,140a4,4,0,0,1-4,4H48a4,4,0,0,1-4-4V80a4,4,0,0,1,4-4H80a12,12,0,0,0,10-5.34L102.42,52h51.15L166,70.66A12,12,0,0,0,176,76h32a4,4,0,0,1,4,4ZM128,84a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,84Zm0,72a24,24,0,1,1,24-24A24,24,0,0,1,128,156Z"/></symbol>
+<symbol id="i-caret-down" viewBox="0 0 256 256"><path d="M216.49,104.49l-80,80a12,12,0,0,1-17,0l-80-80a12,12,0,0,1,17-17L128,159l71.51-71.52a12,12,0,0,1,17,17Z"/></symbol>
+<symbol id="i-caret-right" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"/></symbol>
+<symbol id="i-clipboard-text" viewBox="0 0 256 256"><path d="M172,164a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,164Zm-12-52H96a12,12,0,0,0,0,24h64a12,12,0,0,0,0-24Zm60-64V216a20,20,0,0,1-20,20H56a20,20,0,0,1-20-20V48A20,20,0,0,1,56,28H90.53a51.88,51.88,0,0,1,74.94,0H200A20,20,0,0,1,220,48ZM100.29,60h55.42a28,28,0,0,0-55.42,0ZM196,52H178.59A52.13,52.13,0,0,1,180,64v8a12,12,0,0,1-12,12H88A12,12,0,0,1,76,72V64a52.13,52.13,0,0,1,1.41-12H60V212H196Z"/></symbol>
+<symbol id="i-pencil-simple" viewBox="0 0 256 256"><path d="M230.14,70.54,185.46,25.85a20,20,0,0,0-28.29,0L33.86,149.17A19.85,19.85,0,0,0,28,163.31V208a20,20,0,0,0,20,20H92.69a19.86,19.86,0,0,0,14.14-5.86L230.14,98.82a20,20,0,0,0,0-28.28ZM91,204H52V165l84-84,39,39ZM192,103,153,64l18.34-18.34,39,39Z"/></symbol>
+<symbol id="i-trash" viewBox="0 0 256 256"><path d="M216,48H180V36A28,28,0,0,0,152,8H104A28,28,0,0,0,76,36V48H40a12,12,0,0,0,0,24h4V208a20,20,0,0,0,20,20H192a20,20,0,0,0,20-20V72h4a12,12,0,0,0,0-24ZM100,36a4,4,0,0,1,4-4h48a4,4,0,0,1,4,4V48H100Zm88,168H68V72H188ZM116,104v64a12,12,0,0,1-24,0V104a12,12,0,0,1,24,0Zm48,0v64a12,12,0,0,1-24,0V104a12,12,0,0,1,24,0Z"/></symbol>
+<symbol id="i-airplane-tilt" viewBox="0 0 256 256"><path d="M190,115.31,217.21,89.7l.26-.26a36,36,0,0,0-50.91-50.91c-.09.08-.17.17-.26.26L140.69,66,60.1,36.71A12,12,0,0,0,47.52,39.5l-24,24A12,12,0,0,0,25.34,82l59.83,39.88L75,132H56a12,12,0,0,0-8.48,3.51l-24,24a12,12,0,0,0,4,19.62l35.23,14.1,14.06,35.14.09.22a12,12,0,0,0,19.76,3.7l23.81-23.81A12,12,0,0,0,124,200V181l10.13-10.13L174,230.65a12,12,0,0,0,18.47,1.83l24-24a12,12,0,0,0,2.79-12.59Zm-4.11,89.85L146,145.33a12,12,0,0,0-8.8-5.28A11.66,11.66,0,0,0,136,140a12,12,0,0,0-8.49,3.52l-24,24A12,12,0,0,0,100,176v19l-7.62,7.62-9.24-23.1a12,12,0,0,0-6.69-6.69l-23.1-9.24L61,156H80a12,12,0,0,0,8.48-3.51l24-24A12,12,0,0,0,110.66,110L50.84,70.12l8.24-8.25,80.83,29.39a12,12,0,0,0,12.84-3.05l30.89-32.82a12,12,0,0,1,17,17l-32.82,30.89a12,12,0,0,0-3.06,12.84l29.4,80.82Z"/></symbol>
+<symbol id="i-magnifying-glass" viewBox="0 0 256 256"><path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/></symbol>
+</defs></svg>
+
 
 <div class="intro">
   <h1><span class="mark">Latag</span> — MVP Mockups · “Warehouse Console”</h1>
-  <p>Six screens of the offline-first ukay ops tool, rendered on OLED black. Deliberately dark-only: the app is designed for 6-hour no-signal sourcing sessions — note the airplane-mode icon in every status bar. Acid green appears only on money-positive values, progress, and the one primary action per screen. Set entirely in <b style="color:var(--ink)">Archivo</b> — a workhorse grotesque with jersey-lettering energy at Expanded weights (titles, money, actions) and effortless legibility at text widths (rows, labels, body).</p>
+  <p>Six screens of the offline-first ukay ops tool, rendered on OLED black. Deliberately dark-only: the app is designed for 6-hour no-signal sourcing sessions — note the airplane-mode icon in every status bar. Acid green appears only on money-positive values, progress, and the one primary action per screen. Icons are <b style="color:var(--ink)">Phosphor Bold</b> — chunky geometric strokes cut to the same weight as the display type. Set entirely in <b style="color:var(--ink)">Archivo</b> — a workhorse grotesque with jersey-lettering energy at Expanded weights (titles, money, actions) and effortless legibility at text widths (rows, labels, body).</p>
 </div>
 
 <div class="tokens">
@@ -211,7 +226,7 @@
   <div class="phone">
     <div class="island"></div>
     <div class="statusbar num"><span>9:41</span><span class="icons">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+      <svg class="ic" width="14" height="14" viewBox="0 0 256 256"><use href="#i-airplane-tilt"/></svg>
       <svg width="24" height="12" viewBox="0 0 26 13"><rect x=".5" y=".5" width="21" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".5"/><rect x="2.5" y="2.5" width="17" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2.5" height="5" rx="1" fill="currentColor" opacity=".5"/></svg>
     </span></div>
     <div class="screen">
@@ -236,7 +251,7 @@
           <div class="foot"><span class="n num">41 items · 41 sold</span><span class="val num"><span class="cur">₱</span>7,920 <span style="font-size:12px;color:var(--ink-faint);font-weight:500">realized</span></span></div>
         </div>
       </div>
-      <div class="btn-primary">＋&ensp;New Session</div>
+      <div class="btn-primary"><svg class="ic" width="16" height="16" viewBox="0 0 256 256"><use href="#i-plus"/></svg>&ensp;New Session</div>
     </div>
     <div class="homebar"><i></i></div>
   </div>
@@ -248,11 +263,11 @@
   <div class="phone">
     <div class="island"></div>
     <div class="statusbar num"><span>9:41</span><span class="icons">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+      <svg class="ic" width="14" height="14" viewBox="0 0 256 256"><use href="#i-airplane-tilt"/></svg>
       <svg width="24" height="12" viewBox="0 0 26 13"><rect x=".5" y=".5" width="21" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".5"/><rect x="2.5" y="2.5" width="17" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2.5" height="5" rx="1" fill="currentColor" opacity=".5"/></svg>
     </span></div>
     <div class="screen">
-      <div class="apphead"><span class="back">‹</span><h3>Baguio Weekend</h3><span class="badge">SELECTOR</span></div>
+      <div class="apphead"><span class="back"><svg class="ic" width="18" height="18" viewBox="0 0 256 256"><use href="#i-caret-left"/></svg></span><h3>Baguio Weekend</h3><span class="badge">SELECTOR</span></div>
       <div class="hero">
         <div class="lbl">PROJECTED PROFIT</div>
         <div class="big num"><span class="cur">₱</span>6,180</div>
@@ -265,7 +280,7 @@
       <div class="chiprow" style="margin-top:10px">
         <span class="chip on">All</span><span class="chip">Available</span><span class="chip">Sold</span>
         <span style="flex:1"></span>
-        <span class="chip" style="padding:0 14px">Select ▾</span>
+        <span class="chip" style="padding:0 14px">Select<svg class="ic" width="12" height="12" viewBox="0 0 256 256"><use href="#i-caret-down"/></svg></span>
       </div>
       <div class="scroll-hint" style="flex:1;overflow:hidden;margin-top:4px">
         <div class="row"><span class="thumb">S</span><div class="meta"><b>Stüssy</b><span>Tee · 9/10 · PTP 21″ · L 27″</span></div><div class="price num"><span class="cur">₱</span>550</div></div>
@@ -276,7 +291,7 @@
         <div class="row is-sold"><span class="thumb">A</span><div class="meta"><b>Adidas <span class="badge sold" style="margin-left:6px">SOLD</span></b><span>Tee · 9/10 · PTP 21″ · L 26.5″</span></div><div class="price num"><span class="cur">₱</span>350</div></div>
         <div class="row"><span class="thumb">L</span><div class="meta"><b>Levi's</b><span>Jacket · 8/10 · PTP 23.5″ · L 26″</span></div><div class="price num"><span class="cur">₱</span>890</div></div>
       </div>
-      <div class="btn-primary">＋&ensp;Add Item</div>
+      <div class="btn-primary"><svg class="ic" width="16" height="16" viewBox="0 0 256 256"><use href="#i-plus"/></svg>&ensp;Add Item</div>
     </div>
     <div class="homebar"><i></i></div>
   </div>
@@ -288,16 +303,16 @@
   <div class="phone">
     <div class="island"></div>
     <div class="statusbar num"><span>9:41</span><span class="icons">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+      <svg class="ic" width="14" height="14" viewBox="0 0 256 256"><use href="#i-airplane-tilt"/></svg>
       <svg width="24" height="12" viewBox="0 0 26 13"><rect x=".5" y=".5" width="21" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".5"/><rect x="2.5" y="2.5" width="17" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2.5" height="5" rx="1" fill="currentColor" opacity=".5"/></svg>
     </span></div>
     <div class="screen">
-      <div class="apphead"><span class="back">‹</span><h3>Naga Run #4</h3><span class="badge">BULTO</span></div>
+      <div class="apphead"><span class="back"><svg class="ic" width="18" height="18" viewBox="0 0 256 256"><use href="#i-caret-left"/></svg></span><h3>Naga Run #4</h3><span class="badge">BULTO</span></div>
       <div class="hero recovery">
         <div class="lbl">CAPITAL RECOVERED</div>
         <div class="big num">38%</div>
         <div class="bar"><div class="fill"></div><div class="be"></div></div>
-        <div class="legend num"><span><b style="color:var(--ink-dim)">₱3,800</b> of ₱10,000 bale</span><span>break-even ▸</span></div>
+        <div class="legend num"><span><b style="color:var(--ink-dim)">₱3,800</b> of ₱10,000 bale</span><span style="display:flex;align-items:center;gap:3px">break-even<svg class="ic" width="12" height="12" viewBox="0 0 256 256"><use href="#i-caret-right"/></svg></span></div>
         <div class="statline num" style="margin-top:6px">Projected if all sells at target: <b style="color:var(--acid)">127% · ₱12,700</b></div>
       </div>
       <div class="chiprow" style="margin-top:8px">
@@ -311,7 +326,7 @@
         <div class="row"><span class="thumb">D</span><div class="meta"><b>Dickies</b><span>Jacket · 8/10 · PTP 24″ · L 27″</span></div><div class="price num"><span class="cur">₱</span>780</div></div>
         <div class="row"><span class="thumb">H</span><div class="meta"><b>Hanes</b><span>Tee · 7/10 · PTP 20″ · L 26″</span></div><div class="price num"><span class="cur">₱</span>150</div></div>
       </div>
-      <div class="btn-primary">＋&ensp;Add Item</div>
+      <div class="btn-primary"><svg class="ic" width="16" height="16" viewBox="0 0 256 256"><use href="#i-plus"/></svg>&ensp;Add Item</div>
     </div>
     <div class="homebar"><i></i></div>
   </div>
@@ -323,19 +338,19 @@
   <div class="phone">
     <div class="island"></div>
     <div class="statusbar num"><span>9:41</span><span class="icons">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+      <svg class="ic" width="14" height="14" viewBox="0 0 256 256"><use href="#i-airplane-tilt"/></svg>
       <svg width="24" height="12" viewBox="0 0 26 13"><rect x=".5" y=".5" width="21" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".5"/><rect x="2.5" y="2.5" width="17" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2.5" height="5" rx="1" fill="currentColor" opacity=".5"/></svg>
     </span></div>
     <div class="screen">
-      <div class="apphead"><span class="back">‹</span><h3 style="font-size:17px">Baguio Weekend</h3><span class="badge num">#33 · ₱6,180</span></div>
+      <div class="apphead"><span class="back"><svg class="ic" width="18" height="18" viewBox="0 0 256 256"><use href="#i-caret-left"/></svg></span><h3 style="font-size:17px">Baguio Weekend</h3><span class="badge num">#33 · ₱6,180</span></div>
       <div class="slots" style="margin-top:6px">
         <div class="slot filled"><em>FRONT</em></div>
         <div class="slot filled"><em>BACK</em></div>
-        <div class="slot"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>TAG</div>
-        <div class="slot"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>FLAW</div>
+        <div class="slot"><svg class="ic" width="20" height="20" viewBox="0 0 256 256"><use href="#i-camera"/></svg>TAG</div>
+        <div class="slot"><svg class="ic" width="20" height="20" viewBox="0 0 256 256"><use href="#i-camera"/></svg>FLAW</div>
       </div>
       <div class="fieldlabel">BRAND</div>
-      <div class="chiprow"><span class="chip on">Nike</span><span class="chip">Adidas</span><span class="chip">Uniqlo</span><span class="chip">Carhartt</span><span class="chip">＋ search</span></div>
+      <div class="chiprow"><span class="chip on">Nike</span><span class="chip">Adidas</span><span class="chip">Uniqlo</span><span class="chip">Carhartt</span><span class="chip"><svg class="ic" width="14" height="14" viewBox="0 0 256 256"><use href="#i-magnifying-glass"/></svg>search</span></div>
       <div class="fieldlabel">CATEGORY</div>
       <div class="chiprow"><span class="chip on">Tee</span><span class="chip">Polo</span><span class="chip">Longsleeve</span><span class="chip">Jacket</span><span class="chip">Hoodie</span></div>
       <div class="fieldlabel">CONDITION</div>
@@ -351,7 +366,7 @@
         <div class="wheel num" style="flex:1.4"><div class="track"><span class="v">300</span><span class="v mid">350</span><span class="v">400</span><span class="unit">₱</span></div></div>
       </div>
       <div style="flex:1"></div>
-      <div class="btn-primary">SAVE ＋ NEXT&ensp;<span style="font-weight:800">✓</span></div>
+      <div class="btn-primary">Save + Next&ensp;<svg class="ic" width="18" height="18" viewBox="0 0 256 256"><use href="#i-check"/></svg></div>
     </div>
     <div class="homebar"><i></i></div>
   </div>
@@ -363,11 +378,11 @@
   <div class="phone">
     <div class="island"></div>
     <div class="statusbar num"><span>9:41</span><span class="icons">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+      <svg class="ic" width="14" height="14" viewBox="0 0 256 256"><use href="#i-airplane-tilt"/></svg>
       <svg width="24" height="12" viewBox="0 0 26 13"><rect x=".5" y=".5" width="21" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".5"/><rect x="2.5" y="2.5" width="17" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2.5" height="5" rx="1" fill="currentColor" opacity=".5"/></svg>
     </span></div>
     <div class="screen">
-      <div class="apphead"><span class="back">‹</span><h3>Carhartt Hoodie</h3></div>
+      <div class="apphead"><span class="back"><svg class="ic" width="18" height="18" viewBox="0 0 256 256"><use href="#i-caret-left"/></svg></span><h3>Carhartt Hoodie</h3></div>
       <div class="carousel"><span class="tag">FRONT · 1/3</span><span class="ph">C</span></div>
       <div class="dots"><i class="on"></i><i></i><i></i></div>
       <div style="flex:1;overflow:hidden">
@@ -379,8 +394,8 @@
       </div>
       <div class="btn-primary" style="margin-bottom:8px">Mark Sold</div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
-        <div class="btn-secondary" style="flex:1">Edit</div>
-        <div class="btn-danger" style="flex:1">Delete</div>
+        <div class="btn-secondary" style="flex:1"><svg class="ic" width="15" height="15" viewBox="0 0 256 256"><use href="#i-pencil-simple"/></svg>&nbsp;&nbsp;Edit</div>
+        <div class="btn-danger" style="flex:1"><svg class="ic" width="15" height="15" viewBox="0 0 256 256"><use href="#i-trash"/></svg>&nbsp;&nbsp;Delete</div>
       </div>
     </div>
     <div class="homebar"><i></i></div>
@@ -393,14 +408,14 @@
   <div class="phone">
     <div class="island"></div>
     <div class="statusbar num"><span>9:41</span><span class="icons">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+      <svg class="ic" width="14" height="14" viewBox="0 0 256 256"><use href="#i-airplane-tilt"/></svg>
       <svg width="24" height="12" viewBox="0 0 26 13"><rect x=".5" y=".5" width="21" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".5"/><rect x="2.5" y="2.5" width="17" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2.5" height="5" rx="1" fill="currentColor" opacity=".5"/></svg>
     </span></div>
     <div class="screen">
-      <div class="apphead"><span class="back">‹</span><h3>IG Drop</h3><span class="badge num">8 SELECTED</span></div>
+      <div class="apphead"><span class="back"><svg class="ic" width="18" height="18" viewBox="0 0 256 256"><use href="#i-caret-left"/></svg></span><h3>IG Drop</h3><span class="badge num">8 SELECTED</span></div>
       <div style="margin-top:4px">
-        <div class="row"><span class="check on">✓</span><span class="thumb" style="width:44px;height:44px;font-size:15px">S</span><div class="meta"><b style="font-size:15px">Stüssy Tee</b></div><div class="price num" style="font-size:15px"><span class="cur">₱</span>550</div></div>
-        <div class="row"><span class="check on">✓</span><span class="thumb" style="width:44px;height:44px;font-size:15px">C</span><div class="meta"><b style="font-size:15px">Carhartt Hoodie</b></div><div class="price num" style="font-size:15px"><span class="cur">₱</span>750</div></div>
+        <div class="row"><span class="check on"><svg class="ic" width="13" height="13" viewBox="0 0 256 256"><use href="#i-check"/></svg></span><span class="thumb" style="width:44px;height:44px;font-size:15px">S</span><div class="meta"><b style="font-size:15px">Stüssy Tee</b></div><div class="price num" style="font-size:15px"><span class="cur">₱</span>550</div></div>
+        <div class="row"><span class="check on"><svg class="ic" width="13" height="13" viewBox="0 0 256 256"><use href="#i-check"/></svg></span><span class="thumb" style="width:44px;height:44px;font-size:15px">C</span><div class="meta"><b style="font-size:15px">Carhartt Hoodie</b></div><div class="price num" style="font-size:15px"><span class="cur">₱</span>750</div></div>
         <div class="row"><span class="check"></span><span class="thumb" style="width:44px;height:44px;font-size:15px">U</span><div class="meta"><b style="font-size:15px;color:var(--ink-dim)">Uniqlo Longsleeve</b></div><div class="price num" style="font-size:15px;color:var(--ink-dim)"><span class="cur">₱</span>260</div></div>
       </div>
       <div class="fieldlabel" style="margin-top:12px">CAPTION PREVIEW</div>
@@ -416,8 +431,8 @@
 💸 <span class="hl">₱750</span>
 📍 Comment "Mine" to claim
 ---</div>
-      <div class="toast"><b>✓</b> Copied 8 listings to clipboard</div>
-      <div class="btn-primary">Copy to Clipboard</div>
+      <div class="toast"><svg class="ic" width="16" height="16" viewBox="0 0 256 256" style="color:var(--acid)"><use href="#i-check"/></svg>&nbsp;Copied 8 listings to clipboard</div>
+      <div class="btn-primary"><svg class="ic" width="17" height="17" viewBox="0 0 256 256"><use href="#i-clipboard-text"/></svg>&ensp;Copy to Clipboard</div>
     </div>
     <div class="homebar"><i></i></div>
   </div>

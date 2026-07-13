@@ -55,6 +55,19 @@ Why Archivo: streetwear brand type splits between geometric caps (Supreme/Nike's
 - Peso format: `₱1,250` — symbol at 0.7em of the figure, no decimals (whole-peso market).
 - Expo implementation: bundle static TTFs (`Archivo-Regular/Medium/SemiBold/Bold`, `ArchivoExpanded-ExtraBold/Black`) via `expo-font`; React Native's variable-font axis support is unreliable, so ship instances, not the variable file.
 
+## Iconography
+
+**Phosphor Icons, Bold weight** — one library, one weight, everywhere. MIT license; `phosphor-react-native` in the Expo build.
+
+Why Phosphor Bold: its chunky geometric strokes sit at the same visual weight as Archivo Expanded 800 — icons and type read as one voice. It offers 9,000+ glyphs in six weights (so Fill is available for rare emphasis states without changing library), and it isn't Lucide — the template/AI default that makes products look identical.
+
+Rules:
+- Weight is **Bold** for all UI icons. **Fill** allowed only for selected-state toggles (e.g. filled camera slot indicator). Never mix in other libraries.
+- Icons inherit text color (`currentColor`) — they follow the same color rules as the text they sit beside; acid only when the text is acid.
+- Sizes: 16px inline with body/buttons, 18–20px in touch targets, 12–14px in badges/captions.
+- Emoji are reserved exclusively for the IG caption output (👕 📏 ✨ 💸 📍) — they are product data (what buyers see on Instagram), not UI.
+- Core vocabulary: `plus` (create), `caret-left/right/down` (nav/disclosure), `check` (confirm/selected), `camera` (photo capture), `magnifying-glass` (search), `pencil-simple` (edit), `trash` (delete), `clipboard-text` (copy/export), `airplane-tilt` (offline indicator, mockups only).
+
 ## Spacing, Shape, Touch
 
 - 4pt grid: 4 / 8 / 12 / 16 / 24 / 32.
