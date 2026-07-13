@@ -25,13 +25,13 @@ export default function DataPage() {
       <h2>Our standing promises</h2>
       <ul>
         <li>Any future feature that would move inventory off your device will be opt-in, end-to-end encrypted, and announced on this page before it ships.</li>
-        <li>Account deletion is self-serve and complete.</li>
-        <li>We will never sell personal data.</li>
+        <li>Account deletion is self-serve and removes your account data; payment references persist only as long as financial regulations require.</li>
+        <li>We will never sell or share personal data.</li>
       </ul>
       <h2>Security contact</h2>
       <p>
-        Found a vulnerability? Email hello@latag.ph with the details — we read every report and credit
-        fixes if you'd like.
+        If you find a vulnerability, email hello@latag.ph with the details — we read every report and
+        credit fixes if you'd like.
       </p>
     </Prose>
   );

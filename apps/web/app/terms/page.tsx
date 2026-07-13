@@ -6,12 +6,12 @@ export const metadata: Metadata = { title: "Terms of Use" };
 export default function TermsPage() {
   return (
     <Prose title="Terms of Use" updated="July 13, 2026">
-      <p>These terms keep things fair and simple. By using Latag you agree to them.</p>
+      <p>These terms keep things fair and short. By using Latag you agree to them.</p>
       <h2>The app</h2>
       <p>
         Latag is an offline inventory and pricing tool for clothing resellers. The free tier includes 20
-        item logs. Latag Pro is a one-time purchase that unlocks unlimited logs on your account, activated by
-        signing in once inside the app.
+        item logs. Latag Pro is a one-time purchase that unlocks unlimited item logs on your account, activated
+        by signing in once inside the app.
       </p>
       <h2>Your data, your responsibility</h2>
       <p>
