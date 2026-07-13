@@ -152,7 +152,7 @@ export function Showcase() {
   const offsets = useMemo(() => SCREENS.map((_, idx) => signedOffset(idx, active)), [active]);
 
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-hidden pb-20">
       <div
         ref={stageRef}
         role="region"
@@ -166,7 +166,10 @@ export function Showcase() {
         className="relative mx-auto flex items-center justify-center focus-visible:outline-2 focus-visible:outline-acid"
         style={{
           perspective: "1200px",
-          height: "clamp(420px, 60vw, 560px)",
+          // Stage height follows the card's real 390:844 aspect so cards never
+          // spill over the controls below (2.164 = 844/390, +24px breathing room).
+          ["--card-w" as string]: "clamp(200px, 56vw, 300px)",
+          height: "calc(clamp(200px, 56vw, 300px) * 2.164 + 24px)",
           touchAction: "pan-y",
         }}
       >
@@ -185,7 +188,7 @@ export function Showcase() {
               }`}
               style={{
                 ...style,
-                width: "clamp(200px, 56vw, 300px)",
+                width: "var(--card-w)",
                 transition: "transform 480ms cubic-bezier(0.22,1,0.36,1), opacity 480ms",
                 boxShadow: isActive ? "0 0 60px -20px rgba(184,241,53,0.35)" : undefined,
               }}
@@ -204,7 +207,7 @@ export function Showcase() {
         })}
       </div>
 
-      <div className="mt-6 flex items-center justify-center gap-4">
+      <div className="relative z-40 mt-10 flex items-center justify-center gap-4">
         <button
           type="button"
           aria-label="Previous screen"
