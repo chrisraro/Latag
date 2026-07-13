@@ -10,6 +10,13 @@ export const metadata: Metadata = {
   title: { default: "Latag — the ukay ops console", template: "%s · Latag" },
   description:
     "Log a piece in 5 seconds, know your margins instantly, and drop to Instagram in one tap. 100% offline — built for ukay-ukay resellers.",
+  openGraph: {
+    title: "Latag — the ukay ops console",
+    description: "Log fast. Know your margins. Work offline.",
+    url: "https://latag.ph",
+    siteName: "Latag",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
