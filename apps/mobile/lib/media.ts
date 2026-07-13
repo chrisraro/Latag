@@ -1,5 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy"; // SDK 57: legacy submodule confirmed present, mirrors old API
-import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { ImageManipulator, SaveFormat, type ImageRef } from "expo-image-manipulator";
 import * as Crypto from "expo-crypto";
 import { photos } from "../db/schema";
 
@@ -18,12 +18,20 @@ async function ensureDir(): Promise<void> {
 export async function persistPhoto(tempUri: string): Promise<string> {
   await ensureDir();
   const context = ImageManipulator.manipulate(tempUri);
-  context.resize({ width: 1200 });
-  const rendered = await context.renderAsync();
-  const compressed = await rendered.saveAsync({ compress: 0.7, format: SaveFormat.JPEG });
-  const dest = `${MEDIA_DIR}${Crypto.randomUUID()}.jpg`;
-  await FileSystem.moveAsync({ from: compressed.uri, to: dest });
-  return dest;
+  let rendered: ImageRef | undefined;
+  try {
+    context.resize({ width: 1200 });
+    rendered = await context.renderAsync();
+    const compressed = await rendered.saveAsync({ compress: 0.7, format: SaveFormat.JPEG });
+    const dest = `${MEDIA_DIR}${Crypto.randomUUID()}.jpg`;
+    await FileSystem.moveAsync({ from: compressed.uri, to: dest });
+    return dest;
+  } finally {
+    // Free the native shared objects (image bitmap + manipulation context) — the deprecated
+    // manipulateAsync released both internally; without this every photo leaks native memory.
+    rendered?.release();
+    context.release();
+  }
 }
 
 export async function deleteFiles(uris: string[]): Promise<void> {
