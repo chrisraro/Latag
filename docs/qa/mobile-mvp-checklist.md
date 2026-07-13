@@ -14,3 +14,5 @@
 - [ ] Multi-photo capture loop (20+ photos in one session) with a memory watch — verifies ImageManipulator shared-object release; include a failure-path capture (cancel mid-capture) to confirm release-on-error
 - [ ] Stage photos then back out WITHOUT saving → relaunch → orphan sweep removes the abandoned files; next console open shows empty slots
 - [ ] Wheel centering on a non-390pt device (e.g. small Android) — selected value sits visually centered
+- [ ] Camera permission DENIED walkthrough: deny → slots show grant state → items still save photo-less (photos never block saving)
+- [ ] Edit round-trip: edit an item with photos → slots prefill → re-shoot one slot → save → detail shows exactly one photo per type (no duplicates), old file removed

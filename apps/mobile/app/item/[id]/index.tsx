@@ -25,7 +25,7 @@ export default function ItemDetail() {
   const confirmDelete = () =>
     Alert.alert("Delete item?", "Photos on this item are removed from your phone too.", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => { const { photoUris } = deleteItem(db, id); deleteFiles(photoUris); router.back(); } },
+      { text: "Delete", style: "destructive", onPress: () => { const { photoUris } = deleteItem(db, id); deleteFiles(photoUris).catch(() => {}); router.back(); } },
     ]);
 
   const Row = ({ k, v, acid }: { k: string; v: string; acid?: boolean }) => (

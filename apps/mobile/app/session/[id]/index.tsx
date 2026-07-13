@@ -48,7 +48,7 @@ export default function DashboardScreen() {
           <Text style={{ fontFamily: FONT.semibold, letterSpacing: 1 }} className="text-[11.5px] uppercase text-inkfaint">Projected profit</Text>
           <Text style={{ fontFamily: FONT.displayBlack, fontVariant: ["tabular-nums"] }} className="text-[34px] text-acid">{formatPeso(selectorProjected(all))}</Text>
           <View className="mt-2 flex-row gap-5">
-            <View><Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"] }} className="text-[17px] text-ink">{formatPeso(selectorRealized(all))}</Text><Text className="text-[12px] text-inkfaint">realized</Text></View>
+            <View><Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"] }} className={`text-[17px] ${selectorRealized(all) < 0 ? "text-danger" : "text-ink"}`}>{formatPeso(selectorRealized(all))}</Text><Text className="text-[12px] text-inkfaint">realized</Text></View>
             <View><Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"] }} className="text-[17px] text-ink">{all.length}</Text><Text className="text-[12px] text-inkfaint">items</Text></View>
             <View><Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"] }} className="text-[17px] text-ink">{all.filter((i) => i.status === "sold").length}</Text><Text className="text-[12px] text-inkfaint">sold</Text></View>
           </View>

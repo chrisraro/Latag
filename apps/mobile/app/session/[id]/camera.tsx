@@ -29,12 +29,16 @@ export default function CameraScreen() {
   }
 
   const capture = async () => {
-    const photo = await cam.current?.takePictureAsync();
-    if (!photo) return;
-    const uri = await persistPhoto(photo.uri);          // compress → move → file:// URI (file exists before any row)
-    stagePhoto(slot ?? "front", uri);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.back();
+    try {
+      const photo = await cam.current?.takePictureAsync();
+      if (!photo) return;
+      const uri = await persistPhoto(photo.uri);          // compress → move → file:// URI (file exists before any row)
+      stagePhoto(slot ?? "front", uri);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      router.back();
+    } catch (e) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); // stay on camera, no crash
+    }
   };
 
   return (

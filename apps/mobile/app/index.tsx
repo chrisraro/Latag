@@ -20,16 +20,18 @@ export default function SessionsScreen() {
     const its = (itemRows ?? []).filter((i) => i.sessionId === s.id);
     const soldCount = its.filter((i) => i.status === "sold").length;
     const allSold = its.length > 0 && soldCount === its.length;
-    let headline: string, note: string;
+    let headline: string, note: string, negative = false;
     if (s.type === "bulto") {
       const pct = bultoRealizedPct(its, s.totalBaleCost ?? 0);
       headline = pct == null ? "—" : formatPct(pct); note = "recovered";
     } else if (allSold) {
-      headline = formatPeso(selectorRealized(its)); note = "realized";
+      const realized = selectorRealized(its);
+      headline = formatPeso(realized); note = "realized"; negative = realized < 0;
     } else {
-      headline = formatPeso(selectorProjected(its)); note = "projected";
+      const projected = selectorProjected(its);
+      headline = formatPeso(projected); note = "projected"; negative = projected < 0;
     }
-    return { s, count: its.length, soldCount, headline, note };
+    return { s, count: its.length, soldCount, headline, note, negative };
   });
 
   return (
@@ -52,7 +54,7 @@ export default function SessionsScreen() {
         <FlatList
           data={list}
           keyExtractor={({ s }) => s.id}
-          renderItem={({ item: { s, count, soldCount, headline, note } }) => (
+          renderItem={({ item: { s, count, soldCount, headline, note, negative } }) => (
             <Pressable onPress={() => router.push(`/session/${s.id}`)} className="mb-3 rounded-card border border-hairline bg-surface1 p-4">
               <View className="flex-row items-center gap-2">
                 <Text style={{ fontFamily: FONT.semibold }} className="flex-1 text-[17px] text-ink" numberOfLines={1}>{s.name}</Text>
@@ -61,7 +63,7 @@ export default function SessionsScreen() {
               {s.location ? <Text style={{ fontFamily: FONT.text }} className="mt-0.5 text-[12px] text-inkfaint">{s.location}</Text> : null}
               <View className="mt-4 flex-row items-baseline justify-between">
                 <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"] }} className="text-[12px] text-inkfaint">{count} items · {soldCount} sold</Text>
-                <Text style={{ fontFamily: FONT.display, fontVariant: ["tabular-nums"] }} className="text-[22px] text-acid">
+                <Text style={{ fontFamily: FONT.display, fontVariant: ["tabular-nums"] }} className={`text-[22px] ${negative ? "text-danger" : "text-acid"}`}>
                   {headline} <Text className="text-[12px] text-inkfaint">{note}</Text>
                 </Text>
               </View>

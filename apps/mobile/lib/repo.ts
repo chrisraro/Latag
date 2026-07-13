@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { sessions, items, photos, type Session, type Item, type Photo } from "../db/schema";
 import { consumeLog } from "./entitlements";
@@ -39,6 +39,22 @@ export function addPhoto(db: AnyDb, input: { itemId: string; localUri: string; t
   const row = { id: newId(), ...input };
   db.insert(photos).values(row).run();
   return db.select().from(photos).where(eq(photos.id, row.id)).all()[0];
+}
+
+/**
+ * Replaces all existing photo rows for (itemId, type) with a single new row, transactionally.
+ * Used by edit-mode re-shoots so a re-captured slot never leaves duplicate photo rows behind —
+ * callers must delete the returned replacedUris (the old files) via deleteFiles.
+ */
+export function replacePhoto(db: AnyDb, input: { itemId: string; localUri: string; type: "front" | "back" | "tag" | "flaw" }): { photo: Photo; replacedUris: string[] } {
+  return db.transaction((tx: AnyDb) => {
+    const existing = tx.select().from(photos).where(and(eq(photos.itemId, input.itemId), eq(photos.type, input.type))).all();
+    const replacedUris = existing.map((p: Photo) => p.localUri);
+    tx.delete(photos).where(and(eq(photos.itemId, input.itemId), eq(photos.type, input.type))).run();
+    const row = { id: newId(), ...input };
+    tx.insert(photos).values(row).run();
+    return { photo: tx.select().from(photos).where(eq(photos.id, row.id)).all()[0], replacedUris };
+  });
 }
 
 export function markSold(db: AnyDb, id: string, soldPrice: number): Item {

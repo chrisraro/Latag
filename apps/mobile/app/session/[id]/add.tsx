@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,8 +6,9 @@ import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { desc, eq } from "drizzle-orm";
 import * as Haptics from "expo-haptics";
 import { db } from "../../../db/client";
-import { items, entitlements, sessions } from "../../../db/schema";
-import { addItem, updateItem, addPhoto } from "../../../lib/repo";
+import { items, entitlements, sessions, photos } from "../../../db/schema";
+import { addItem, updateItem, addPhoto, replacePhoto } from "../../../lib/repo";
+import { deleteFiles } from "../../../lib/media";
 import { FreeTierExhaustedError, logsRemaining, ensureEntitlements } from "../../../lib/entitlements";
 import { peekStagedPhotos, takeStagedPhotos, type SlotType } from "../../../lib/photo-staging";
 import { CATEGORIES, CONDITIONS, FONT } from "../../../lib/theme";
@@ -32,6 +33,7 @@ export default function RapidConsole() {
   const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(eq(sessions.id, id)), [id]);
   const { data: sessionItems } = useLiveQuery(db.select().from(items).where(eq(items.sessionId, id)), [id]);
   const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
+  const { data: existingPhotoRows } = useLiveQuery(db.select().from(photos).where(eq(photos.itemId, editId ?? "")), [editId]);
   const session = sessionRows?.[0];
 
   // sticky values persist across saves within the screen's lifetime
@@ -45,6 +47,8 @@ export default function RapidConsole() {
   const [cost, setCost] = useState(0);
   const [staged, setStaged] = useState<Partial<Record<SlotType, string>>>({});
   const [goPro, setGoPro] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const saveErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // pull staged photos whenever we regain focus from the camera
   useFocusEffect(useCallback(() => { setStaged(peekStagedPhotos()); }, []));
@@ -52,6 +56,16 @@ export default function RapidConsole() {
   // Abandoned staged photos must not leak into the next console mount.
   // Their files become disk orphans, reclaimed by sweepOrphans on next boot.
   useEffect(() => () => { takeStagedPhotos(); }, []);
+
+  useEffect(() => () => { if (saveErrorTimer.current) clearTimeout(saveErrorTimer.current); }, []);
+
+  // edit mode: prefill the slots from the item's existing photos; a freshly staged
+  // capture for a slot overrides the existing photo for display purposes only.
+  const existingPhotoMap = useMemo(() => {
+    const map: Partial<Record<SlotType, string>> = {};
+    for (const p of existingPhotoRows ?? []) map[p.type as SlotType] = p.localUri;
+    return map;
+  }, [existingPhotoRows]);
 
   // edit-mode prefill
   useEffect(() => {
@@ -81,13 +95,25 @@ export default function RapidConsole() {
       const input = { sessionId: id, brand: brand.trim(), category, condition, ptpInches: ptp, lengthInches: len, targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0 };
       const saved = editId ? { item: updateItem(db, editId, input) } : addItem(db, input);
       const shots = takeStagedPhotos();
-      for (const slot of SLOTS) { const uri = shots[slot]; if (uri) addPhoto(db, { itemId: saved.item.id, localUri: uri, type: slot }); }
+      for (const slot of SLOTS) {
+        const uri = shots[slot];
+        if (!uri) continue; // untouched slots are left alone entirely
+        if (editId) {
+          const { replacedUris } = replacePhoto(db, { itemId: saved.item.id, localUri: uri, type: slot });
+          if (replacedUris.length) deleteFiles(replacedUris).catch(() => {});
+        } else {
+          addPhoto(db, { itemId: saved.item.id, localUri: uri, type: slot });
+        }
+      }
       setStaged({});
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (editId) router.back(); // edits return to detail; new items stay for the next log (sticky values)
     } catch (e) {
       if (e instanceof FreeTierExhaustedError) { setGoPro(true); return; }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setSaveError(true);
+      if (saveErrorTimer.current) clearTimeout(saveErrorTimer.current);
+      saveErrorTimer.current = setTimeout(() => setSaveError(false), 2500);
     }
   };
 
@@ -104,7 +130,7 @@ export default function RapidConsole() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
         <View className="flex-row gap-2">
           {SLOTS.map((s) => (
-            <PhotoSlot key={s} label={s.toUpperCase()} uri={staged[s] ?? null} onPress={() => router.push(`/session/${id}/camera?slot=${s}`)} />
+            <PhotoSlot key={s} label={s.toUpperCase()} uri={staged[s] ?? existingPhotoMap[s] ?? null} onPress={() => router.push(`/session/${id}/camera?slot=${s}`)} />
           ))}
         </View>
         <FieldLabel>Brand</FieldLabel>
@@ -137,6 +163,11 @@ export default function RapidConsole() {
           <Wheel values={PRICE} value={price} onChange={setPrice} unit="₱" />
         </>)}
       </ScrollView>
+      {saveError ? (
+        <View className="absolute bottom-28 left-6 right-6 flex-row items-center gap-2 rounded-card border border-hairline bg-surface2 px-4 py-3">
+          <Text style={{ fontFamily: FONT.semibold }} className="text-[14px] text-ink">Couldn't save — try again</Text>
+        </View>
+      ) : null}
       <View style={{ paddingBottom: insets.bottom + 4 }}>
         <PrimaryButton label={editId ? "Save changes  ✓" : "Save + Next  ✓"} onPress={save} />
       </View>

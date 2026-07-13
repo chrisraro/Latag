@@ -1,5 +1,6 @@
+import { eq } from "drizzle-orm";
 import { makeTestDb } from "./helpers/testDb";
-import { createSession, addItem, updateItem, addPhoto, markSold, unmarkSold, deleteItem } from "../lib/repo";
+import { createSession, addItem, updateItem, addPhoto, replacePhoto, markSold, unmarkSold, deleteItem } from "../lib/repo";
 import { ensureEntitlements, FREE_LOG_LIMIT, FreeTierExhaustedError } from "../lib/entitlements";
 import { items, photos } from "../db/schema";
 
@@ -47,4 +48,27 @@ test("deleteItem removes rows, returns photo uris, never refunds logs", () => {
   expect(db.select().from(photos).all()).toHaveLength(0);
   const after = addItem(db, { sessionId: s.id, ...base }).logsRemaining;
   expect(after).toBe(before - 1); // no refund happened
+});
+test("replacePhoto swaps a single slot's row without leaving duplicates", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  addPhoto(db, { itemId: item.id, localUri: "file:///m/front-old.jpg", type: "front" });
+  const { photo, replacedUris } = replacePhoto(db, { itemId: item.id, localUri: "file:///m/front-new.jpg", type: "front" });
+  const frontRows = db.select().from(photos).where(eq(photos.itemId, item.id)).all().filter((p) => p.type === "front");
+  expect(frontRows).toHaveLength(1);
+  expect(frontRows[0].localUri).toBe("file:///m/front-new.jpg");
+  expect(photo.localUri).toBe("file:///m/front-new.jpg");
+  expect(replacedUris).toEqual(["file:///m/front-old.jpg"]);
+});
+test("replacePhoto on a type with no existing row behaves like addPhoto", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  const { photo, replacedUris } = replacePhoto(db, { itemId: item.id, localUri: "file:///m/back.jpg", type: "back" });
+  expect(replacedUris).toEqual([]);
+  expect(photo.localUri).toBe("file:///m/back.jpg");
+  expect(db.select().from(photos).where(eq(photos.itemId, item.id)).all()).toHaveLength(1);
 });
