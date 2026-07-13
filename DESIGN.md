@@ -32,20 +32,28 @@ Rules:
 
 ## Typography
 
-One family: system sans (`SF Pro` / `Roboto` via system-ui stack). No display font.
+One family, two voices: **Archivo** (Google Fonts, variable — weight 100–900 × width 62–125%). A grotesque designed for headlines that stays highly readable in UI; free license; ships in Expo via bundled static instances.
 
-| Token | Size/Line | Weight | Use |
+Why Archivo: streetwear brand type splits between geometric caps (Supreme/Nike's Futura) and default grotesques (the Helvetica of every second label). Archivo's **Expanded Bold/Black** delivers that athletic jersey-lettering voice for display, while normal width is a workhorse text grotesque — one family, zero pairing risk, maximum legibility.
+
+**Display voice** — Archivo Expanded (width 118–125%), weight 800–900. Used for: screen titles, headline money/percent figures, primary & secondary buttons (uppercase, +0.03em tracking), badges. Never for body or dense rows.
+
+**Text voice** — Archivo normal width. Weights 400–800 per scale below.
+
+| Token | Size/Line | Weight / Width | Use |
 |---|---|---|---|
-| `display-money` | 34/38 | 700 | Dashboard headline figures |
-| `title` | 22/28 | 700 | Screen titles |
-| `heading` | 17/24 | 600 | Card titles, section heads |
-| `body` | 15/22 | 400 | Default |
-| `label` | 13/18 | 500 | Field labels, chip text |
-| `caption` | 12/16 | 400 | Meta, timestamps |
-| `wheel-value` | 28/32 | 700 | Active wheel value |
+| `display-money` | 34/38 | 900 / 125% | Dashboard headline figures |
+| `title` | 21/28 | 800 / 118% | Screen titles |
+| `heading` | 17/24 | 600 / 100% | Card titles, row brands |
+| `body` | 15/22 | 400 / 100% | Default |
+| `label` | 11.5/16 | 600 / 100%, +0.08em, uppercase | Field labels |
+| `caption` | 12/16 | 400 / 100% | Meta, timestamps |
+| `wheel-value` | 28/32 | 800 / 100% | Active wheel value |
+| `button` | 16/— | 800 / 125%, +0.03em, uppercase | Primary/secondary actions |
 
-- **`font-variant-numeric: tabular-nums` on every money figure, measurement, and wheel** — digits must not jitter as values change.
+- **`font-variant-numeric: tabular-nums` (feature `tnum`) on every money figure, measurement, and wheel** — digits must not jitter as values change.
 - Peso format: `₱1,250` — symbol at 0.7em of the figure, no decimals (whole-peso market).
+- Expo implementation: bundle static TTFs (`Archivo-Regular/Medium/SemiBold/Bold`, `ArchivoExpanded-ExtraBold/Black`) via `expo-font`; React Native's variable-font axis support is unreliable, so ship instances, not the variable file.
 
 ## Spacing, Shape, Touch
 
