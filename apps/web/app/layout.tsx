@@ -6,14 +6,14 @@ import "./globals.css";
 const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", axes: ["wdth"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://latag.ph"),
+  metadataBase: new URL("https://latag.vercel.app"),
   title: { default: "Latag — the ukay ops console", template: "%s · Latag" },
   description:
     "Log a piece in 5 seconds, know your margins instantly, and drop to Instagram in one tap. 100% offline — built for ukay-ukay resellers.",
   openGraph: {
     title: "Latag — the ukay ops console",
     description: "Log fast. Know your margins. Work offline.",
-    url: "https://latag.ph",
+    url: "https://latag.vercel.app",
     siteName: "Latag",
     type: "website",
   },
