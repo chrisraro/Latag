@@ -208,3 +208,15 @@ Latag-App-Context.md    original context (kept)
 2. **Design mockups** — design system + phone-framed HTML mockups via **impeccable**; published as a clickable artifact. Gate: user approves the look. *Expanded during this phase to the full production surface (15 screens): the MVP core loop (sessions, dashboards, Rapid Console, camera, item detail, mark-sold, IG export, empty states) plus first-run screens (welcome/activation, email OTP, onboarding ×2) and Settings, designed ahead of their build phases. Build scope is unchanged — auth/licensing and telemetry remain post-MVP.*
 3. **Build** — **writing-plans** produces the implementation plan; executed via **subagent-driven-development**: scaffold Expo Router + Drizzle → schema/migrations → math lib (test-first) → media pipeline → repo layer → screens matching approved mockups.
 4. **Parked for later phases:** web platform (landing, portal, admin console, payments, legal pages — see companion platform spec), Next.js + Upstash telemetry, Supabase auth/licensing + license receipt caching, bottoms & other categories, CSV export/backup.
+
+---
+
+## Appendix: Deliberate Implementation Deviations (Phase A build)
+
+Recorded at whole-branch review so these stay decisions, not surprises:
+
+1. Dashboard multi-select for export replaced by an always-visible **Export chip** (long-press multi-select deferred).
+2. Bulto **projected recovery** renders as a text line under the bar, not a ghost marker on the bar (marker deferred to polish).
+3. Brand entry is recent-brand chips + a plain text field (filtered type-ahead list deferred).
+4. The Reanimated acid **save flash** is deferred to the polish pass (save feedback ships as haptic success + counter update).
+5. Post-QA (user-requested): money wheels (price, cost, bale, sold-for) gained a **custom-amount escape hatch** (number-pad sheet via the acid unit label) — amends the zero-typing rule: numeric entry allowed for money, never for measurements. The IG export caption preview became an **editable canvas** (edits reset when the selection changes).

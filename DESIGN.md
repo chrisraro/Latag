@@ -82,7 +82,7 @@ Rules:
 ## Components
 
 - **Chip** — pill, 44px tall (≥48px hit area with row padding), `surface-2` + hairline at rest; selected = `acid` bg + `acid-ink` text + haptic light. One group = one selection.
-- **Scroll wheel** — horizontal detent strip; center value in `wheel-value` + acid underline tick; neighbors dim + scale 0.8; haptic tick per detent. Unit label (`in`, `₱`) in `ink-faint` beside value.
+- **Scroll wheel** — horizontal detent strip; center value in `wheel-value` + acid underline tick; neighbors dim + scale 0.8; haptic tick per detent. Unit label (`in`, `₱`) in `ink-faint` beside value. Item width adapts to the longest formatted label (5+ digit prices never overlap). **Money wheels** may enable a custom-amount escape hatch: the unit label renders acid + underlined and opens a number-pad sheet; the entered value injects into the track and snaps into place. Measurement wheels never get the escape hatch.
 - **Primary button** — full-width pill, acid bg, `acid-ink` bold label, pressed = scale 0.97 + haptic medium. One per screen.
 - **Destructive button** — `danger` outline style; confirm dialog always.
 - **Photo slot** — 10px-radius square, dashed hairline + type label (F/B/Tag/Flaw) when empty; thumbnail + label overlay when filled.

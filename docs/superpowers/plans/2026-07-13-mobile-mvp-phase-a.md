@@ -854,7 +854,7 @@ export async function sweepOrphans(db: any): Promise<number> {
 **Files:** Create `apps/mobile/components/ui.tsx`, `apps/mobile/components/Wheel.tsx`, `apps/mobile/components/PhotoSlot.tsx`, `apps/mobile/components/GoProSheet.tsx`, `apps/mobile/lib/photo-staging.ts`
 
 **Interfaces (consumed by every screen task):**
-- `ui.tsx`: `Chip({ label, selected, onPress })` · `Badge({ label, tone?: "default" | "sold" })` · `PrimaryButton({ label, onPress, icon?, disabled? })` · `SecondaryButton({ label, onPress, danger? })` · `FieldLabel({ children })` · `Money({ value, size?: "hero" | "row" })` (Archivo Expanded, acid, tabular).
+- `ui.tsx`: `Chip({ label, selected, onPress })` · `Badge({ label, tone?: "default" | "sold" })` · `PrimaryButton({ label, onPress, disabled? })` (icons/glyphs ride inside `label`) · `SecondaryButton({ label, onPress, danger? })` · `FieldLabel({ children })` · `Money({ value, size?: "hero" | "row" })` (Archivo Expanded, acid, tabular).
 - `Wheel.tsx`: `Wheel({ values: number[], value: number, onChange: (v: number) => void, unit?: string, format?: (v: number) => string })` — horizontal snap, `Haptics.selectionAsync()` per detent.
 - `PhotoSlot.tsx`: `PhotoSlot({ label: "FRONT" | "BACK" | "TAG" | "FLAW", uri: string | null, onPress })` (expo-image thumbnail when filled).
 - `GoProSheet.tsx`: `GoProSheet({ visible, onClose })` — free-tier wall copy + `latag.ph/pro` line (copy string only; no purchase flow).
