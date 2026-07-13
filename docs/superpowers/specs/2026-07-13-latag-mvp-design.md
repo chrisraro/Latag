@@ -219,3 +219,4 @@ Recorded at whole-branch review so these stay decisions, not surprises:
 2. Bulto **projected recovery** renders as a text line under the bar, not a ghost marker on the bar (marker deferred to polish).
 3. Brand entry is recent-brand chips + a plain text field (filtered type-ahead list deferred).
 4. The Reanimated acid **save flash** is deferred to the polish pass (save feedback ships as haptic success + counter update).
+5. Post-QA (user-requested): money wheels (price, cost, bale, sold-for) gained a **custom-amount escape hatch** (number-pad sheet via the acid unit label) — amends the zero-typing rule: numeric entry allowed for money, never for measurements. The IG export caption preview became an **editable canvas** (edits reset when the selection changes).

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { db } from "../../db/client";
 import { createSession } from "../../lib/repo";
@@ -12,6 +13,7 @@ const BALE_VALUES = rangeValues(1000, 50000, 500);
 
 export default function NewSessionScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [type, setType] = useState<"selector" | "bulto">("selector");
@@ -25,7 +27,7 @@ export default function NewSessionScreen() {
 
   const inputCls = "mb-2.5 h-13 rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
   return (
-    <View className="flex-1 bg-surface1 px-4 pt-3">
+    <View className="flex-1 bg-surface1 px-4" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
       <View className="mb-3 h-1 w-11 self-center rounded-full bg-hairline" />
       <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">New Session</Text>
       <Text style={{ fontFamily: FONT.text }} className="mb-3 mt-0.5 text-[12.5px] text-inkfaint">Name it after the spot — you'll thank yourself later.</Text>
@@ -41,7 +43,7 @@ export default function NewSessionScreen() {
       </View>
       {type === "bulto" ? (<>
         <FieldLabel>Bale cost</FieldLabel>
-        <Wheel values={BALE_VALUES} value={baleCost} onChange={setBaleCost} unit="₱" format={(v) => v.toLocaleString("en-PH")} />
+        <Wheel values={BALE_VALUES} value={baleCost} onChange={setBaleCost} unit="₱" format={(v) => v.toLocaleString("en-PH")} allowCustom />
       </>) : null}
       <PrimaryButton label="Create Session" onPress={create} disabled={!name.trim()} />
     </View>

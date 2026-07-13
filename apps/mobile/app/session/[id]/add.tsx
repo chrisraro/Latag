@@ -155,12 +155,12 @@ export default function RapidConsole() {
         {session.type === "selector" ? (<>
           <FieldLabel>Cost · Price</FieldLabel>
           <View className="flex-row gap-2">
-            <View className="flex-1"><Wheel values={COST} value={cost} onChange={setCost} unit="COST ₱" /></View>
-            <View className="flex-[1.4]"><Wheel values={PRICE} value={price} onChange={setPrice} unit="₱" /></View>
+            <View className="flex-1"><Wheel values={COST} value={cost} onChange={setCost} unit="COST ₱" allowCustom /></View>
+            <View className="flex-[1.4]"><Wheel values={PRICE} value={price} onChange={setPrice} unit="₱" allowCustom /></View>
           </View>
         </>) : (<>
           <FieldLabel>Target price</FieldLabel>
-          <Wheel values={PRICE} value={price} onChange={setPrice} unit="₱" />
+          <Wheel values={PRICE} value={price} onChange={setPrice} unit="₱" allowCustom />
         </>)}
       </ScrollView>
       {saveError ? (

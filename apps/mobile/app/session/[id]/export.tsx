@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -21,6 +21,8 @@ export default function ExportScreen() {
   const all = itemRows ?? [];
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
+  const [caption, setCaption] = useState("");
+  const [captionFocused, setCaptionFocused] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setSelected(new Set(all.filter((i) => i.status === "available").map((i) => i.id))); }, [itemRows?.length]);
@@ -28,7 +30,9 @@ export default function ExportScreen() {
   useEffect(() => () => { if (copiedTimer.current) clearTimeout(copiedTimer.current); }, []);
 
   const chosen = all.filter((i) => selected.has(i.id));
-  const caption = formatCaption(chosen);
+  // Regenerate the caption from the template whenever the selection changes;
+  // manual edits apply on top and reset on the next selection change.
+  useEffect(() => { setCaption(formatCaption(chosen)); }, [selected, itemRows]);
   const toggle = (itemId: string) => setSelected((prev) => { const n = new Set(prev); n.has(itemId) ? n.delete(itemId) : n.add(itemId); return n; });
   const copy = async () => {
     await Clipboard.setStringAsync(caption);
@@ -56,17 +60,29 @@ export default function ExportScreen() {
           </Pressable>
         ))}
       </ScrollView>
-      <FieldLabel>Caption preview</FieldLabel>
-      <ScrollView className="flex-1 rounded-card border border-hairline bg-surface1 px-4 py-3">
-        <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"] }} className="text-[13.5px] leading-[22px] text-inkdim">{caption || "Select items to build the drop caption."}</Text>
-      </ScrollView>
+      <FieldLabel>Caption — tap to edit</FieldLabel>
+      <TextInput
+        value={caption}
+        onChangeText={setCaption}
+        multiline
+        textAlignVertical="top"
+        scrollEnabled
+        editable={chosen.length > 0}
+        onFocus={() => setCaptionFocused(true)}
+        onBlur={() => setCaptionFocused(false)}
+        placeholder="Select items to build the drop caption."
+        placeholderTextColor="#8A8A8A"
+        accessibilityLabel="Drop caption editor"
+        style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"] }}
+        className={`flex-1 rounded-card border bg-surface1 px-4 py-3 text-[13.5px] leading-[22px] text-ink ${captionFocused ? "border-acid" : "border-hairline"}`}
+      />
       {copied ? (
         <View className="absolute bottom-28 left-6 right-6 flex-row items-center gap-2 rounded-card border border-hairline bg-surface2 px-4 py-3">
           <Text className="text-acid">✓</Text><Text style={{ fontFamily: FONT.semibold }} className="text-[14px] text-ink">Copied {chosen.length} listings to clipboard</Text>
         </View>
       ) : null}
       <View style={{ paddingBottom: insets.bottom + 4 }}>
-        <PrimaryButton label="Copy to Clipboard" onPress={copy} disabled={chosen.length === 0} />
+        <PrimaryButton label="Copy to Clipboard" onPress={copy} disabled={chosen.length === 0 || !caption.trim()} />
       </View>
     </View>
   );
