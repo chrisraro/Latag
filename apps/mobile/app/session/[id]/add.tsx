@@ -49,6 +49,10 @@ export default function RapidConsole() {
   // pull staged photos whenever we regain focus from the camera
   useFocusEffect(useCallback(() => { setStaged(peekStagedPhotos()); }, []));
 
+  // Abandoned staged photos must not leak into the next console mount.
+  // Their files become disk orphans, reclaimed by sweepOrphans on next boot.
+  useEffect(() => () => { takeStagedPhotos(); }, []);
+
   // edit-mode prefill
   useEffect(() => {
     if (!editId) return;
