@@ -10,6 +10,7 @@ import { db } from "../db/client";
 import migrations from "../drizzle/migrations";
 import { ensureEntitlements } from "../lib/entitlements";
 import { sweepOrphans } from "../lib/media";
+import { AppToast } from "../components/AppToast";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -38,6 +39,7 @@ export default function RootLayout() {
         <Stack.Screen name="session/[id]/camera" options={{ presentation: "fullScreenModal" }} />
         <Stack.Screen name="item/[id]/sold" options={{ presentation: "modal" }} />
       </Stack>
+      <AppToast />
     </GestureHandlerRootView>
   );
 }

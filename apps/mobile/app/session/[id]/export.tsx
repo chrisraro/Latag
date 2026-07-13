@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
@@ -11,6 +11,7 @@ import { items } from "../../../db/schema";
 import { formatCaption } from "../../../lib/caption";
 import { formatPeso } from "../../../lib/format";
 import { FONT } from "../../../lib/theme";
+import { showSuccess } from "../../../lib/toast";
 import { Badge, FieldLabel, PrimaryButton } from "../../../components/ui";
 
 export default function ExportScreen() {
@@ -20,14 +21,10 @@ export default function ExportScreen() {
   const { data: itemRows } = useLiveQuery(db.select().from(items).where(eq(items.sessionId, id)).orderBy(desc(items.createdAt)), [id]);
   const all = itemRows ?? [];
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [copied, setCopied] = useState(false);
   const [caption, setCaption] = useState("");
   const [captionFocused, setCaptionFocused] = useState(false);
-  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setSelected(new Set(all.filter((i) => i.status === "available").map((i) => i.id))); }, [itemRows?.length]);
-
-  useEffect(() => () => { if (copiedTimer.current) clearTimeout(copiedTimer.current); }, []);
 
   const chosen = all.filter((i) => selected.has(i.id));
   // Regenerate the caption from the template whenever the selection changes;
@@ -37,9 +34,7 @@ export default function ExportScreen() {
   const copy = async () => {
     await Clipboard.setStringAsync(caption);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setCopied(true);
-    if (copiedTimer.current) clearTimeout(copiedTimer.current);
-    copiedTimer.current = setTimeout(() => setCopied(false), 2500);
+    showSuccess(`Copied ${chosen.length} listings to clipboard`);
   };
 
   return (
@@ -76,11 +71,6 @@ export default function ExportScreen() {
         style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"] }}
         className={`flex-1 rounded-card border bg-surface1 px-4 py-3 text-[13.5px] leading-[22px] text-ink ${captionFocused ? "border-acid" : "border-hairline"}`}
       />
-      {copied ? (
-        <View className="absolute bottom-28 left-6 right-6 flex-row items-center gap-2 rounded-card border border-hairline bg-surface2 px-4 py-3">
-          <Text className="text-acid">✓</Text><Text style={{ fontFamily: FONT.semibold }} className="text-[14px] text-ink">Copied {chosen.length} listings to clipboard</Text>
-        </View>
-      ) : null}
       <View style={{ paddingBottom: insets.bottom + 4 }}>
         <PrimaryButton label="Copy to Clipboard" onPress={copy} disabled={chosen.length === 0 || !caption.trim()} />
       </View>

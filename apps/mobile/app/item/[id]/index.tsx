@@ -8,6 +8,7 @@ import { db } from "../../../db/client";
 import { items, photos } from "../../../db/schema";
 import { unmarkSold, deleteItem } from "../../../lib/repo";
 import { deleteFiles } from "../../../lib/media";
+import { showSuccess } from "../../../lib/toast";
 import { FONT } from "../../../lib/theme";
 import { formatPeso, formatInches } from "../../../lib/format";
 import { Badge, PrimaryButton, SecondaryButton } from "../../../components/ui";
@@ -25,7 +26,7 @@ export default function ItemDetail() {
   const confirmDelete = () =>
     Alert.alert("Delete item?", "Photos on this item are removed from your phone too.", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => { const { photoUris } = deleteItem(db, id); deleteFiles(photoUris).catch(() => {}); router.back(); } },
+      { text: "Delete", style: "destructive", onPress: () => { const { photoUris } = deleteItem(db, id); deleteFiles(photoUris).catch(() => {}); showSuccess("Item deleted"); router.back(); } },
     ]);
 
   const Row = ({ k, v, acid }: { k: string; v: string; acid?: boolean }) => (

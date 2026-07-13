@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 import { db } from "../../db/client";
 import { createSession } from "../../lib/repo";
 import { FONT } from "../../lib/theme";
+import { showSuccess } from "../../lib/toast";
 import { FieldLabel, PrimaryButton } from "../../components/ui";
 import { Wheel, rangeValues } from "../../components/Wheel";
 
@@ -18,11 +19,17 @@ export default function NewSessionScreen() {
   const [location, setLocation] = useState("");
   const [type, setType] = useState<"selector" | "bulto">("selector");
   const [baleCost, setBaleCost] = useState(10000);
+  const [creating, setCreating] = useState(false); // double-tap guard
 
   const create = () => {
-    if (!name.trim()) return;
+    if (creating || !name.trim()) return;
+    setCreating(true);
     const s = createSession(db, { name: name.trim(), type, location: location.trim() || undefined, totalBaleCost: type === "bulto" ? baleCost : 0 });
-    router.replace(`/session/${s.id}`);
+    // Close the modal FIRST, then push — replace() from inside a modal corrupts
+    // the back stack (dashboard's back button stopped returning to the list).
+    router.dismiss();
+    router.push(`/session/${s.id}`);
+    showSuccess(`${s.name} created`);
   };
 
   const inputCls = "mb-2.5 h-13 rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
@@ -45,7 +52,7 @@ export default function NewSessionScreen() {
         <FieldLabel>Bale cost</FieldLabel>
         <Wheel values={BALE_VALUES} value={baleCost} onChange={setBaleCost} unit="₱" format={(v) => v.toLocaleString("en-PH")} allowCustom />
       </>) : null}
-      <PrimaryButton label="Create Session" onPress={create} disabled={!name.trim()} />
+      <PrimaryButton label="Create Session" onPress={create} disabled={!name.trim() || creating} />
     </View>
   );
 }

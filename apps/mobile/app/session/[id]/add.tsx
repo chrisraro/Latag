@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,6 +14,7 @@ import { peekStagedPhotos, takeStagedPhotos, type SlotType } from "../../../lib/
 import { CATEGORIES, CONDITIONS, FONT } from "../../../lib/theme";
 import { formatPeso } from "../../../lib/format";
 import { selectorProjected } from "../../../lib/math";
+import { showError, showSuccess } from "../../../lib/toast";
 import { Chip, FieldLabel, PrimaryButton } from "../../../components/ui";
 import { Wheel, rangeValues } from "../../../components/Wheel";
 import { PhotoSlot } from "../../../components/PhotoSlot";
@@ -36,7 +37,6 @@ export default function RapidConsole() {
   const { data: existingPhotoRows } = useLiveQuery(db.select().from(photos).where(eq(photos.itemId, editId ?? "")), [editId]);
   const session = sessionRows?.[0];
 
-  // sticky values persist across saves within the screen's lifetime
   const [brand, setBrand] = useState("");
   const [brandQuery, setBrandQuery] = useState("");
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
@@ -47,8 +47,7 @@ export default function RapidConsole() {
   const [cost, setCost] = useState(0);
   const [staged, setStaged] = useState<Partial<Record<SlotType, string>>>({});
   const [goPro, setGoPro] = useState(false);
-  const [saveError, setSaveError] = useState(false);
-  const saveErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saving, setSaving] = useState(false); // idempotency: block double-fire until we navigate away
 
   // pull staged photos whenever we regain focus from the camera
   useFocusEffect(useCallback(() => { setStaged(peekStagedPhotos()); }, []));
@@ -56,8 +55,6 @@ export default function RapidConsole() {
   // Abandoned staged photos must not leak into the next console mount.
   // Their files become disk orphans, reclaimed by sweepOrphans on next boot.
   useEffect(() => () => { takeStagedPhotos(); }, []);
-
-  useEffect(() => () => { if (saveErrorTimer.current) clearTimeout(saveErrorTimer.current); }, []);
 
   // edit mode: prefill the slots from the item's existing photos; a freshly staged
   // capture for a slot overrides the existing photo for display purposes only.
@@ -90,7 +87,13 @@ export default function RapidConsole() {
   const remaining = logsRemaining(ent);
 
   const save = () => {
-    if (!brand.trim()) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); return; }
+    if (saving) return; // double-tap guard
+    if (!brand.trim()) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showError("Brand is required — tap a chip or type it");
+      return;
+    }
+    setSaving(true);
     try {
       const input = { sessionId: id, brand: brand.trim(), category, condition, ptpInches: ptp, lengthInches: len, targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0 };
       const saved = editId ? { item: updateItem(db, editId, input) } : addItem(db, input);
@@ -107,13 +110,13 @@ export default function RapidConsole() {
       }
       setStaged({});
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (editId) router.back(); // edits return to detail; new items stay for the next log (sticky values)
+      showSuccess(editId ? "Changes saved" : `${input.brand} ${input.category} logged — ${formatPeso(input.targetSellPrice)}`);
+      router.back(); // back to the session/detail so the saved item is visible; `saving` stays true until unmount
     } catch (e) {
+      setSaving(false);
       if (e instanceof FreeTierExhaustedError) { setGoPro(true); return; }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setSaveError(true);
-      if (saveErrorTimer.current) clearTimeout(saveErrorTimer.current);
-      saveErrorTimer.current = setTimeout(() => setSaveError(false), 2500);
+      showError("Couldn't save — try again");
     }
   };
 
@@ -163,13 +166,8 @@ export default function RapidConsole() {
           <Wheel values={PRICE} value={price} onChange={setPrice} unit="₱" allowCustom />
         </>)}
       </ScrollView>
-      {saveError ? (
-        <View className="absolute bottom-28 left-6 right-6 flex-row items-center gap-2 rounded-card border border-hairline bg-surface2 px-4 py-3">
-          <Text style={{ fontFamily: FONT.semibold }} className="text-[14px] text-ink">Couldn't save — try again</Text>
-        </View>
-      ) : null}
       <View style={{ paddingBottom: insets.bottom + 4 }}>
-        <PrimaryButton label={editId ? "Save changes  ✓" : "Save + Next  ✓"} onPress={save} />
+        <PrimaryButton label={editId ? "Save changes  ✓" : "Save item  ✓"} onPress={save} disabled={saving} />
       </View>
       <GoProSheet visible={goPro} onClose={() => setGoPro(false)} />
     </View>
