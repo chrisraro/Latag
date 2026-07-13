@@ -13,7 +13,7 @@ export function GoProSheet({ visible, onClose }: { visible: boolean; onClose: ()
         <Text style={{ fontFamily: FONT.text }} className="mt-1 text-[13px] leading-5 text-inkdim">
           Latag Pro unlocks unlimited logs — one-time payment, yours forever. Everything stays offline and on your phone.
         </Text>
-        <Text style={{ fontFamily: FONT.semibold }} className="mt-3 text-[15px] text-acid">Unlock Pro on the website → latag.ph/pro</Text>
+        <Text style={{ fontFamily: FONT.semibold }} className="mt-3 text-[15px] text-acid">Unlock Pro on the website → latag.vercel.app/pro</Text>
         <PrimaryButton label="Got it" onPress={onClose} />
       </View>
     </Modal>
