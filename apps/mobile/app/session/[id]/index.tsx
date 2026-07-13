@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter, type Href } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq, desc } from "drizzle-orm";
@@ -77,8 +77,7 @@ export default function DashboardScreen() {
           <Chip key={f} label={f[0].toUpperCase() + f.slice(1)} selected={filter === f} onPress={() => setFilter(f)} />
         ))}
         <View className="flex-1" />
-        {/* TODO(task-15): drop the `as Href` cast once /session/[id]/export exists — typedRoutes can't resolve it yet */}
-        <Chip label="Export" selected={false} onPress={() => router.push(`/session/${id}/export` as Href)} />
+        <Chip label="Export" selected={false} onPress={() => router.push(`/session/${id}/export`)} />
       </View>
 
       <FlashList
