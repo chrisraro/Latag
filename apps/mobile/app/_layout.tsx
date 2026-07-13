@@ -36,7 +36,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#000" } }}>
         <Stack.Screen name="session/new" options={{ presentation: "modal" }} />
         <Stack.Screen name="session/[id]/camera" options={{ presentation: "fullScreenModal" }} />
-        {/* TODO(task-13): register item/[id]/sold modal once that route exists */}
+        <Stack.Screen name="item/[id]/sold" options={{ presentation: "modal" }} />
       </Stack>
     </GestureHandlerRootView>
   );

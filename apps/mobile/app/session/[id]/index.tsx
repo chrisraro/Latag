@@ -88,8 +88,7 @@ export default function DashboardScreen() {
         renderItem={({ item }: { item: Item }) => {
           const uri = thumbOf(item.id);
           return (
-            // TODO(task-13): drop the `as Href` cast once /item/[id] exists — typedRoutes can't resolve it yet
-            <Pressable onPress={() => router.push(`/item/${item.id}` as Href)} className="flex-row items-center gap-3 border-b border-hairline py-3">
+            <Pressable onPress={() => router.push(`/item/${item.id}`)} className="flex-row items-center gap-3 border-b border-hairline py-3">
               <View className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}>
                 {uri ? <Image source={{ uri }} recyclingKey={uri} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
                      : <Text style={{ fontFamily: FONT.bold }} className="text-[20px] text-inkfaint">{item.brand[0]}</Text>}
