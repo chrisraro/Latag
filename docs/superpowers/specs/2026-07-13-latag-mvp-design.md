@@ -203,6 +203,6 @@ Latag-App-Context.md    original context (kept)
 ## 10. Phase Plan
 
 1. **Spec** — this document. ✅
-2. **Design mockups** — design system + phone-framed HTML mockups of five key screens (Sessions List, Dashboard ×2 modes, Rapid Console, Item Detail, IG Export) via **impeccable**; published as a clickable artifact. Gate: user approves the look.
+2. **Design mockups** — design system + phone-framed HTML mockups via **impeccable**; published as a clickable artifact. Gate: user approves the look. *Expanded during this phase to the full production surface (15 screens): the MVP core loop (sessions, dashboards, Rapid Console, camera, item detail, mark-sold, IG export, empty states) plus first-run screens (welcome/activation, email OTP, onboarding ×2) and Settings, designed ahead of their build phases. Build scope is unchanged — auth/licensing and telemetry remain post-MVP.*
 3. **Build** — **writing-plans** produces the implementation plan; executed via **subagent-driven-development**: scaffold Expo Router + Drizzle → schema/migrations → math lib (test-first) → media pipeline → repo layer → screens matching approved mockups.
 4. **Parked for later phases:** Next.js + Upstash telemetry, Supabase auth/licensing, bottoms & other categories, CSV export/backup.
