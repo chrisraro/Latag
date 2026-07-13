@@ -1,0 +1,9 @@
+{
+  "name": "latag",
+  "private": true,
+  "scripts": {
+    "mobile": "pnpm -C apps/mobile start",
+    "test": "pnpm -C apps/mobile test",
+    "typecheck": "pnpm -C apps/mobile exec tsc --noEmit"
+  }
+}
