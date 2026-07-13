@@ -244,29 +244,35 @@ export function Showcase() {
         aria-labelledby="showcase-lightbox-title"
         onClick={onDialogClick}
         onKeyDown={onDialogKeyDown}
-        className="border-0 bg-transparent p-0"
+        // m-auto restores native dialog centering (Tailwind preflight zeroes margins)
+        className="m-auto w-fit max-w-[94vw] border-0 bg-transparent p-0"
       >
-        <div className="relative rounded-2xl border border-hairline bg-surface1 p-4">
+        <div className="relative flex h-[94dvh] max-h-[94dvh] flex-col rounded-2xl border border-hairline bg-surface1 p-4">
           <button
             type="button"
             aria-label="Close preview"
             onClick={() => setOpen(false)}
-            className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-surface2 text-ink focus-visible:outline-2 focus-visible:outline-acid"
+            className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-surface2 text-ink focus-visible:outline-2 focus-visible:outline-acid"
           >
             <span aria-hidden>✕</span>
           </button>
-          <Image
-            src={activeScreen.src}
-            alt={`${activeScreen.title} screen`}
-            width={780}
-            height={1688}
-            className="mx-auto max-h-[85dvh] w-auto rounded-[20px]"
-          />
-          <h3 id="showcase-lightbox-title" className="display mt-4 text-lg text-ink">
+          {/* Flex budget: the panel is capped at 94dvh, text/nav take what they measure,
+              and the image absorbs exactly the remaining height — no fixed phone-height
+              assumptions, correct on any screen size. */}
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+            <Image
+              src={activeScreen.src}
+              alt={`${activeScreen.title} screen`}
+              width={780}
+              height={1688}
+              className="h-full max-h-full w-auto max-w-full rounded-[20px] object-contain"
+            />
+          </div>
+          <h3 id="showcase-lightbox-title" className="display mt-3 text-lg text-ink">
             {activeScreen.title}
           </h3>
-          <p className="mt-1 max-w-[60ch] text-inkdim">{activeScreen.caption}</p>
-          <div className="mt-4 flex items-center justify-center gap-4">
+          <p className="mt-1 max-w-[60ch] text-sm text-inkdim">{activeScreen.caption}</p>
+          <div className="mt-3 flex items-center justify-center gap-4">
             <button
               type="button"
               aria-label="Previous screen"
