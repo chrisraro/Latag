@@ -103,6 +103,8 @@ export function Showcase() {
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Capture so mouse drags released outside the stage still fire pointerup here.
+    e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = { startX: e.clientX, startY: e.clientY, dragging: true, consumed: false };
   };
 
@@ -178,7 +180,7 @@ export function Showcase() {
               type="button"
               aria-label={`${screen.title} — open larger preview`}
               onClick={() => onCardClick(idx)}
-              className={`motion-reduce:transition-none absolute rounded-[28px] overflow-hidden focus-visible:outline-2 focus-visible:outline-acid ${
+              className={`absolute rounded-[28px] overflow-hidden focus-visible:outline-2 focus-visible:outline-acid ${
                 isActive ? "ring-1 ring-acid/40" : ""
               }`}
               style={{
@@ -255,7 +257,7 @@ export function Showcase() {
             alt={`${activeScreen.title} screen`}
             width={780}
             height={1688}
-            className="mx-auto h-[85dvh] max-h-[85dvh] w-auto rounded-[20px]"
+            className="mx-auto max-h-[85dvh] w-auto rounded-[20px]"
           />
           <h3 id="showcase-lightbox-title" className="display mt-4 text-lg text-ink">
             {activeScreen.title}
