@@ -35,7 +35,13 @@
       ],
       "expo-font",
       "expo-sqlite",
-      "expo-image"
+      "expo-image",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Latag uses your camera to photograph items. Photos are compressed and stored on your phone only — never uploaded."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

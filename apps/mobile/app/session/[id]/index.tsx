@@ -118,8 +118,7 @@ export default function DashboardScreen() {
         }
       />
       <View style={{ paddingBottom: insets.bottom + 4 }}>
-        {/* TODO(task-13): drop the `as Href` cast once /session/[id]/add exists — typedRoutes can't resolve it yet */}
-        <PrimaryButton label="＋  Add Item" onPress={() => router.push(`/session/${id}/add` as Href)} />
+        <PrimaryButton label="＋  Add Item" onPress={() => router.push(`/session/${id}/add`)} />
       </View>
     </View>
   );
