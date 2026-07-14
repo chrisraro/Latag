@@ -13,8 +13,12 @@ function round1(n: number): string {
 
 function formatBytes(bytes: number): string {
   if (bytes < KB) return `${bytes} B`;
-  if (bytes < MB) return `${round1(bytes / KB)} KB`;
-  if (bytes < GB) return `${round1(bytes / MB)} MB`;
+  // Rounding can push a value at the top of a range to exactly 1024 (e.g.
+  // 1024*1024-1 → "1024 KB"); promote to the next unit instead.
+  const kb = Math.round((bytes / KB) * 10) / 10;
+  if (bytes < MB && kb < KB) return `${round1(bytes / KB)} KB`;
+  const mb = Math.round((bytes / MB) * 10) / 10;
+  if (bytes < GB && mb < KB) return `${round1(bytes / MB)} MB`;
   return `${round1(bytes / GB)} GB`;
 }
 

@@ -33,6 +33,13 @@ describe("summarizeUsage", () => {
     expect(summarizeUsage([bytes])).toEqual({ count: 1, bytes, label: "1 GB" });
   });
 
+  test("upper-edge rounding promotes units: never '1024 KB' or '1024 MB'", () => {
+    const justUnderMb = 1024 * 1024 - 1;
+    expect(summarizeUsage([justUnderMb]).label).toBe("1 MB");
+    const justUnderGb = 1024 * 1024 * 1024 - 1;
+    expect(summarizeUsage([justUnderGb]).label).toBe("1 GB");
+  });
+
   test("count is the number of entries, bytes is the sum, across a mixed set", () => {
     const sizes = [100, 200, 300];
     const result = summarizeUsage(sizes);
