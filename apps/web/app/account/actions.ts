@@ -10,6 +10,13 @@ function readEmail(input: FormData | string): string {
   return typeof raw === "string" ? raw.trim() : "";
 }
 
+// Server actions are directly callable endpoints — validate shape here, not
+// just in the browser. Deliberately loose (local@domain.tld); Supabase does
+// the authoritative validation.
+function isEmailShaped(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) && email.length <= 254;
+}
+
 /**
  * Sends a 6-digit email OTP. Accepts either a FormData (from a form submit)
  * or a plain email string (used by the sign-in page's "Resend code" action,
@@ -18,8 +25,8 @@ function readEmail(input: FormData | string): string {
 export async function requestOtp(formDataOrEmail: FormData | string): Promise<ActionResult> {
   const email = readEmail(formDataOrEmail);
 
-  if (!email) {
-    return { error: "Enter your email address." };
+  if (!isEmailShaped(email)) {
+    return { error: "Enter a valid email address." };
   }
 
   const supabase = await createServerSupabase();
@@ -39,8 +46,8 @@ export async function requestOtp(formDataOrEmail: FormData | string): Promise<Ac
 export async function verifyOtp(email: string, code: string): Promise<ActionResult> {
   const trimmedEmail = email.trim();
 
-  if (!trimmedEmail) {
-    return { error: "Enter your email address." };
+  if (!isEmailShaped(trimmedEmail)) {
+    return { error: "Enter a valid email address." };
   }
   if (!/^\d{6}$/.test(code)) {
     return { error: "Enter the 6-digit code." };
