@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { View, Text, Pressable, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { desc } from "drizzle-orm";
 import { db } from "../db/client";
@@ -13,8 +15,29 @@ import { Badge, PrimaryButton } from "../components/ui";
 export default function SessionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [checked, setChecked] = useState(false);
   const { data: sessionRows } = useLiveQuery(db.select().from(sessions).orderBy(desc(sessions.createdAt)));
   const { data: itemRows } = useLiveQuery(db.select().from(items));
+
+  // First-run onboarding gate: redirect once if the flag is absent, otherwise
+  // render normally. Rendering null until this resolves avoids flashing the
+  // sessions list before the redirect lands (splash is already up at mount).
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem("latag.onboarded").then((value) => {
+      if (cancelled) return;
+      if (value === null) {
+        router.replace("/onboarding");
+      } else {
+        setChecked(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  if (!checked) return null;
 
   const list = (sessionRows ?? []).map((s) => {
     const its = (itemRows ?? []).filter((i) => i.sessionId === s.id);
