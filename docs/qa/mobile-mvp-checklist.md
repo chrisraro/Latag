@@ -27,3 +27,4 @@
 - [ ] Revoke Pro in web /admin → phone: Settings → Refresh license (online, signed in) → returns to Free with remaining logs resumed
 - [ ] Go Pro sheet (21st save attempt): "Already Pro? Sign in" opens sign-in
 - [ ] Deep link with a stale/used email link → app opens, no crash, no sign-in (silent no-op)
+- [ ] Cross-device case: open the email link on a COMPUTER instead → phone code becomes invalid → Resend from the phone recovers (known PKCE same-device limitation until custom SMTP ships codes)
