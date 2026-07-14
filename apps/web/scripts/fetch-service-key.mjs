@@ -14,7 +14,7 @@ const PROJECT_REF = "dcnpuvtbftpbcjcvfnlt";
 const NEXT_PUBLIC_SUPABASE_URL = `https://${PROJECT_REF}.supabase.co`;
 const NEXT_PUBLIC_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjbnB1dnRiZnRwYmNqY3Zmbmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMjYzNjEsImV4cCI6MjA5OTYwMjM2MX0.BoelJ4pLi0JuF8a6A3Ca0Iq_VrSmAV5adm9W8BHekOY";
-const ADMIN_EMAILS = "teamocsph@gmail.com";
+const ADMIN_EMAILS = "rarochristian029@gmail.com";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envLocalPath = path.resolve(__dirname, "..", ".env.local");

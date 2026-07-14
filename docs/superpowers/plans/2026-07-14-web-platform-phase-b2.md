@@ -69,7 +69,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://dcnpuvtbftpbcjcvfnlt.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjbnB1dnRiZnRwYmNqY3Zmbmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMjYzNjEsImV4cCI6MjA5OTYwMjM2MX0.BoelJ4pLi0JuF8a6A3Ca0Iq_VrSmAV5adm9W8BHekOY
 SUPABASE_SERVICE_ROLE_KEY=            # server-only; from scripts/fetch-service-key.mjs — never commit a value
 LICENSE_SIGNING_SECRET=               # server-only; random 32+ bytes hex
-ADMIN_EMAILS=teamocsph@gmail.com      # comma-separated owner emails for /admin
+ADMIN_EMAILS=rarochristian029@gmail.com      # comma-separated owner emails for /admin
 ```
 
 - [ ] **Step 4:** `apps/web/scripts/fetch-service-key.mjs` — reads `SUPABASE_ACCESS_TOKEN` from the environment, calls `GET https://api.supabase.com/v1/projects/dcnpuvtbftpbcjcvfnlt/api-keys?reveal=true`, finds the `service_role` key, generates `LICENSE_SIGNING_SECRET` via `crypto.randomBytes(32).toString("hex")` (only if not already present), and writes/merges `apps/web/.env.local` with all five variables. It must print ONLY "wrote .env.local (N keys)" — never key material. Run it; verify `.env.local` exists and `git status` does not list it.
