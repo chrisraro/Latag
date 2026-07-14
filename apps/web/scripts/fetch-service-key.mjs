@@ -112,4 +112,10 @@ async function main() {
   console.log(`wrote .env.local (${merged.size} keys)`);
 }
 
-main();
+// Never let an unexpected throw reach the default handler: V8 error messages
+// (e.g. JSON.parse) can quote fragments of the response body, which here
+// contains revealed key material. Generic message only.
+main().catch(() => {
+  console.error("BLOCKED: unexpected error while fetching keys (no details printed by design)");
+  process.exit(1);
+});
