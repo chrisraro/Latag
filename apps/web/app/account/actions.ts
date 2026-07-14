@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 
@@ -38,10 +39,18 @@ export async function requestOtp(formDataOrEmail: FormData | string): Promise<Ac
     return { error: "Enter a valid email address." };
   }
 
+  // The emailed link must land back on THIS deployment (prod or localhost).
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+
   const supabase = await createServerSupabase();
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: true },
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: `${proto}://${host}/auth/callback`,
+    },
   });
 
   if (error) {
