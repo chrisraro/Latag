@@ -21,8 +21,12 @@ export function Badge({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="display text-balance text-3xl text-ink sm:text-4xl">{children}</h2>;
+export function SectionTitle({ children, id }: { children: React.ReactNode; id?: string }) {
+  return (
+    <h2 id={id} className="display text-balance text-3xl text-ink sm:text-4xl">
+      {children}
+    </h2>
+  );
 }
 
 export function CheckItem({ children }: { children: React.ReactNode }) {
