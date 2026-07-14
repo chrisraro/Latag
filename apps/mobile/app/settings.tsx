@@ -11,7 +11,7 @@ import { supabase } from "../lib/supabase";
 import { fetchLicense, applyLicense, clearLicense } from "../lib/license";
 import { FREE_LOG_LIMIT, logsRemaining, ensureEntitlements } from "../lib/entitlements";
 import { getMediaUsage } from "../lib/storage-usage";
-import { showSuccess } from "../lib/toast";
+import { showSuccess, showError } from "../lib/toast";
 import { FONT } from "../lib/theme";
 
 type Tone = "default" | "acid" | "danger";
@@ -97,13 +97,23 @@ export default function SettingsScreen() {
     if (refreshing || !session) return;
     setRefreshing(true);
     try {
-      const res = await fetchLicense(session.access_token);
+      // Always resolve a fresh session here rather than trusting the token in
+      // component state — getSession() transparently refreshes an expired
+      // access token, so a manual refresh tap can't fail on a stale token.
+      const {
+        data: { session: freshSession },
+      } = await supabase.auth.getSession();
+      if (!freshSession) {
+        showError("Sign in first to check your license");
+        return;
+      }
+      const res = await fetchLicense(freshSession.access_token);
       if (res.kind === "pro") {
         applyLicense(db, { receipt: res.receipt });
         showSuccess("Pro activated — yours forever, even offline");
       } else if (res.kind === "none") {
         clearLicense(db);
-        showSuccess("Signed in — no Pro license on this account yet");
+        showSuccess("No Pro license on this account");
       } else {
         showSuccess("Signed in — couldn't check license (offline?), will retry next time");
       }
@@ -115,7 +125,11 @@ export default function SettingsScreen() {
   const signOut = async () => {
     // Deliberately does NOT clearLicense — Pro stays cached on this phone
     // per offline-first; the toast copy carries that promise.
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      showError("Couldn't sign out — check your connection and try again");
+      return;
+    }
     showSuccess("Signed out — your data and Pro stay on this phone");
   };
 

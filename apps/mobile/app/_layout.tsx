@@ -13,6 +13,7 @@ import { ensureEntitlements } from "../lib/entitlements";
 import { sweepOrphans } from "../lib/media";
 import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
+import { showError } from "../lib/toast";
 import { AppToast } from "../components/AppToast";
 
 SplashScreen.preventAutoHideAsync();
@@ -49,7 +50,10 @@ export default function RootLayout() {
         const code = queryParams?.code;
         if (!code) return;
         const { error } = await supabase.auth.exchangeCodeForSession(String(code));
-        if (error) return;
+        if (error) {
+          showError("That sign-in link couldn't be used — request a new one or enter the code");
+          return;
+        }
         await completeSignIn();
       } catch {
         // Malformed URL / offline / auth client error — no-op.
