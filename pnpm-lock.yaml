@@ -140,6 +140,9 @@ importers:
       babel-plugin-inline-import:
         specifier: ^3.0.0
         version: 3.0.0
+      babel-preset-expo:
+        specifier: ~57.0.2
+        version: 57.0.2(@babel/core@7.29.7)(@babel/runtime@7.29.7)(expo@57.0.4)(react-refresh@0.14.2)
       better-sqlite3:
         specifier: ^12.11.1
         version: 12.11.1
