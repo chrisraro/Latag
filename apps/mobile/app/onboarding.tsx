@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { View, Text, Pressable, ScrollView, Dimensions, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
+import { View, Text, Pressable, ScrollView, useWindowDimensions, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,12 +7,12 @@ import { FONT } from "../lib/theme";
 import { PrimaryButton } from "../components/ui";
 import { PhotoSlot } from "../components/PhotoSlot";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
 const PANES = 2;
 
 /** Sets the first-run flag and lands on the sessions list. Shared by both exits (Skip and Start logging). */
 async function finishOnboarding(router: ReturnType<typeof useRouter>) {
-  await AsyncStorage.setItem("latag.onboarded", "1");
+  // Navigate even if the flag write fails — worst case, onboarding shows again.
+  await AsyncStorage.setItem("latag.onboarded", "1").catch(() => {});
   router.replace("/");
 }
 
@@ -40,6 +40,8 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [active, setActive] = useState(0);
+  // Reactive: pane math survives rotation, split-screen, and foldable resizes.
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
 
   const goToPane2 = () => scrollRef.current?.scrollTo({ x: SCREEN_WIDTH, animated: true });
 
