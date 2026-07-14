@@ -95,7 +95,7 @@ export default function SignInPage() {
         ) : (
           <form onSubmit={handleVerify} className="flex flex-col gap-4" noValidate>
             <p className="text-sm text-inkdim">
-              Code sent to <span className="text-ink">{email}</span>
+              Email sent to <span className="text-ink">{email}</span> — click the sign-in link in it, or enter the code below if your email shows one.
             </p>
             <label className="flex flex-col gap-2 text-sm text-inkdim">
               6-digit code
