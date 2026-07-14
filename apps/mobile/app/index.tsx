@@ -39,6 +39,9 @@ export default function SessionsScreen() {
       <View className="flex-row items-center gap-3 pb-2 pt-3">
         <Text style={{ fontFamily: FONT.displayBlack }} className="flex-1 text-[26px] text-ink">LATAG</Text>
         <Badge label={`${list.length} SESSIONS`} />
+        <Pressable hitSlop={8} onPress={() => router.push("/settings")} className="h-11 w-11 items-center justify-center rounded-full bg-surface2">
+          <Text className="text-[18px] text-inkdim">⚙</Text>
+        </Pressable>
       </View>
       {list.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-4 px-4">
