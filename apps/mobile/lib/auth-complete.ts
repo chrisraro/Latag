@@ -31,7 +31,7 @@ export async function completeSignIn(router?: BackableRouter): Promise<boolean> 
       clearLicense(db);
       showSuccess("Signed in — no Pro license on this account yet");
     } else {
-      showSuccess("Signed in — couldn't check license right now, will retry later");
+      showSuccess("Signed in — couldn't check license (offline?), will retry next time");
     }
 
     router?.back();

@@ -37,7 +37,10 @@ export default function RootLayout() {
 
   // Deep-link completion (email sign-in link -> latag://auth/callback?code=...).
   // Must never crash offline/no-op use: every failure mode below is swallowed.
+  // Gated on `migrated`: a cold launch straight from the email must not race
+  // applyLicense against the entitlements table existing.
   useEffect(() => {
+    if (!migrated) return;
     if (!url || url === lastHandledUrl.current || !url.includes("code=")) return;
     lastHandledUrl.current = url;
     (async () => {
@@ -52,7 +55,7 @@ export default function RootLayout() {
         // Malformed URL / offline / auth client error — no-op.
       }
     })();
-  }, [url]);
+  }, [url, migrated]);
 
   if (!migrated || !fontsLoaded) return null;
 

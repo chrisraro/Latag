@@ -116,7 +116,7 @@ export default function SignInScreen() {
           {errorMsg ? (
             <Text style={{ fontFamily: FONT.text }} className="mb-2 text-[12.5px] text-danger">{errorMsg}</Text>
           ) : null}
-          <PrimaryButton label="Send sign-in email" onPress={() => void sendEmail()} disabled={sending || !email.trim()} />
+          <PrimaryButton label="Send link + code" onPress={() => void sendEmail()} disabled={sending || !email.trim()} />
         </>
       ) : (
         <>
