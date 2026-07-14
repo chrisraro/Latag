@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav aria-label="Main" className="flex items-center gap-5 text-sm text-inkdim">
             <Link className="hover:text-ink focus-visible:text-ink" href="/pro">Pricing</Link>
             <Link className="hover:text-ink focus-visible:text-ink" href="/data">Data</Link>
+            <Link className="hover:text-ink focus-visible:text-ink" href="/account">Account</Link>
             <Link
               href="/pro"
               className="display rounded-full bg-acid px-4 py-2 text-[13px] uppercase tracking-wide text-acidink"
