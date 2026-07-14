@@ -138,6 +138,15 @@ export async function deleteAccount(): Promise<ActionResult> {
   }
 
   const admin = createAdminSupabase();
+
+  // Privacy page promises deletion removes "any feedback you sent us".
+  // MUST run BEFORE deleteUser: the feedback FK is `on delete set null`,
+  // so after deletion the rows would be anonymized and unfindable.
+  const { error: feedbackError } = await admin.from("feedback").delete().eq("user_id", user.id);
+  if (feedbackError) {
+    return { error: feedbackError.message };
+  }
+
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) {
     return { error: error.message };
