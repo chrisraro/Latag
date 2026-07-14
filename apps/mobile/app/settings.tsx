@@ -115,7 +115,7 @@ export default function SettingsScreen() {
         clearLicense(db);
         showSuccess("No Pro license on this account");
       } else {
-        showSuccess("Signed in — couldn't check license (offline?), will retry next time");
+        showError("Couldn't check license — check your connection and try again");
       }
     } finally {
       setRefreshing(false);
