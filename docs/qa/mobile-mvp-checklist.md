@@ -16,3 +16,15 @@
 - [ ] Wheel centering on a non-390pt device (e.g. small Android) — selected value sits visually centered
 - [ ] Camera permission DENIED walkthrough: deny → slots show grant state → items still save photo-less (photos never block saving)
 - [ ] Edit round-trip: edit an item with photos → slots prefill → re-shoot one slot → save → detail shows exactly one photo per type (no duplicates), old file removed
+
+## Phase C — auth, licensing, settings, onboarding (device)
+- [ ] Fresh install → onboarding shows once (2 panes, swipe + dots, Skip works) → never again on relaunch
+- [ ] Settings (gear on sessions screen): storage figure sane; offline row present; version footer correct
+- [ ] Sign in from Settings: send email → tap the emailed link ON THE PHONE → app opens via latag:// and toast confirms sign-in
+- [ ] Grant Pro to your account in the web /admin FIRST, then sign in on the phone → "Pro activated" toast → Settings shows PRO — Active → Rapid Console free-logs indicator gone (unlimited)
+- [ ] AIRPLANE MODE: relaunch app signed-in-with-Pro → everything works, PRO still shown (cached receipt)
+- [ ] Sign out in Settings → toast says data and Pro stay → Pro STILL active locally (by design)
+- [ ] Revoke Pro in web /admin → phone: Settings → Refresh license (online, signed in) → returns to Free with remaining logs resumed
+- [ ] Go Pro sheet (21st save attempt): "Already Pro? Sign in" opens sign-in
+- [ ] Deep link with a stale/used email link → app opens, no crash, no sign-in (silent no-op)
+- [ ] Cross-device case: open the email link on a COMPUTER instead → phone code becomes invalid → Resend from the phone recovers (known PKCE same-device limitation until custom SMTP ships codes)

@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { View, Text, Pressable, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { desc } from "drizzle-orm";
 import { db } from "../db/client";
@@ -13,8 +15,29 @@ import { Badge, PrimaryButton } from "../components/ui";
 export default function SessionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [checked, setChecked] = useState(false);
   const { data: sessionRows } = useLiveQuery(db.select().from(sessions).orderBy(desc(sessions.createdAt)));
   const { data: itemRows } = useLiveQuery(db.select().from(items));
+
+  // First-run onboarding gate: redirect once if the flag is absent, otherwise
+  // render normally. Rendering null until this resolves avoids flashing the
+  // sessions list before the redirect lands (splash is already up at mount).
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem("latag.onboarded").then((value) => {
+      if (cancelled) return;
+      if (value === null) {
+        router.replace("/onboarding");
+      } else {
+        setChecked(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  if (!checked) return null;
 
   const list = (sessionRows ?? []).map((s) => {
     const its = (itemRows ?? []).filter((i) => i.sessionId === s.id);
@@ -39,6 +62,9 @@ export default function SessionsScreen() {
       <View className="flex-row items-center gap-3 pb-2 pt-3">
         <Text style={{ fontFamily: FONT.displayBlack }} className="flex-1 text-[26px] text-ink">LATAG</Text>
         <Badge label={`${list.length} SESSIONS`} />
+        <Pressable hitSlop={8} onPress={() => router.push("/settings")} className="h-11 w-11 items-center justify-center rounded-full bg-surface2">
+          <Text className="text-[18px] text-inkdim">⚙</Text>
+        </Pressable>
       </View>
       {list.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-4 px-4">
