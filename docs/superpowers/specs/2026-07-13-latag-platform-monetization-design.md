@@ -81,7 +81,7 @@ Mobile local addition (MVP): `entitlements` (single row: logs_used int, pro bool
 ## 6. Build Order (approved)
 
 1. **Phase A — Mobile MVP** (spec #1 core loop) **+ monorepo scaffold + free-tier counter**: pnpm workspace with `apps/mobile` and a stub `apps/web`; the 20-log counter and Go Pro sheet ship in the MVP so the model is enforced from v1 (sheet links to the future site).
-2. **Phase B — Web platform:** landing, legal pages, portal, admin console, payments integration (provider picked here), license API. **B2 SHIPPED 2026-07-14** (schema+RLS, OTP auth, portal, admin with manual Pro grants, signed-receipt license API; payments adapter pending provider sandbox).
+2. **Phase B — Web platform:** landing, legal pages, portal, admin console, payments integration (provider picked here), license API. **B2 SHIPPED 2026-07-14** (schema+RLS, OTP auth, portal, admin with manual Pro grants, signed-receipt license API; payments adapter pending provider sandbox). *Deferred from §4.2 with B2: the portal's "X of 20 logs used" count (device-local until Phase C reconciliation) and purchase receipt/history UI (no payments until a provider exists). Account deletion removes feedback bodies (per the privacy page) and cascade-deletes license rows — the privacy page is the binding surface where it and older plan text disagreed.*
 3. **Phase C — Mobile licensing:** Supabase sign-in in app (Welcome/OTP screens already designed), license receipt caching, counter reconciliation, telemetry sync.
 4. **Later:** in-app feature-request form, CSV export, bottoms/v2 categories.
 
