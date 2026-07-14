@@ -4,6 +4,10 @@ const VERSION = "latag1";
 
 export type ReceiptClaims = { userId: string; sku: string; grantedAt: string };
 
+// The HMAC covers the RAW base64url payload segment (version-prefixed), never
+// decoded-then-re-encoded bytes. A second implementation (mobile) must likewise
+// verify against the literal middle segment — re-serializing the JSON claims
+// would break parity on key order and encoding.
 function sign(payload: string, secret: string): string {
   return createHmac("sha256", secret).update(`${VERSION}.${payload}`).digest("base64url");
 }
