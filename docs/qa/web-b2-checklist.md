@@ -19,4 +19,4 @@ Prereqs: Vercel env vars set (see below) or local .env.local; you are the ADMIN_
 - NEXT_PUBLIC_SUPABASE_ANON_KEY = (from apps/web/.env.example)
 - SUPABASE_SERVICE_ROLE_KEY = (Supabase dashboard → Project Settings → API keys → service_role; NEVER commit)
 - LICENSE_SIGNING_SECRET = (copy from local apps/web/.env.local; NEVER commit)
-- ADMIN_EMAILS = teamocsph@gmail.com
+- ADMIN_EMAILS = rarochristian029@gmail.com
