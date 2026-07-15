@@ -40,7 +40,7 @@ export default function ItemDetail() {
   };
 
   const Row = ({ k, v, acid }: { k: string; v: string; acid?: boolean }) => (
-    <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-1 py-3.5">
+    <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-3 py-3.5">
       <Text style={{ fontFamily: FONT.text, lineHeight: 21 }} className="text-[15px] text-inkfaint">{k}</Text>
       <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className={`min-w-0 shrink text-right text-[15px] ${acid ? "text-acid" : "text-ink"}`}>{v}</Text>
     </View>
@@ -97,7 +97,7 @@ export default function ItemDetail() {
           <Row k="Pit-to-pit" v={formatInches(item.ptpInches)} />
           <Row k="Length" v={formatInches(item.lengthInches)} />
           {item.individualCost > 0 ? <Row k="Cost" v={formatPeso(item.individualCost)} /> : null}
-          <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-1 py-3.5">
+          <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-3 py-3.5">
             <Text style={{ fontFamily: FONT.text, lineHeight: 21 }} className="text-[15px] text-inkfaint">Price</Text>
             <View className="flex-row items-baseline gap-2">
               {sold && item.soldPrice != null && item.soldPrice !== item.targetSellPrice ? (

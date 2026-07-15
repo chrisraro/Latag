@@ -64,7 +64,7 @@ function SettingsRow({
   return (
     <Wrapper
       onPress={onPress}
-      className={`flex-row items-center gap-3 ${noPadding ? "" : "py-3.5"} ${last ? "" : "border-b border-hairline"}`}
+      className={`flex-row items-center gap-3 px-3 ${noPadding ? "" : "py-3.5"} ${last ? "" : "border-b border-hairline"}`}
     >
       <View className="h-9 w-9 items-center justify-center rounded-[10px] bg-surface2">
         <Icon name={icon} size={18} color={toneColor(iconTone)} />
@@ -214,7 +214,7 @@ export default function SettingsScreen() {
             noPadding
           />
           {session ? (
-            <Pressable hitSlop={8} disabled={refreshing} onPress={() => void refreshLicense()} className="ml-12 mt-2 flex-row items-center gap-1.5">
+            <Pressable hitSlop={8} disabled={refreshing} onPress={() => void refreshLicense()} className="ml-[60px] mt-2 flex-row items-center gap-1.5">
               <Icon name="ArrowsClockwise" size={12} color={COLORS.inkDim} />
               <Text style={{ fontFamily: FONT.semibold, lineHeight: 17 }} className="text-[12.5px] text-inkdim">
                 {refreshing ? "Refreshing…" : "Refresh license"}
