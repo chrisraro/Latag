@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
+import { Image } from "expo-image";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq, desc } from "drizzle-orm";
 import { db } from "../../../db/client";
-import { items } from "../../../db/schema";
+import { items, photos } from "../../../db/schema";
 import { formatCaption } from "../../../lib/caption";
 import { formatPeso } from "../../../lib/format";
 import { FONT, COLORS } from "../../../lib/theme";
@@ -21,7 +22,9 @@ export default function ExportScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { data: itemRows } = useLiveQuery(db.select().from(items).where(eq(items.sessionId, id)).orderBy(desc(items.createdAt)), [id]);
+  const { data: photoRows } = useLiveQuery(db.select().from(photos), []);
   const all = itemRows ?? [];
+  const thumbOf = (itemId: string) => (photoRows ?? []).find((p) => p.itemId === itemId && p.type === "front")?.localUri ?? null;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [caption, setCaption] = useState("");
   const [captionFocused, setCaptionFocused] = useState(false);
@@ -47,15 +50,33 @@ export default function ExportScreen() {
         right={<Badge label={`${chosen.length} SELECTED`} />}
       />
       <ScrollView className="max-h-56">
-        {all.map((i) => (
-          <Pressable key={i.id} onPress={() => toggle(i.id)} className="flex-row items-center gap-3 border-b border-hairline px-3 py-3.5">
-            <View className={`h-6 w-6 items-center justify-center rounded-lg border-[1.5px] ${selected.has(i.id) ? "border-acid bg-acid" : "border-hairline"}`}>
-              {selected.has(i.id) ? <Icon name="Check" size={14} color={COLORS.acidInk} /> : null}
-            </View>
-            <Text style={{ fontFamily: FONT.semibold, lineHeight: 21 }} className={`flex-1 text-[15px] ${selected.has(i.id) ? "text-ink" : "text-inkdim"}`} numberOfLines={1}>{i.brand} {i.category}</Text>
-            <Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className="ml-1 text-[15px] text-ink">{formatPeso(i.targetSellPrice)}</Text>
-          </Pressable>
-        ))}
+        {all.map((i) => {
+          const checked = selected.has(i.id);
+          const uri = thumbOf(i.id);
+          return (
+            <Pressable
+              key={i.id}
+              onPress={() => toggle(i.id)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked }}
+              accessibilityLabel={i.brand}
+              className="flex-row items-center gap-3 border-b border-hairline px-3 py-3.5"
+            >
+              <View className={`h-6 w-6 items-center justify-center rounded-lg border-[1.5px] ${checked ? "border-acid bg-acid" : "border-hairline"}`}>
+                {checked ? <Icon name="Check" size={14} color={COLORS.acidInk} /> : null}
+              </View>
+              <View className="h-11 w-11 flex-none items-center justify-center rounded-[8px] border border-hairline bg-surface2">
+                {uri ? (
+                  <Image source={{ uri }} recyclingKey={uri} style={{ width: 44, height: 44, borderRadius: 8 }} contentFit="cover" />
+                ) : (
+                  <Text style={{ fontFamily: FONT.bold }} className="text-[15px] text-inkfaint">{i.brand[0]}</Text>
+                )}
+              </View>
+              <Text style={{ fontFamily: FONT.semibold, lineHeight: 21 }} className={`flex-1 text-[15px] ${checked ? "text-ink" : "text-inkdim"}`} numberOfLines={1}>{i.brand} {i.category}</Text>
+              <Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className="ml-1 text-[15px] text-ink">{formatPeso(i.targetSellPrice)}</Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
       <FieldLabel>Caption — tap to edit</FieldLabel>
       <TextInput

@@ -12,7 +12,7 @@ export function AppHead({ title, onBack, right, size = 21 }: { title: string; on
   return (
     <View className="flex-row items-center gap-3 pb-2.5 pt-3">
       {onBack ? (
-        <Pressable hitSlop={6} onPress={onBack} className="h-10 w-10 flex-none items-center justify-center rounded-full bg-surface2">
+        <Pressable hitSlop={6} onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" className="h-10 w-10 flex-none items-center justify-center rounded-full bg-surface2">
           <Icon name="CaretLeft" size={18} color={COLORS.inkDim} />
         </Pressable>
       ) : null}

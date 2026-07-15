@@ -68,7 +68,7 @@ export default function SessionsScreen() {
       <View className="flex-row items-center gap-3 pb-2.5 pt-3">
         <Text style={{ fontFamily: FONT.displayBlack }} className="flex-1 text-[26px] uppercase text-acid">Latag</Text>
         {list.length > 0 ? <Badge label={`${list.length} SESSIONS`} /> : null}
-        <Pressable hitSlop={8} onPress={() => router.push("/settings")} className="h-10 w-10 items-center justify-center rounded-full bg-surface2">
+        <Pressable hitSlop={8} onPress={() => router.push("/settings")} accessibilityRole="button" accessibilityLabel="Settings" className="h-10 w-10 items-center justify-center rounded-full bg-surface2">
           <Icon name="GearSix" size={18} color={COLORS.inkDim} />
         </Pressable>
       </View>
