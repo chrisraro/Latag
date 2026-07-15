@@ -9,10 +9,16 @@ import { PhotoSlot } from "../components/PhotoSlot";
 
 const PANES = 2;
 
-/** Sets the first-run flag and lands on the sessions list. Shared by both exits (Skip and Start logging). */
+/** Sets the first-run flags and lands on the sessions list. Shared by both exits (Skip and Start logging). */
 async function finishOnboarding(router: ReturnType<typeof useRouter>) {
-  // Navigate even if the flag write fails — worst case, onboarding shows again.
-  await AsyncStorage.setItem("latag.onboarded", "1").catch(() => {});
+  // Navigate even if the flag writes fail — worst case, onboarding shows again.
+  // Also sets `latag.welcomed` — covers users who reach onboarding directly
+  // (pre-welcome-era navigation, or the "start offline" welcome exit already
+  // set it) so the welcome screen never reappears after this point.
+  await AsyncStorage.multiSet([
+    ["latag.onboarded", "1"],
+    ["latag.welcomed", "1"],
+  ]).catch(() => {});
   router.replace("/");
 }
 

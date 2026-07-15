@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { supabase } from "../../lib/supabase";
 import { completeSignIn } from "../../lib/auth-complete";
+import { setWelcomed } from "../../lib/first-run";
 import { showError } from "../../lib/toast";
 import { FONT } from "../../lib/theme";
 import { FieldLabel, PrimaryButton } from "../../components/ui";
@@ -68,7 +69,8 @@ export default function SignInScreen() {
         showError(error.message);
         return;
       }
-      await completeSignIn(router);
+      const signedIn = await completeSignIn(router);
+      if (signedIn) await setWelcomed();
     } catch {
       setErrorMsg("Couldn't verify the code — check your connection and try again.");
       showError("Couldn't verify the code — check your connection and try again");

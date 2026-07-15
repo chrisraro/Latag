@@ -10,6 +10,7 @@ import { sessions, items } from "../db/schema";
 import { FONT } from "../lib/theme";
 import { formatPeso, formatPct } from "../lib/format";
 import { selectorProjected, selectorRealized, bultoRealizedPct } from "../lib/math";
+import { decideStartRoute } from "../lib/first-run";
 import { Badge, PrimaryButton } from "../components/ui";
 
 export default function SessionsScreen() {
@@ -19,15 +20,18 @@ export default function SessionsScreen() {
   const { data: sessionRows } = useLiveQuery(db.select().from(sessions).orderBy(desc(sessions.createdAt)));
   const { data: itemRows } = useLiveQuery(db.select().from(items));
 
-  // First-run onboarding gate: redirect once if the flag is absent, otherwise
-  // render normally. Rendering null until this resolves avoids flashing the
-  // sessions list before the redirect lands (splash is already up at mount).
+  // First-run gate: redirect once if welcome/onboarding is still pending,
+  // otherwise render normally. Rendering null until this resolves avoids
+  // flashing the sessions list before the redirect lands (splash is already
+  // up at mount).
   useEffect(() => {
     let cancelled = false;
-    AsyncStorage.getItem("latag.onboarded").then((value) => {
+    AsyncStorage.multiGet(["latag.welcomed", "latag.onboarded"]).then((pairs) => {
       if (cancelled) return;
-      if (value === null) {
-        router.replace("/onboarding");
+      const flags = Object.fromEntries(pairs);
+      const route = decideStartRoute(flags["latag.welcomed"] !== null, flags["latag.onboarded"] !== null);
+      if (route) {
+        router.replace(route);
       } else {
         setChecked(true);
       }
