@@ -4,11 +4,11 @@ import { FONT } from "../lib/theme";
 
 function ToastCard({ text1, tone, onPress }: { text1?: string; tone: "success" | "error"; onPress?: () => void }) {
   const card = (
-    <View className="mx-6 w-[85%] flex-row items-center gap-2.5 rounded-card border border-hairline bg-surface2 px-4 py-3">
+    <View className="mx-6 w-[85%] flex-row items-center gap-3 rounded-card border border-hairline bg-surface2 px-4 py-3.5">
       <Text style={{ fontFamily: FONT.bold }} className={`text-[15px] ${tone === "success" ? "text-acid" : "text-danger"}`}>
         {tone === "success" ? "✓" : "!"}
       </Text>
-      <Text style={{ fontFamily: FONT.semibold }} className="flex-1 text-[14px] text-ink" numberOfLines={2}>
+      <Text style={{ fontFamily: FONT.semibold, lineHeight: 19 }} className="flex-1 text-[14px] text-ink" numberOfLines={2}>
         {text1}
       </Text>
     </View>

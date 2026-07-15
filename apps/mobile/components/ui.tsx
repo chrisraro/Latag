@@ -11,15 +11,15 @@ export function Chip({ label, selected, onPress }: { label: string; selected?: b
       onPress={() => { Haptics.selectionAsync(); onPress(); }}
       className={`h-11 flex-none flex-row items-center rounded-full border px-4 ${selected ? "border-acid bg-acid" : "border-hairline bg-surface2"}`}
     >
-      <Text style={{ fontFamily: selected ? FONT.bold : FONT.medium }} className={`text-[13px] ${selected ? "text-acidink" : "text-inkdim"}`}>{label}</Text>
+      <Text style={{ fontFamily: selected ? FONT.bold : FONT.medium, lineHeight: 18 }} className={`text-[13px] ${selected ? "text-acidink" : "text-inkdim"}`}>{label}</Text>
     </Pressable>
   );
 }
 
 export function Badge({ label, tone = "default" }: { label: string; tone?: "default" | "sold" }) {
   return (
-    <View className={`flex-none rounded-full border px-[9px] py-[3px] ${tone === "sold" ? "border-inkfaint" : "border-hairline"}`}>
-      <Text style={{ fontFamily: FONT.display, letterSpacing: 0.42 }} className={`text-[10.5px] ${tone === "sold" ? "text-inkfaint" : "text-inkdim"}`}>{label}</Text>
+    <View className={`flex-none rounded-full border px-2.5 py-1 ${tone === "sold" ? "border-inkfaint" : "border-hairline"}`}>
+      <Text style={{ fontFamily: FONT.display, letterSpacing: 0.42, lineHeight: 14 }} className={`text-[10.5px] ${tone === "sold" ? "text-inkfaint" : "text-inkdim"}`}>{label}</Text>
     </View>
   );
 }
@@ -39,7 +39,7 @@ export function PrimaryButton({
     <Pressable
       disabled={disabled}
       onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onPress(); }}
-      className={`mb-3 mt-4 h-14 flex-row items-center justify-center gap-2 rounded-full ${disabled ? "bg-surface2" : "bg-acid"} active:scale-[0.97]`}
+      className={`mb-3 mt-5 h-14 flex-row items-center justify-center gap-2 rounded-full ${disabled ? "bg-surface2" : "bg-acid"} active:scale-[0.97]`}
     >
       {icon ? <Icon name={icon} size={18} color={COLORS.acidInk} /> : null}
       <Text style={{ fontFamily: FONT.display, letterSpacing: 0.48 }} className={`text-[16px] uppercase ${disabled ? "text-inkfaint" : "text-acidink"}`}>{label}</Text>
@@ -67,7 +67,7 @@ export function SecondaryButton({
 }
 
 export function FieldLabel({ children }: { children: string }) {
-  return <Text style={{ fontFamily: FONT.semibold, letterSpacing: 0.92 }} className="mb-2 mt-4 text-[11.5px] uppercase text-inkfaint">{children}</Text>;
+  return <Text style={{ fontFamily: FONT.semibold, letterSpacing: 0.92, lineHeight: 16 }} className="mb-2.5 mt-5 text-[11.5px] uppercase text-inkfaint">{children}</Text>;
 }
 
 const MONEY_SPEC = {

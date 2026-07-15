@@ -110,9 +110,9 @@ export function Wheel({ values, value, onChange, unit, format, allowCustom }: {
         <Modal visible={editing} transparent animationType="fade" onRequestClose={() => setEditing(false)}>
           <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" className="flex-1 bg-black/60" onPress={() => setEditing(false)} />
           <View className="rounded-t-sheet border-t border-hairline bg-surface1 px-5 pb-8 pt-3">
-            <View className="mb-3 h-1 w-11 self-center rounded-full bg-hairline" />
+            <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-hairline" />
             <Text style={{ fontFamily: FONT.display }} className="text-[17px] text-ink">Custom amount</Text>
-            <View className="mt-3 flex-row items-center gap-3">
+            <View className="mt-4 flex-row items-center gap-3">
               {unit ? <Text style={{ fontFamily: FONT.bold }} className="text-[22px] text-inkdim">{unit}</Text> : null}
               <TextInput
                 value={draft}

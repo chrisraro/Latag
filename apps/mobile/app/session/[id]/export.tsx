@@ -48,12 +48,12 @@ export default function ExportScreen() {
       />
       <ScrollView className="max-h-56">
         {all.map((i) => (
-          <Pressable key={i.id} onPress={() => toggle(i.id)} className="flex-row items-center gap-3 border-b border-hairline py-3">
+          <Pressable key={i.id} onPress={() => toggle(i.id)} className="flex-row items-center gap-3 border-b border-hairline px-1 py-3.5">
             <View className={`h-6 w-6 items-center justify-center rounded-lg border-[1.5px] ${selected.has(i.id) ? "border-acid bg-acid" : "border-hairline"}`}>
               {selected.has(i.id) ? <Icon name="Check" size={14} color={COLORS.acidInk} /> : null}
             </View>
-            <Text style={{ fontFamily: FONT.semibold }} className={`flex-1 text-[15px] ${selected.has(i.id) ? "text-ink" : "text-inkdim"}`} numberOfLines={1}>{i.brand} {i.category}</Text>
-            <Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"] }} className="text-[15px] text-ink">{formatPeso(i.targetSellPrice)}</Text>
+            <Text style={{ fontFamily: FONT.semibold, lineHeight: 21 }} className={`flex-1 text-[15px] ${selected.has(i.id) ? "text-ink" : "text-inkdim"}`} numberOfLines={1}>{i.brand} {i.category}</Text>
+            <Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className="ml-1 text-[15px] text-ink">{formatPeso(i.targetSellPrice)}</Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -71,7 +71,7 @@ export default function ExportScreen() {
         placeholderTextColor="#8A8A8A"
         accessibilityLabel="Drop caption editor"
         style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"] }}
-        className={`flex-1 rounded-card border bg-surface1 px-4 py-3.5 text-[13.5px] leading-[22px] text-inkdim ${captionFocused ? "border-acid" : "border-hairline"}`}
+        className={`flex-1 rounded-card border bg-surface1 px-4 py-4 text-[13.5px] leading-[22px] text-inkdim ${captionFocused ? "border-acid" : "border-hairline"}`}
       />
       <View style={{ paddingBottom: insets.bottom + 4 }}>
         <PrimaryButton label="Copy to Clipboard" icon="ClipboardText" onPress={copy} disabled={chosen.length === 0 || !caption.trim()} />
