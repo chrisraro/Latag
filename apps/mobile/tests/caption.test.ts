@@ -20,7 +20,7 @@ const SPEC_KEYS: SpecKey[] = [
 /** Caption fixture: all specs null unless overridden — mirrors a post-E1 item row. */
 function ci(overrides: Partial<CaptionItem>): CaptionItem {
   const base: any = {
-    brand: "Stüssy", name: null, department: "tops", sizeNote: null,
+    brand: "Stüssy", name: null, category: "Tee", department: "tops", sizeNote: null,
     condition: "9/10", targetSellPrice: 550,
   };
   for (const k of SPEC_KEYS) base[k] = null;
@@ -33,7 +33,7 @@ test("tops caption matches blueprint template (spec line via captionSpecLine)", 
     ci({ brand: "Carhartt", ptpInches: 24, lengthInches: 28.5, condition: "10/10", targetSellPrice: 1250 }),
   ]);
   expect(out).toBe(
-    `👕 Stüssy\n📏 Size: (PTP 21" · L 27")\n✨ Condition: 9/10\n💸 ₱550\n📍 Comment "Mine" to claim\n---\n` +
+    `👕 Stüssy Tee\n📏 Size: (PTP 21" · L 27")\n✨ Condition: 9/10\n💸 ₱550\n📍 Comment "Mine" to claim\n---\n` +
     `👕 Carhartt\n📏 Size: (PTP 24" · L 28.5")\n✨ Condition: 10/10\n💸 ₱1,250\n📍 Comment "Mine" to claim\n---`
   );
 });
@@ -68,7 +68,7 @@ test("accessories spec line uses sizeNote, falls back to One size", () => {
 
 test("size line omitted when no specs set", () => {
   const out = formatCaption([ci({})]);
-  expect(out).toBe(`👕 Stüssy\n✨ Condition: 9/10\n💸 ₱550\n📍 Comment "Mine" to claim\n---`);
+  expect(out).toBe(`👕 Stüssy Tee\n✨ Condition: 9/10\n💸 ₱550\n📍 Comment "Mine" to claim\n---`);
 });
 
 test("empty selection → empty string", () => expect(formatCaption([])).toBe(""));
