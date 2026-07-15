@@ -24,7 +24,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={archivo.variable}>
       <body className="min-h-dvh bg-bg font-sans text-ink antialiased">
         <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
-          <Link href="/" className="display-black text-xl uppercase tracking-wide text-acid">Latag</Link>
+          <Link href="/" className="flex items-center gap-2.5">
+            <svg viewBox="0 0 512 512" className="h-7 w-7" aria-hidden="true">
+              <g transform="translate(256,256) rotate(-12)">
+                <path d="M -125,0 L -38,-81 L -28.1,-81 L -11.9,81 L -38,81 Z" fill="#B8F135" />
+                <rect x="-100" y="-19" width="38" height="38" fill="#000" />
+                <path d="M -10.1,-81 L 125,-81 L 125,81 L 6.1,81 Z" fill="#B8F135" />
+                <rect x="6" y="-56" width="38" height="112" fill="#000" />
+                <rect x="6" y="19" width="75" height="37" fill="#000" />
+              </g>
+            </svg>
+            <span className="display-black text-xl uppercase tracking-wide text-acid">Latag</span>
+          </Link>
           <nav aria-label="Main" className="flex items-center gap-5 text-sm text-inkdim">
             <Link className="hover:text-ink focus-visible:text-ink" href="/pro">Pricing</Link>
             <Link className="hover:text-ink focus-visible:text-ink" href="/data">Data</Link>

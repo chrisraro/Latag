@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g id="background">
+    <rect x="0" y="0" width="512" height="512" fill="#000000"/>
+  </g>
+
+  <g id="tag">
+    <!-- Garment tag: pointed eyelet top, solid body, jagged bottom edge beginning to break apart -->
+    <path d="M256,110 L306,150 L306,250 L306,266 L272,266 L272,250 L240,250 L240,270 L206,270 L206,150 Z" fill="#B8F135"/>
+    <!-- Punched eyelet hole -->
+    <circle cx="256" cy="172" r="16" fill="#000000"/>
+  </g>
+
+  <g id="grid">
+    <!-- Row 1: dense, closest to the tag -->
+    <rect x="178" y="284" width="34" height="34" fill="#B8F135"/>
+    <rect x="222" y="284" width="34" height="34" fill="#B8F135"/>
+    <rect x="266" y="284" width="34" height="34" fill="#F2F2F2"/>
+    <rect x="310" y="284" width="34" height="34" fill="#B8F135"/>
+
+    <!-- Row 2: fewer, spreading wider -->
+    <rect x="166" y="332" width="30" height="30" fill="#B8F135"/>
+    <rect x="254" y="332" width="30" height="30" fill="#B8F135"/>
+    <rect x="322" y="332" width="30" height="30" fill="#B8F135"/>
+
+    <!-- Row 3: sparsest, laid furthest out -->
+    <rect x="200" y="372" width="28" height="28" fill="#B8F135"/>
+    <rect x="300" y="372" width="28" height="28" fill="#F2F2F2"/>
+  </g>
+</svg>

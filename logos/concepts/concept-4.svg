@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g id="background">
+    <rect x="0" y="0" width="512" height="512" fill="#000000"/>
+  </g>
+
+  <!-- Back tag: off-white, rotated counter-clockwise -->
+  <g id="tag-back" transform="translate(250,195) rotate(-9)">
+    <path d="M 0,-40 L 90,20 L 90,182 Q 90,200 72,200 L -72,200 Q -90,200 -90,182 L -90,20 Z" fill="#F2F2F2"/>
+    <circle cx="0" cy="0" r="14" fill="#000000"/>
+  </g>
+
+  <!-- Front tag: acid green, rotated clockwise, overlapping the back tag near the same pivot -->
+  <g id="tag-front" transform="translate(264,200) rotate(11)">
+    <path d="M 0,-40 L 90,20 L 90,182 Q 90,200 72,200 L -72,200 Q -90,200 -90,182 L -90,20 Z" fill="#B8F135"/>
+    <circle cx="0" cy="0" r="14" fill="#000000"/>
+  </g>
+</svg>
