@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Warehouse Console: tag-as-L monogram, single continuous acid polygon, one punched eyelet -->
+  <g id="background">
+    <rect x="0" y="0" width="512" height="512" fill="#000000"/>
+  </g>
+
+  <g id="monogram">
+    <!-- Stem (hanging tag, pointed top) fuses into foot (L base, matching 45° cut echoing the tip) -->
+    <polygon points="212,98 264,150 264,296 368,400 160,400 160,150" fill="#B8F135"/>
+    <!-- Punched eyelet -->
+    <rect x="192" y="176" width="40" height="40" fill="#000000"/>
+  </g>
+</svg>

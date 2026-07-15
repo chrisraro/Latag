@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <clipPath id="tagClip">
+      <path d="M -125,0 L -38,-81 L 125,-81 L 125,81 L -38,81 Z"/>
+    </clipPath>
+    <clipPath id="lowerHalfClip">
+      <rect x="-140" y="0" width="280" height="100"/>
+    </clipPath>
+  </defs>
+  <g id="background">
+    <rect x="0" y="0" width="512" height="512" fill="#000000"/>
+  </g>
+  <g id="tag" transform="translate(256,256) rotate(-12)">
+    <path d="M -125,0 L -38,-81 L 125,-81 L 125,81 L -38,81 Z" fill="#B8F135"/>
+    <rect x="-66" y="-51" width="32" height="32" fill="#000000"/>
+    <g id="stripes" clip-path="url(#tagClip)">
+      <g clip-path="url(#lowerHalfClip)">
+        <g transform="rotate(45)">
+          <rect x="-260" y="-76" width="520" height="20" fill="#000000"/>
+          <rect x="-260" y="-32" width="520" height="20" fill="#000000"/>
+          <rect x="-260" y="12" width="520" height="20" fill="#000000"/>
+          <rect x="-260" y="56" width="520" height="20" fill="#000000"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
