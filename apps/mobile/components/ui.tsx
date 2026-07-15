@@ -9,6 +9,8 @@ export function Chip({ label, selected, onPress }: { label: string; selected?: b
     <Pressable
       hitSlop={4}
       onPress={() => { Haptics.selectionAsync(); onPress(); }}
+      accessibilityRole="button"
+      accessibilityState={{ selected: !!selected }}
       className={`h-11 flex-none flex-row items-center rounded-full border px-4 ${selected ? "border-acid bg-acid" : "border-hairline bg-surface2"}`}
     >
       <Text style={{ fontFamily: selected ? FONT.bold : FONT.medium, lineHeight: 18 }} className={`text-[13px] ${selected ? "text-acidink" : "text-inkdim"}`}>{label}</Text>

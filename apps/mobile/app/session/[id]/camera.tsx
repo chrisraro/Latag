@@ -62,7 +62,7 @@ export default function CameraScreen() {
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom }}>
       <View className="flex-row items-center gap-3 pb-2.5 pt-3">
-        <Pressable hitSlop={6} onPress={() => router.back()} className="h-10 w-10 flex-none items-center justify-center rounded-full bg-surface2">
+        <Pressable hitSlop={6} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close camera" className="h-10 w-10 flex-none items-center justify-center rounded-full bg-surface2">
           <Icon name="X" size={18} color={COLORS.inkDim} />
         </Pressable>
         <Text numberOfLines={1} style={{ fontFamily: FONT.display }} className="min-w-0 flex-1 text-[17px] text-ink">{SLOT_LABEL[activeSlot]} photo</Text>
@@ -97,7 +97,7 @@ export default function CameraScreen() {
           );
         })}
       </View>
-      <Pressable onPress={capture} className="my-4 h-[74px] w-[74px] self-center rounded-full border-4 border-ink bg-surface2 p-1.5">
+      <Pressable onPress={capture} accessibilityRole="button" accessibilityLabel="Take photo" className="my-4 h-[74px] w-[74px] self-center rounded-full border-4 border-ink bg-surface2 p-1.5">
         <View className="flex-1 rounded-full bg-acid" />
       </Pressable>
     </View>
