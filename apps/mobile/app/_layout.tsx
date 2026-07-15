@@ -72,7 +72,10 @@ export default function RootLayout() {
       fetch: () => Updates.fetchUpdateAsync(),
     }).then((phase) => {
       if (phase === "ready") {
-        showSuccess("Update ready — tap here to restart", { onPress: () => { void Updates.reloadAsync(); } });
+        showSuccess("Update ready — tap here to restart", {
+          sticky: true,
+          onPress: () => { Updates.reloadAsync().catch(() => {}); },
+        });
       }
       // up-to-date / error / dev-skip: silent on launch by design.
     });

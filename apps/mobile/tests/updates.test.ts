@@ -17,8 +17,8 @@ describe("runUpdateCheck", () => {
   test("update available and fetched -> ready", async () => {
     expect(await runUpdateCheck({ isDev: false, check: async () => ok, fetch: async () => ({ isNew: true }) })).toBe("ready");
   });
-  test("available but fetch returns stale -> up-to-date", async () => {
-    expect(await runUpdateCheck({ isDev: false, check: async () => ok, fetch: async () => ({ isNew: false }) })).toBe("up-to-date");
+  test("available but fetch returns stale -> ready (already-downloaded update still pending restart)", async () => {
+    expect(await runUpdateCheck({ isDev: false, check: async () => ok, fetch: async () => ({ isNew: false }) })).toBe("ready");
   });
   test("check throws (offline) -> error, never rejects", async () => {
     expect(await runUpdateCheck({ isDev: false, check: async () => { throw new Error("net"); }, fetch: jest.fn() })).toBe("error");
