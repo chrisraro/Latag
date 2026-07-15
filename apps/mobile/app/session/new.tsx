@@ -32,19 +32,19 @@ export default function NewSessionScreen() {
     showSuccess(`${s.name} created`);
   };
 
-  const inputCls = "mb-2.5 h-13 rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
+  const inputCls = "mb-2.5 h-[52px] rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
   return (
     <View className="flex-1 bg-surface1 px-4" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
-      <View className="mb-3 h-1 w-11 self-center rounded-full bg-hairline" />
+      <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
       <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">New Session</Text>
-      <Text style={{ fontFamily: FONT.text }} className="mb-3 mt-0.5 text-[12.5px] text-inkfaint">Name it after the spot — you'll thank yourself later.</Text>
+      <Text style={{ fontFamily: FONT.text }} className="mb-3.5 mt-0.5 text-[12.5px] text-inkfaint">Name it after the spot — you'll thank yourself later.</Text>
       <TextInput value={name} onChangeText={setName} placeholder="Session name" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }} className={inputCls} />
       <TextInput value={location} onChangeText={setLocation} placeholder="Location (optional)" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }} className={inputCls} />
       <FieldLabel>Mode</FieldLabel>
       <View className="flex-row gap-1 rounded-full border border-hairline bg-surface2 p-1">
         {(["selector", "bulto"] as const).map((t) => (
           <Pressable key={t} onPress={() => { Haptics.selectionAsync(); setType(t); }} className={`h-11 flex-1 items-center justify-center rounded-full ${type === t ? "bg-acid" : ""}`}>
-            <Text style={{ fontFamily: FONT.display }} className={`text-[13px] uppercase ${type === t ? "text-acidink" : "text-inkdim"}`}>{t}</Text>
+            <Text style={{ fontFamily: FONT.display, letterSpacing: 0.39 }} className={`text-[13px] uppercase ${type === t ? "text-acidink" : "text-inkdim"}`}>{t}</Text>
           </Pressable>
         ))}
       </View>
