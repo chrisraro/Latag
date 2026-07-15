@@ -10,9 +10,11 @@ import { db } from "../../../db/client";
 import { items } from "../../../db/schema";
 import { formatCaption } from "../../../lib/caption";
 import { formatPeso } from "../../../lib/format";
-import { FONT } from "../../../lib/theme";
+import { FONT, COLORS } from "../../../lib/theme";
 import { showSuccess } from "../../../lib/toast";
 import { Badge, FieldLabel, PrimaryButton } from "../../../components/ui";
+import { AppHead } from "../../../components/AppHead";
+import { Icon } from "../../../components/Icon";
 
 export default function ExportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,16 +41,16 @@ export default function ExportScreen() {
 
   return (
     <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8 }}>
-      <View className="flex-row items-center gap-3 pb-2 pt-3">
-        <Pressable hitSlop={8} onPress={() => router.back()} className="h-10 w-10 items-center justify-center rounded-full bg-surface2"><Text className="text-[18px] text-inkdim">‹</Text></Pressable>
-        <Text style={{ fontFamily: FONT.display }} className="flex-1 text-[20px] text-ink">IG Drop</Text>
-        <Badge label={`${chosen.length} SELECTED`} />
-      </View>
+      <AppHead
+        title="IG Drop"
+        onBack={() => router.back()}
+        right={<Badge label={`${chosen.length} SELECTED`} />}
+      />
       <ScrollView className="max-h-56">
         {all.map((i) => (
           <Pressable key={i.id} onPress={() => toggle(i.id)} className="flex-row items-center gap-3 border-b border-hairline py-3">
-            <View className={`h-6 w-6 items-center justify-center rounded-lg border ${selected.has(i.id) ? "border-acid bg-acid" : "border-hairline"}`}>
-              {selected.has(i.id) ? <Text style={{ fontFamily: FONT.bold }} className="text-[13px] text-acidink">✓</Text> : null}
+            <View className={`h-6 w-6 items-center justify-center rounded-lg border-[1.5px] ${selected.has(i.id) ? "border-acid bg-acid" : "border-hairline"}`}>
+              {selected.has(i.id) ? <Icon name="Check" size={14} color={COLORS.acidInk} /> : null}
             </View>
             <Text style={{ fontFamily: FONT.semibold }} className={`flex-1 text-[15px] ${selected.has(i.id) ? "text-ink" : "text-inkdim"}`} numberOfLines={1}>{i.brand} {i.category}</Text>
             <Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"] }} className="text-[15px] text-ink">{formatPeso(i.targetSellPrice)}</Text>
@@ -69,10 +71,10 @@ export default function ExportScreen() {
         placeholderTextColor="#8A8A8A"
         accessibilityLabel="Drop caption editor"
         style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"] }}
-        className={`flex-1 rounded-card border bg-surface1 px-4 py-3 text-[13.5px] leading-[22px] text-ink ${captionFocused ? "border-acid" : "border-hairline"}`}
+        className={`flex-1 rounded-card border bg-surface1 px-4 py-3.5 text-[13.5px] leading-[22px] text-inkdim ${captionFocused ? "border-acid" : "border-hairline"}`}
       />
       <View style={{ paddingBottom: insets.bottom + 4 }}>
-        <PrimaryButton label="Copy to Clipboard" onPress={copy} disabled={chosen.length === 0 || !caption.trim()} />
+        <PrimaryButton label="Copy to Clipboard" icon="ClipboardText" onPress={copy} disabled={chosen.length === 0 || !caption.trim()} />
       </View>
     </View>
   );

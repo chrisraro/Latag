@@ -14,7 +14,10 @@ import { FREE_LOG_LIMIT, logsRemaining, ensureEntitlements } from "../lib/entitl
 import { getMediaUsage } from "../lib/storage-usage";
 import { showSuccess, showError } from "../lib/toast";
 import { runUpdateCheck, versionLabel } from "../lib/updates";
-import { FONT } from "../lib/theme";
+import { FONT, COLORS } from "../lib/theme";
+import { FieldLabel } from "../components/ui";
+import { AppHead } from "../components/AppHead";
+import { Icon, type IconName } from "../components/Icon";
 
 type Tone = "default" | "acid" | "danger";
 
@@ -24,7 +27,13 @@ function toneClass(tone: Tone | undefined, base: string): string {
   return base;
 }
 
-/** One `.set-row` per the settings mockup: 36px icon square, semibold title, faint subtitle. */
+function toneColor(tone: Tone | undefined): string {
+  if (tone === "acid") return COLORS.acid;
+  if (tone === "danger") return COLORS.danger;
+  return COLORS.inkDim;
+}
+
+/** One `.set-row` per the settings mockup: 36px icon tile, semibold title, faint subtitle. */
 function SettingsRow({
   icon,
   iconTone,
@@ -36,7 +45,7 @@ function SettingsRow({
   chevron,
   last,
 }: {
-  icon: string;
+  icon: IconName;
   iconTone?: Tone;
   title: string;
   titleTone?: Tone;
@@ -53,7 +62,7 @@ function SettingsRow({
       className={`flex-row items-center gap-3 py-3.5 ${last ? "" : "border-b border-hairline"}`}
     >
       <View className="h-9 w-9 items-center justify-center rounded-[10px] bg-surface2">
-        <Text style={{ fontFamily: FONT.semibold }} className={`text-[15px] ${toneClass(iconTone, "text-inkdim")}`}>{icon}</Text>
+        <Icon name={icon} size={18} color={toneColor(iconTone)} />
       </View>
       <View className="flex-1">
         <Text style={{ fontFamily: FONT.semibold }} className={`text-[15px] ${toneClass(titleTone, "text-ink")}`} numberOfLines={1}>{title}</Text>
@@ -66,7 +75,7 @@ function SettingsRow({
           </Text>
         ) : null}
       </View>
-      {chevron ? <Text className="text-[18px] text-inkfaint">›</Text> : null}
+      {chevron ? <Icon name="CaretRight" size={16} color={COLORS.inkFaint} /> : null}
     </Wrapper>
   );
 }
@@ -166,16 +175,12 @@ export default function SettingsScreen() {
 
   return (
     <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8 }}>
-      <View className="flex-row items-center gap-3 pb-2 pt-3">
-        <Pressable hitSlop={8} onPress={() => router.back()} className="h-10 w-10 items-center justify-center rounded-full bg-surface2">
-          <Text className="text-[18px] text-inkdim">‹</Text>
-        </Pressable>
-        <Text style={{ fontFamily: FONT.display }} className="flex-1 text-[20px] text-ink">Settings</Text>
-      </View>
+      <AppHead title="Settings" onBack={() => router.back()} />
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+        <FieldLabel>Account</FieldLabel>
         <SettingsRow
-          icon="@"
+          icon="EnvelopeSimple"
           title={session ? (session.user.email ?? "Signed in") : "Sign in once — Latag runs 100% offline after"}
           subtitle={session ? "Signed in" : "Activate Pro or restore it on a new phone"}
           onPress={session ? undefined : () => router.push("/auth/sign-in")}
@@ -184,7 +189,7 @@ export default function SettingsScreen() {
 
         <View className="border-b border-hairline py-3.5">
           <SettingsRow
-            icon="★"
+            icon={ent.pro ? "ShieldCheck" : "Package"}
             iconTone={ent.pro ? "acid" : "default"}
             title={ent.pro ? "PRO — Active" : `Free — ${FREE_LOG_LIMIT} item logs`}
             titleTone={ent.pro ? "acid" : "default"}
@@ -192,7 +197,8 @@ export default function SettingsScreen() {
             last
           />
           {session ? (
-            <Pressable hitSlop={8} disabled={refreshing} onPress={() => void refreshLicense()} className="ml-12 mt-1">
+            <Pressable hitSlop={8} disabled={refreshing} onPress={() => void refreshLicense()} className="ml-12 mt-1 flex-row items-center gap-1">
+              <Icon name="ArrowsClockwise" size={12} color={COLORS.inkDim} />
               <Text style={{ fontFamily: FONT.semibold }} className="text-[12.5px] text-inkdim">
                 {refreshing ? "Refreshing…" : "Refresh license"}
               </Text>
@@ -200,27 +206,28 @@ export default function SettingsScreen() {
           ) : null}
         </View>
 
+        <FieldLabel>App</FieldLabel>
         <SettingsRow
-          icon="▦"
+          icon="HardDrives"
           title="Storage"
           subtitle={`${usage.count.toLocaleString("en-PH")} photos · ${usage.label} on device`}
           subtitleTnum
         />
 
         <SettingsRow
-          icon="✈"
+          icon="WifiSlash"
           title="Offline-first"
           subtitle="Inventory, photos & math never leave this phone"
         />
 
         <SettingsRow
-          icon="i"
+          icon="GearSix"
           title="Version"
           subtitle={currentVersionLabel}
         />
 
         <SettingsRow
-          icon="↻"
+          icon="Download"
           title="Check for updates"
           subtitle={checkingUpdate ? "Checking…" : "Get the latest fixes and features"}
           onPress={() => void checkForUpdates()}
@@ -229,7 +236,7 @@ export default function SettingsScreen() {
 
         {session ? (
           <SettingsRow
-            icon="⏻"
+            icon="SignOut"
             iconTone="danger"
             title="Sign out"
             titleTone="danger"
