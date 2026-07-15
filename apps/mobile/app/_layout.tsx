@@ -17,7 +17,7 @@ import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
 import { setWelcomed } from "../lib/first-run";
 import { runUpdateCheck } from "../lib/updates";
-import { showError, showSuccess } from "../lib/toast";
+import { showError } from "../lib/toast";
 import { AppToast } from "../components/AppToast";
 
 SplashScreen.preventAutoHideAsync();
@@ -74,21 +74,15 @@ export default function RootLayout() {
     })();
   }, [url, migrated]);
 
-  // OTA: silent check on launch; prompt-to-restart when a new bundle is ready.
+  // OTA: fully silent — download in the background on launch; expo-updates
+  // runs the downloaded bundle automatically on the NEXT cold start.
+  // Owner decision 2026-07-15: no restart prompt (was prompt-to-restart).
   useEffect(() => {
     if (!migrated) return;
     void runUpdateCheck({
       isDev: __DEV__,
       check: () => Updates.checkForUpdateAsync(),
       fetch: () => Updates.fetchUpdateAsync(),
-    }).then((phase) => {
-      if (phase === "ready") {
-        showSuccess("Update ready — tap here to restart", {
-          sticky: true,
-          onPress: () => { Updates.reloadAsync().catch(() => {}); },
-        });
-      }
-      // up-to-date / error / dev-skip: silent on launch by design.
     });
   }, [migrated]);
 
