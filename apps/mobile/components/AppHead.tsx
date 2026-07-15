@@ -2,8 +2,12 @@ import { Pressable, Text, View } from "react-native";
 import { Icon } from "./Icon";
 import { FONT, COLORS } from "../lib/theme";
 
-/** Mockup .apphead: 40px circular back on surface2, 21px expanded-800 title, 12px gap, 12/8 vertical padding. */
-export function AppHead({ title, onBack, right }: { title: string; onBack?: () => void; right?: React.ReactNode }) {
+/**
+ * Mockup .apphead: 40px circular back on surface2, expanded-800 title (21px default;
+ * screens with a denser header — e.g. Rapid Console — pass size={17} per mockup h3
+ * overrides), 12px gap, 12/8 vertical padding.
+ */
+export function AppHead({ title, onBack, right, size = 21 }: { title: string; onBack?: () => void; right?: React.ReactNode; size?: number }) {
   return (
     <View className="flex-row items-center gap-3 pb-2 pt-3">
       {onBack ? (
@@ -11,7 +15,7 @@ export function AppHead({ title, onBack, right }: { title: string; onBack?: () =
           <Icon name="CaretLeft" size={18} color={COLORS.inkDim} />
         </Pressable>
       ) : null}
-      <Text numberOfLines={1} style={{ fontFamily: FONT.display }} className="min-w-0 flex-1 text-[21px] text-ink">{title}</Text>
+      <Text numberOfLines={1} style={{ fontFamily: FONT.display, fontSize: size }} className="min-w-0 flex-1 text-ink">{title}</Text>
       {right}
     </View>
   );

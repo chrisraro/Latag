@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
+import { View, Text, ScrollView, TextInput } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -15,7 +15,8 @@ import { CATEGORIES, CONDITIONS, FONT } from "../../../lib/theme";
 import { formatPeso } from "../../../lib/format";
 import { selectorProjected } from "../../../lib/math";
 import { showError, showSuccess } from "../../../lib/toast";
-import { Chip, FieldLabel, PrimaryButton } from "../../../components/ui";
+import { Badge, Chip, FieldLabel, PrimaryButton } from "../../../components/ui";
+import { AppHead } from "../../../components/AppHead";
 import { Wheel, rangeValues } from "../../../components/Wheel";
 import { PhotoSlot } from "../../../components/PhotoSlot";
 import { GoProSheet } from "../../../components/GoProSheet";
@@ -85,6 +86,7 @@ export default function RapidConsole() {
   if (!session) return null;
   const ent = entRows?.[0] ?? ensureEntitlements(db);
   const remaining = logsRemaining(ent);
+  const filledSlots = SLOTS.filter((s) => staged[s] ?? existingPhotoMap[s]);
 
   const save = () => {
     if (saving) return; // double-tap guard
@@ -122,18 +124,25 @@ export default function RapidConsole() {
 
   return (
     <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8 }}>
-      <View className="flex-row items-center gap-3 pb-2 pt-3">
-        <Pressable hitSlop={8} onPress={() => router.back()} className="h-10 w-10 items-center justify-center rounded-full bg-surface2"><Text className="text-[18px] text-inkdim">‹</Text></Pressable>
-        <Text style={{ fontFamily: FONT.display }} className="flex-1 text-[17px] text-ink" numberOfLines={1}>{session.name}</Text>
-        <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"] }} className="text-[12px] text-inkfaint">
-          #{(sessionItems?.length ?? 0) + (editId ? 0 : 1)} · {formatPeso(selectorProjected(sessionItems ?? []))}
-          {Number.isFinite(remaining) && remaining <= 10 ? `  ·  ${remaining} free logs left` : ""}
-        </Text>
-      </View>
+      <AppHead
+        title={session.name}
+        size={17}
+        onBack={() => router.back()}
+        right={
+          <Badge
+            label={`#${(sessionItems?.length ?? 0) + (editId ? 0 : 1)} · ${formatPeso(selectorProjected(sessionItems ?? []))}${Number.isFinite(remaining) && remaining <= 10 ? `  ·  ${remaining} free logs left` : ""}`}
+          />
+        }
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
-        <View className="flex-row gap-2">
+        <View className="mt-1.5 flex-row gap-2">
           {SLOTS.map((s) => (
-            <PhotoSlot key={s} label={s.toUpperCase()} uri={staged[s] ?? existingPhotoMap[s] ?? null} onPress={() => router.push(`/session/${id}/camera?slot=${s}`)} />
+            <PhotoSlot
+              key={s}
+              label={s.toUpperCase()}
+              uri={staged[s] ?? existingPhotoMap[s] ?? null}
+              onPress={() => router.push(`/session/${id}/camera?slot=${s}&filled=${encodeURIComponent(filledSlots.join(","))}`)}
+            />
           ))}
         </View>
         <FieldLabel>Brand</FieldLabel>
@@ -151,12 +160,12 @@ export default function RapidConsole() {
         </ScrollView>
         <FieldLabel>Condition</FieldLabel>
         <View className="flex-row gap-2 py-1">{CONDITIONS.map((c) => <Chip key={c} label={c} selected={condition === c} onPress={() => setCondition(c)} />)}</View>
-        <FieldLabel>Pit-to-pit</FieldLabel>
+        <FieldLabel>{"Pit-to-pit · Length"}</FieldLabel>
         <Wheel values={PTP} value={ptp} onChange={setPtp} unit={'PTP "'} />
         <View className="h-2" />
         <Wheel values={LEN} value={len} onChange={setLen} unit={'L "'} />
         {session.type === "selector" ? (<>
-          <FieldLabel>Cost · Price</FieldLabel>
+          <FieldLabel>{"Cost · Price"}</FieldLabel>
           <View className="flex-row gap-2">
             <View className="flex-1"><Wheel values={COST} value={cost} onChange={setCost} unit="COST ₱" allowCustom /></View>
             <View className="flex-[1.4]"><Wheel values={PRICE} value={price} onChange={setPrice} unit="₱" allowCustom /></View>
@@ -167,7 +176,7 @@ export default function RapidConsole() {
         </>)}
       </ScrollView>
       <View style={{ paddingBottom: insets.bottom + 4 }}>
-        <PrimaryButton label={editId ? "Save changes  ✓" : "Save item  ✓"} onPress={save} disabled={saving} />
+        <PrimaryButton label={editId ? "Save changes" : "Save item"} icon="Check" onPress={save} disabled={saving} />
       </View>
       <GoProSheet visible={goPro} onClose={() => setGoPro(false)} />
     </View>
