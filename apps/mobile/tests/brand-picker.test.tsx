@@ -106,3 +106,39 @@ test("the row matching `value` is marked selected", () => {
   const row = pressableByLabel(tree, "Nike");
   expect(row.props.accessibilityState).toEqual({ selected: true });
 });
+
+test("diacritic-insensitive query 'Stüssy' exact-matches seed 'Stussy', hiding the add row", () => {
+  const tree = render();
+  typeQuery(tree, "Stüssy");
+  const all = texts(tree);
+  expect(all).toContain("Stussy");
+  expect(all.some((t) => t.startsWith("+ Add"))).toBe(false);
+});
+
+test("submitting the query performs the add-row action when it's visible", () => {
+  const onPick = jest.fn();
+  const tree = render({ onPick });
+  typeQuery(tree, "Detroit Vintage Co");
+  const input = tree.root.findByType(TextInput);
+  act(() => { input.props.onSubmitEditing(); });
+  expect(onPick).toHaveBeenCalledWith("Detroit Vintage Co");
+  expect(listUserBrands(db)).toContain("Detroit Vintage Co");
+});
+
+test("submitting an exact-match query picks the top suggestion instead", () => {
+  const onPick = jest.fn();
+  const tree = render({ onPick });
+  typeQuery(tree, "nike");
+  const input = tree.root.findByType(TextInput);
+  act(() => { input.props.onSubmitEditing(); });
+  expect(onPick).toHaveBeenCalledWith("Nike");
+  expect(listUserBrands(db)).toEqual([]); // no brand created — it matched an existing one
+});
+
+test("submitting an empty query does nothing", () => {
+  const onPick = jest.fn();
+  const tree = render({ onPick });
+  const input = tree.root.findByType(TextInput);
+  act(() => { input.props.onSubmitEditing(); });
+  expect(onPick).not.toHaveBeenCalled();
+});

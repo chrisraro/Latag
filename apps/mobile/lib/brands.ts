@@ -8,7 +8,8 @@ type SeedEntry = { name: string; tier: "core" | "common" };
 type AnyDb = any;
 
 const newId = () => Crypto.randomUUID();
-const nocase = (name: string) => name.trim().toLowerCase();
+/** Case- and diacritic-insensitive key: trims, strips accents (NFD + combining-mark strip), lowercases. */
+const nocase = (name: string) => name.trim().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const az = (a: string, b: string) => nocase(a).localeCompare(nocase(b));
 
 type Candidate = BrandSuggestion & { tier?: "core" | "common" };
@@ -60,14 +61,14 @@ export function suggestBrands(
 }
 
 /**
- * Trims, then dedupes case-insensitively against BOTH user_brands and the
+ * Trims, then dedupes case- and diacritic-insensitively against BOTH user_brands and the
  * bundled seed — returns the existing casing when a duplicate is found, so
  * callers can pick the canonical name instead of creating a variant.
  */
 export function addUserBrand(db: AnyDb, name: string): { created: boolean; name: string } {
   const trimmed = name.trim();
   if (!trimmed) return { created: false, name: "" };
-  const key = trimmed.toLowerCase();
+  const key = nocase(trimmed);
   const existing = (db.select().from(userBrands).all() as UserBrand[]).find((b) => nocase(b.name) === key);
   if (existing) return { created: false, name: existing.name };
   const seeded = (seedBrands as SeedEntry[]).find((b) => nocase(b.name) === key);

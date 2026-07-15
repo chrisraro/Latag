@@ -169,6 +169,15 @@ test("accessories shows no wheels, no More specs — just the size note field", 
   expect(all).not.toContain("+ More specs");
   expect(all.some((t) => t.endsWith('"'))).toBe(false); // no inch wheel unit labels
   expect(sizeNoteInput(tree)).not.toBeNull();
+  expect(all).toContain("Size note");
+});
+
+test("footwear also surfaces the size note field, labeled for width", () => {
+  const tree = render();
+  press(tree, "Footwear");
+  const all = texts(tree);
+  expect(all).toContain("WIDTH / SIZE NOTE · OPTIONAL");
+  expect(sizeNoteInput(tree)).not.toBeNull();
 });
 
 test("save passes department, wheel defaults for key specs, null extras", () => {
@@ -196,6 +205,30 @@ test("save passes trimmed sizeNote for accessories", () => {
   expect(addItemMock).toHaveBeenCalledTimes(1);
   expect(addItemMock.mock.calls[0][1]).toMatchObject({
     department: "accessories", category: "Cap", sizeNote: "7 1/4 fitted",
+  });
+});
+
+test("save passes trimmed sizeNote for footwear (width label reachable)", () => {
+  insertItem({ id: "seed", brand: "Nike" });
+  const tree = render();
+  press(tree, "Footwear");
+  press(tree, "Nike");
+  act(() => { sizeNoteInput(tree)!.props.onChangeText("  D width  "); });
+  press(tree, "Save item");
+  expect(addItemMock).toHaveBeenCalledTimes(1);
+  expect(addItemMock.mock.calls[0][1]).toMatchObject({
+    department: "footwear", category: "Sneakers", sizeNote: "D width",
+  });
+});
+
+test("save passes tops defaults 21/27 for untouched key-spec wheels", () => {
+  insertItem({ id: "seed", brand: "Nike" });
+  const tree = render();
+  press(tree, "Nike");
+  press(tree, "Save item");
+  expect(addItemMock).toHaveBeenCalledTimes(1);
+  expect(addItemMock.mock.calls[0][1]).toMatchObject({
+    department: "tops", ptpInches: 21, lengthInches: 27, sleeveInches: null,
   });
 });
 
@@ -227,6 +260,6 @@ test("switching department in edit mode clears prefilled specs", () => {
   press(tree, "Save changes");
   expect(updateItemMock).toHaveBeenCalledTimes(1);
   const patch = updateItemMock.mock.calls[0][2];
-  expect(patch).toMatchObject({ department: "tops", category: "Tee", ptpInches: 25, lengthInches: 28, sleeveInches: null });
+  expect(patch).toMatchObject({ department: "tops", category: "Tee", ptpInches: 21, lengthInches: 27, sleeveInches: null });
   expect(patch).not.toHaveProperty("shoeSizeUs");
 });

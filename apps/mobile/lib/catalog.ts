@@ -24,6 +24,8 @@ export type SpecField = {
   unit: "in" | "cm" | "US";
   wheel: { min: number; max: number; step: number };
   extra: boolean;
+  /** Untouched-wheel rest value. Falls back to the wheel's midpoint when omitted. */
+  default?: number;
 };
 
 /**
@@ -43,9 +45,9 @@ export const DEPARTMENTS: { key: Department; label: string }[] = [
 ];
 
 // Reusable spec-field templates (key spec/extra flag applied per department below).
-const PTP: Omit<SpecField, "extra"> = { key: "ptpInches", label: "Pit-to-pit", short: "PTP", unit: "in", wheel: { min: 14, max: 36, step: 0.5 } };
-const LENGTH_TOP: Omit<SpecField, "extra"> = { key: "lengthInches", label: "Length", short: "L", unit: "in", wheel: { min: 20, max: 36, step: 0.5 } };
-const LENGTH_DRESS: Omit<SpecField, "extra"> = { key: "lengthInches", label: "Length", short: "L", unit: "in", wheel: { min: 30, max: 60, step: 0.5 } };
+const PTP: Omit<SpecField, "extra"> = { key: "ptpInches", label: "Pit-to-pit", short: "PTP", unit: "in", wheel: { min: 14, max: 36, step: 0.5 }, default: 21 };
+const LENGTH_TOP: Omit<SpecField, "extra"> = { key: "lengthInches", label: "Length", short: "L", unit: "in", wheel: { min: 20, max: 36, step: 0.5 }, default: 27 };
+const LENGTH_DRESS: Omit<SpecField, "extra"> = { key: "lengthInches", label: "Length", short: "L", unit: "in", wheel: { min: 30, max: 60, step: 0.5 }, default: 38 };
 const SLEEVE: Omit<SpecField, "extra"> = { key: "sleeveInches", label: "Sleeve", short: "SL", unit: "in", wheel: { min: 5, max: 30, step: 0.5 } };
 const WAIST: Omit<SpecField, "extra"> = { key: "waistInches", label: "Waist", short: "W", unit: "in", wheel: { min: 24, max: 46, step: 1 } };
 const INSEAM: Omit<SpecField, "extra"> = { key: "inseamInches", label: "Inseam", short: "INS", unit: "in", wheel: { min: 24, max: 36, step: 0.5 } };
@@ -175,5 +177,6 @@ export function specRowsFor(item: CatalogItem): { k: string; v: string }[] {
     if (value === null || value === undefined) continue;
     rows.push({ k: field.label, v: formatSpecValue(field, value) });
   }
+  if (item.sizeNote?.trim()) rows.push({ k: "Size", v: item.sizeNote });
   return rows;
 }

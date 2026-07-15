@@ -25,16 +25,26 @@ const SPEC_NULLS: Record<SpecKey, null> = {
   shoeSizeUs: null, insoleCm: null,
   widthInches: null, heightInches: null, depthInches: null, strapDropInches: null,
 };
+const SPEC_KEYS = Object.keys(SPEC_NULLS) as SpecKey[];
+
+/** sizeNote is a free-text field only meaningful for footwear (width label) and accessories (one-size note). */
+function sizeNoteFor(department: Department, sizeNote: string | null | undefined): string | null {
+  return department === "accessories" || department === "footwear" ? sizeNote ?? null : null;
+}
 
 /**
  * Maps ALL 13 spec columns to value-or-null: the department's own fields (per specFieldsFor)
  * take the input value, every other measurement column is nulled — so switching department
- * on edit can never leave stale specs behind.
+ * on edit can never leave stale specs behind. sizeNote rides along the same guard: kept only
+ * for the departments that use it (footwear, accessories), nulled everywhere else.
  */
-function specColumnValues(department: Department, input: Partial<Record<SpecKey, number | null>>): Record<SpecKey, number | null> {
+function specColumnValues(
+  department: Department,
+  input: Partial<Record<SpecKey, number | null>> & { sizeNote?: string | null },
+): Record<SpecKey, number | null> & { sizeNote: string | null } {
   const values: Record<SpecKey, number | null> = { ...SPEC_NULLS };
   for (const field of specFieldsFor(department)) values[field.key] = input[field.key] ?? null;
-  return values;
+  return { ...values, sizeNote: sizeNoteFor(department, input.sizeNote) };
 }
 
 /** Optional item name: trimmed, and whitespace-only/empty collapses to null. */
@@ -49,7 +59,7 @@ export function addItem(db: AnyDb, input: AddItemInput): { item: Item; logsRemai
     const row = {
       id: newId(), sessionId: input.sessionId, brand: input.brand, name: trimmedName(input.name),
       department: input.department, category: input.category,
-      ...specColumnValues(input.department, input), sizeNote: input.sizeNote ?? null,
+      ...specColumnValues(input.department, input),
       condition: input.condition, individualCost: input.individualCost ?? 0,
       targetSellPrice: input.targetSellPrice, createdAt: new Date(),
     };
@@ -60,7 +70,27 @@ export function addItem(db: AnyDb, input: AddItemInput): { item: Item; logsRemai
 
 export function updateItem(db: AnyDb, id: string, patch: Partial<Omit<AddItemInput, "sessionId">>): Item {
   const set: Record<string, unknown> = { ...patch };
-  if (patch.department) Object.assign(set, specColumnValues(patch.department, patch));
+  if (patch.department) {
+    // Explicit department switch: full reset — every spec column (and sizeNote) is
+    // recomputed from scratch so no stale cross-department value can survive.
+    Object.assign(set, specColumnValues(patch.department, patch));
+  } else {
+    // No department in the patch: a spec key or sizeNote could still belong to a
+    // different department than the item's own (e.g. a caller bug, or a future UI
+    // that doesn't resend department). Derive the department from the existing row
+    // and guard those keys individually — untouched sibling fields are left alone.
+    const patchSpecKeys = SPEC_KEYS.filter((k) => k in patch);
+    const patchHasSizeNote = "sizeNote" in patch;
+    if (patchSpecKeys.length > 0 || patchHasSizeNote) {
+      const existing = db.select().from(items).where(eq(items.id, id)).all()[0] as Item | undefined;
+      if (existing) {
+        const department = existing.department as Department;
+        const validKeys = new Set(specFieldsFor(department).map((f) => f.key));
+        for (const k of patchSpecKeys) set[k] = validKeys.has(k) ? patch[k] : null;
+        if (patchHasSizeNote) set.sizeNote = sizeNoteFor(department, patch.sizeNote);
+      }
+    }
+  }
   if ("name" in patch) set.name = trimmedName(patch.name);
   db.update(items).set(set).where(eq(items.id, id)).run();
   return db.select().from(items).where(eq(items.id, id)).all()[0];

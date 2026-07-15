@@ -28,8 +28,9 @@ const PRICE = [...rangeValues(50, 500, 10), ...rangeValues(550, 5000, 50)];
 const COST = rangeValues(0, 2000, 10);
 const SLOTS: SlotType[] = ["front", "back", "tag", "flaw"];
 
-/** Untouched wheels rest at the range midpoint, snapped to the field's step. */
+/** Untouched wheels rest at the field's declared default, or the range midpoint (snapped to step) when none is set. */
 function wheelDefault(f: SpecField): number {
+  if (f.default != null) return f.default;
   const { min, max, step } = f.wheel;
   return min + Math.round((max - min) / 2 / step) * step;
 }
@@ -143,7 +144,7 @@ export default function RapidConsole() {
     if (saving) return; // double-tap guard
     if (!brand.trim()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showError("Brand is required — tap a chip or type it");
+      showError("Brand is required — tap a chip or search brands");
       return;
     }
     setSaving(true);
@@ -153,7 +154,7 @@ export default function RapidConsole() {
       for (const f of specFields) specValues[f.key] = f.extra ? specs[f.key] ?? null : specs[f.key] ?? wheelDefault(f);
       const input = {
         sessionId: id, brand: brand.trim(), name, department, category, condition,
-        ...specValues, sizeNote: department === "accessories" ? sizeNote.trim() || null : null,
+        ...specValues, sizeNote: department === "accessories" || department === "footwear" ? sizeNote.trim() || null : null,
         targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0,
       };
       const saved = editId ? { item: updateItem(db, editId, input) } : addItem(db, input);
@@ -275,8 +276,8 @@ export default function RapidConsole() {
             ))}
           </>) : null}
         </>) : null}
-        {department === "accessories" ? (<>
-          <FieldLabel>Size note</FieldLabel>
+        {department === "accessories" || department === "footwear" ? (<>
+          <FieldLabel>{department === "footwear" ? "WIDTH / SIZE NOTE · OPTIONAL" : "Size note"}</FieldLabel>
           <TextInput
             value={sizeNote} onChangeText={setSizeNote} maxLength={40}
             accessibilityLabel="Size note"

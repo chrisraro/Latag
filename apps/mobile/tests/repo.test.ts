@@ -105,6 +105,70 @@ test("updateItem without a department change leaves existing specs untouched", (
   expect(updated.ptpInches).toBe(21.5);
   expect(updated.lengthInches).toBe(27);
 });
+test("updateItem without department derives it from the existing row to accept an own-department spec key", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, {
+    sessionId: s.id, brand: "Levi's", department: "bottoms", category: "Jeans",
+    waistInches: 30, inseamInches: 30, condition: "9/10", targetSellPrice: 500,
+  });
+  const updated = updateItem(db, item.id, { waistInches: 34 });
+  expect(updated.waistInches).toBe(34);
+  expect(updated.ptpInches).toBeNull();
+});
+test("updateItem without department rejects a cross-department spec key, forcing it null", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, {
+    sessionId: s.id, brand: "Levi's", department: "bottoms", category: "Jeans",
+    waistInches: 32, inseamInches: 30, condition: "9/10", targetSellPrice: 500,
+  });
+  const updated = updateItem(db, item.id, { ptpInches: 20 });
+  expect(updated.ptpInches).toBeNull();
+  expect(updated.waistInches).toBe(32); // untouched sibling field survives
+});
+test("updateItem without department also gates a sizeNote-only patch by the derived department", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const shoe = addItem(db, {
+    sessionId: s.id, brand: "Nike", department: "footwear", category: "Sneakers",
+    shoeSizeUs: 9, insoleCm: 26, condition: "9/10", targetSellPrice: 500,
+  }).item;
+  const updatedShoe = updateItem(db, shoe.id, { sizeNote: "Wide fit" });
+  expect(updatedShoe.sizeNote).toBe("Wide fit");
+
+  const jeans = addItem(db, {
+    sessionId: s.id, brand: "Levi's", department: "bottoms", category: "Jeans",
+    waistInches: 32, inseamInches: 30, condition: "9/10", targetSellPrice: 500,
+  }).item;
+  const updatedJeans = updateItem(db, jeans.id, { sizeNote: "ignored" });
+  expect(updatedJeans.sizeNote).toBeNull();
+});
+test("addItem nulls sizeNote for departments other than accessories/footwear", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base, sizeNote: "should be ignored" });
+  expect(item.sizeNote).toBeNull();
+});
+test("addItem keeps sizeNote for footwear and accessories", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const shoe = addItem(db, {
+    sessionId: s.id, brand: "Nike", department: "footwear", category: "Sneakers",
+    shoeSizeUs: 9, insoleCm: 26, condition: "9/10", targetSellPrice: 500, sizeNote: "Wide fit",
+  }).item;
+  expect(shoe.sizeNote).toBe("Wide fit");
+  const cap = addItem(db, {
+    sessionId: s.id, brand: "New Era", department: "accessories", category: "Cap",
+    condition: "9/10", targetSellPrice: 300, sizeNote: "One size",
+  }).item;
+  expect(cap.sizeNote).toBe("One size");
+});
 test("item name: stored trimmed; whitespace-only becomes null on add and edit", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);

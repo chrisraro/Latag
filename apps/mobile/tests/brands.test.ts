@@ -68,6 +68,12 @@ test("dedupe by nocase name keeps the highest-priority source", () => {
   expect(empty.filter((s) => s.name.toLowerCase() === "nike")).toEqual([{ name: "nike", source: "recent" }]);
 });
 
+test("diacritic folding: recent 'Stüssy' dedupes seed 'Stussy'", () => {
+  const got = suggestBrands("", pools({ recents: ["Stüssy"], seed: [...seed, { name: "Stussy", tier: "core" as const }] }));
+  const stussyLike = got.filter((s) => s.name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase() === "stussy");
+  expect(stussyLike).toEqual<BrandSuggestion[]>([{ name: "Stüssy", source: "recent" }]);
+});
+
 test("query respects limit after ranking", () => {
   const got = suggestBrands("car", pools({ recents: ["Cargo Works"], custom: ["Carousell Finds"] }), 2);
   expect(got).toEqual<BrandSuggestion[]>([
@@ -86,6 +92,12 @@ test("addUserBrand trims and creates, then dedupes nocase against user_brands", 
 test("addUserBrand dedupes nocase against the bundled seed, returning seed casing", () => {
   const { db } = makeTestDb();
   expect(addUserBrand(db, "nike")).toEqual({ created: false, name: "Nike" }); // Nike is in data/brands.json
+  expect(listUserBrands(db)).toEqual([]);
+});
+
+test("addUserBrand dedupes diacritics against the bundled seed", () => {
+  const { db } = makeTestDb();
+  expect(addUserBrand(db, "Stüssy")).toEqual({ created: false, name: "Stussy" }); // Stussy is in data/brands.json
   expect(listUserBrands(db)).toEqual([]);
 });
 
