@@ -9,7 +9,8 @@ import { eq, desc } from "drizzle-orm";
 import { db } from "../../../db/client";
 import { sessions, items, photos, type Item } from "../../../db/schema";
 import { FONT, COLORS } from "../../../lib/theme";
-import { formatPeso, formatPct, formatInches } from "../../../lib/format";
+import { formatPeso, formatPct } from "../../../lib/format";
+import { captionSpecLine, type CatalogItem } from "../../../lib/catalog";
 import { selectorProjected, selectorRealized, bultoProjectedPct, bultoRealizedPct, soldRevenue } from "../../../lib/math";
 import { Badge, Chip, Money, PrimaryButton } from "../../../components/ui";
 import { AppHead } from "../../../components/AppHead";
@@ -101,6 +102,7 @@ export default function DashboardScreen() {
         style={{ flex: 1 }}
         renderItem={({ item }: { item: Item }) => {
           const uri = thumbOf(item.id);
+          const spec = captionSpecLine(item as CatalogItem);
           return (
             <Pressable onPress={() => router.push(`/item/${item.id}`)} className="flex-row items-center gap-3 border-b border-hairline px-3 py-3.5">
               <View className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}>
@@ -109,11 +111,14 @@ export default function DashboardScreen() {
               </View>
               <View className="min-w-0 flex-1">
                 <View className="flex-row items-center gap-2">
-                  <Text style={{ fontFamily: FONT.semibold }} className={`text-[17px] ${item.status === "sold" ? "text-inkdim" : "text-ink"}`} numberOfLines={1}>{item.brand}</Text>
+                  <Text style={{ fontFamily: FONT.semibold }} className={`min-w-0 shrink text-[17px] ${item.status === "sold" ? "text-inkdim" : "text-ink"}`} numberOfLines={1}>
+                    {item.brand}
+                    {item.name ? <Text className="text-inkdim"> · {item.name}</Text> : null}
+                  </Text>
                   {item.status === "sold" ? <Badge label="SOLD" tone="sold" /> : null}
                 </View>
-                <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint">
-                  {item.category} · {item.condition}{item.ptpInches != null ? ` · PTP ${formatInches(item.ptpInches)}` : ""}{item.lengthInches != null ? ` · L ${formatInches(item.lengthInches)}` : ""}
+                <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint" numberOfLines={1}>
+                  {item.category} · {item.condition}{spec ? ` · ${spec}` : ""}
                 </Text>
               </View>
               <View className="ml-1 items-end">
