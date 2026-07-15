@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import * as Linking from "expo-linking";
+import * as Updates from "expo-updates";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { db } from "../db/client";
@@ -13,7 +14,8 @@ import { ensureEntitlements } from "../lib/entitlements";
 import { sweepOrphans } from "../lib/media";
 import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
-import { showError } from "../lib/toast";
+import { runUpdateCheck } from "../lib/updates";
+import { showError, showSuccess } from "../lib/toast";
 import { AppToast } from "../components/AppToast";
 
 SplashScreen.preventAutoHideAsync();
@@ -60,6 +62,21 @@ export default function RootLayout() {
       }
     })();
   }, [url, migrated]);
+
+  // OTA: silent check on launch; prompt-to-restart when a new bundle is ready.
+  useEffect(() => {
+    if (!migrated) return;
+    void runUpdateCheck({
+      isDev: __DEV__,
+      check: () => Updates.checkForUpdateAsync(),
+      fetch: () => Updates.fetchUpdateAsync(),
+    }).then((phase) => {
+      if (phase === "ready") {
+        showSuccess("Update ready — tap here to restart", { onPress: () => { void Updates.reloadAsync(); } });
+      }
+      // up-to-date / error / dev-skip: silent on launch by design.
+    });
+  }, [migrated]);
 
   if (!migrated || !fontsLoaded) return null;
 
