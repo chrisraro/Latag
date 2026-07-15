@@ -10,6 +10,7 @@ export type CaptionItem = {
   brand: string;
   name: string | null;
   department: string;
+  category: string;
   sizeNote: string | null;
   condition: string;
   targetSellPrice: number;
@@ -18,7 +19,7 @@ export type CaptionItem = {
 export function formatCaption(items: CaptionItem[]): string {
   return items
     .map((i) => {
-      const title = i.name ? `${i.brand} · ${i.name}` : i.brand;
+      const title = i.name ? `${i.brand} · ${i.name}` : `${i.brand} ${i.category}`;
       const size = captionSpecLine(i as CatalogItem);
       return [
         `👕 ${title}`,
