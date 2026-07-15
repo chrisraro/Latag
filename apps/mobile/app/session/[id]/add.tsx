@@ -11,22 +11,33 @@ import { addItem, updateItem, addPhoto, replacePhoto } from "../../../lib/repo";
 import { deleteFiles } from "../../../lib/media";
 import { FreeTierExhaustedError, logsRemaining, ensureEntitlements } from "../../../lib/entitlements";
 import { peekStagedPhotos, takeStagedPhotos, type SlotType } from "../../../lib/photo-staging";
-import { CATEGORIES, CONDITIONS, FONT } from "../../../lib/theme";
+import { CONDITIONS, COLORS, FONT } from "../../../lib/theme";
+import { DEPARTMENTS, typesFor, specFieldsFor, type Department, type SpecField, type SpecKey } from "../../../lib/catalog";
 import { formatPeso } from "../../../lib/format";
 import { selectorProjected } from "../../../lib/math";
 import { showError, showSuccess } from "../../../lib/toast";
 import { Badge, Chip, FieldLabel, PrimaryButton } from "../../../components/ui";
 import { AppHead } from "../../../components/AppHead";
+import { Icon } from "../../../components/Icon";
 import { Wheel, rangeValues } from "../../../components/Wheel";
 import { PhotoSlot } from "../../../components/PhotoSlot";
 import { GoProSheet } from "../../../components/GoProSheet";
 import { BrandPickerSheet } from "../../../components/BrandPickerSheet";
 
-const PTP = rangeValues(14, 36, 0.5);
-const LEN = rangeValues(20, 36, 0.5);
 const PRICE = [...rangeValues(50, 500, 10), ...rangeValues(550, 5000, 50)];
 const COST = rangeValues(0, 2000, 10);
 const SLOTS: SlotType[] = ["front", "back", "tag", "flaw"];
+
+/** Untouched wheels rest at the range midpoint, snapped to the field's step. */
+function wheelDefault(f: SpecField): number {
+  const { min, max, step } = f.wheel;
+  return min + Math.round((max - min) / 2 / step) * step;
+}
+
+/** Wheel unit tag in the existing console voice: inches get the short + quote (`PTP "`), US/cm just the short (US, CM). */
+function unitFor(f: SpecField): string {
+  return f.unit === "in" ? `${f.short} "` : f.short;
+}
 
 export default function RapidConsole() {
   const { id, item: editId } = useLocalSearchParams<{ id: string; item?: string }>();
@@ -42,10 +53,12 @@ export default function RapidConsole() {
   const [brand, setBrand] = useState("");
   const [brandPicker, setBrandPicker] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<string>(CATEGORIES[0]);
+  const [department, setDepartment] = useState<Department>("tops");
+  const [category, setCategory] = useState<string>(typesFor("tops")[0]);
   const [condition, setCondition] = useState<string>("9/10");
-  const [ptp, setPtp] = useState(21);
-  const [len, setLen] = useState(27);
+  const [specs, setSpecs] = useState<Partial<Record<SpecKey, number>>>({});
+  const [sizeNote, setSizeNote] = useState("");
+  const [moreSpecs, setMoreSpecs] = useState(false);
   const [price, setPrice] = useState(350);
   const [cost, setCost] = useState(0);
   const [staged, setStaged] = useState<Partial<Record<SlotType, string>>>({});
@@ -67,13 +80,22 @@ export default function RapidConsole() {
     return map;
   }, [existingPhotoRows]);
 
-  // edit-mode prefill
+  // edit-mode prefill — department derives from the item (pre-migration rows default to tops)
   useEffect(() => {
     if (!editId) return;
     const existing = db.select().from(items).where(eq(items.id, editId)).all()[0];
     if (!existing) return;
+    const dept = DEPARTMENTS.some((d) => d.key === existing.department) ? (existing.department as Department) : "tops";
+    const fields = specFieldsFor(dept);
+    const prefill: Partial<Record<SpecKey, number>> = {};
+    for (const f of fields) {
+      const v = existing[f.key];
+      if (v != null) prefill[f.key] = v;
+    }
     setBrand(existing.brand); setName(existing.name ?? ""); setCategory(existing.category); setCondition(existing.condition);
-    setPtp(existing.ptpInches ?? 21); setLen(existing.lengthInches ?? 27); setPrice(existing.targetSellPrice); setCost(existing.individualCost);
+    setDepartment(dept); setSpecs(prefill); setSizeNote(existing.sizeNote ?? "");
+    setMoreSpecs(fields.some((f) => f.extra && existing[f.key] != null));
+    setPrice(existing.targetSellPrice); setCost(existing.individualCost);
   }, [editId]);
 
   // ensureEntitlements is a write; it must never run during render (React may
@@ -92,6 +114,25 @@ export default function RapidConsole() {
     return out;
   }, [sessionItems?.length]);
 
+  const specFields = useMemo(() => specFieldsFor(department), [department]);
+  const wheelValues = useMemo(() => {
+    const m = {} as Partial<Record<SpecKey, number[]>>;
+    for (const f of specFields) m[f.key] = rangeValues(f.wheel.min, f.wheel.max, f.wheel.step);
+    return m;
+  }, [specFields]);
+  const keyFields = specFields.filter((f) => !f.extra);
+  const extraFields = specFields.filter((f) => f.extra);
+
+  const switchDepartment = (d: Department) => {
+    if (d === department) return;
+    Haptics.selectionAsync();
+    setDepartment(d);
+    setCategory(typesFor(d)[0]);
+    setSpecs({}); // repo also nulls foreign spec columns — belt and suspenders
+    setSizeNote("");
+    setMoreSpecs(false);
+  };
+
   if (!session) return null;
   const ent = entRows?.[0];
   if (!ent) return null; // brief frame before ensureEntitlements' effect resolves
@@ -107,7 +148,14 @@ export default function RapidConsole() {
     }
     setSaving(true);
     try {
-      const input = { sessionId: id, brand: brand.trim(), name, department: "tops" as const, category, condition, ptpInches: ptp, lengthInches: len, targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0 }; // department hardcoded until the console gains the segment (E1 Task 7)
+      // Key-spec wheels save exactly what they show (default when untouched); extras only when the user actually set them.
+      const specValues: Partial<Record<SpecKey, number | null>> = {};
+      for (const f of specFields) specValues[f.key] = f.extra ? specs[f.key] ?? null : specs[f.key] ?? wheelDefault(f);
+      const input = {
+        sessionId: id, brand: brand.trim(), name, department, category, condition,
+        ...specValues, sizeNote: department === "accessories" ? sizeNote.trim() || null : null,
+        targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0,
+      };
       const saved = editId ? { item: updateItem(db, editId, input) } : addItem(db, input);
       const shots = takeStagedPhotos();
       for (const slot of SLOTS) {
@@ -145,6 +193,23 @@ export default function RapidConsole() {
         }
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 12 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2 flex-none" contentContainerStyle={{ flexGrow: 1 }}>
+          <View className="flex-1 flex-row gap-1 rounded-full border border-hairline bg-surface2 p-1">
+            {DEPARTMENTS.map((d) => (
+              <Pressable
+                key={d.key}
+                hitSlop={4}
+                onPress={() => switchDepartment(d.key)}
+                accessibilityRole="button"
+                accessibilityLabel={d.label}
+                accessibilityState={{ selected: department === d.key }}
+                className={`h-9 flex-1 items-center justify-center rounded-full px-3.5 ${department === d.key ? "bg-acid" : ""}`}
+              >
+                <Text style={{ fontFamily: FONT.display, letterSpacing: 0.39 }} className={`text-[13px] uppercase ${department === d.key ? "text-acidink" : "text-inkdim"}`}>{d.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
         <View className="mt-2.5 flex-row gap-2">
           {SLOTS.map((s) => (
             <PhotoSlot
@@ -175,14 +240,50 @@ export default function RapidConsole() {
         />
         <FieldLabel>Category</FieldLabel>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-          {CATEGORIES.map((c) => <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} />)}
+          {typesFor(department).map((c) => <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} />)}
         </ScrollView>
         <FieldLabel>Condition</FieldLabel>
         <View className="flex-row gap-2 py-1">{CONDITIONS.map((c) => <Chip key={c} label={c} selected={condition === c} onPress={() => setCondition(c)} />)}</View>
-        <FieldLabel>{"Pit-to-pit · Length"}</FieldLabel>
-        <Wheel values={PTP} value={ptp} onChange={setPtp} unit={'PTP "'} />
-        <View className="h-3" />
-        <Wheel values={LEN} value={len} onChange={setLen} unit={'L "'} />
+        {keyFields.length > 0 ? (<>
+          <FieldLabel>{keyFields.map((f) => f.label).join(" · ")}</FieldLabel>
+          {keyFields.map((f, i) => (
+            <View key={`${department}-${f.key}`}>
+              {i > 0 ? <View className="h-3" /> : null}
+              <Wheel values={wheelValues[f.key]!} value={specs[f.key] ?? wheelDefault(f)} onChange={(v) => setSpecs((s) => ({ ...s, [f.key]: v }))} unit={unitFor(f)} />
+            </View>
+          ))}
+        </>) : null}
+        {extraFields.length > 0 ? (<>
+          <Pressable
+            hitSlop={4}
+            onPress={() => { Haptics.selectionAsync(); setMoreSpecs((v) => !v); }}
+            accessibilityRole="button"
+            accessibilityLabel="More specs"
+            accessibilityState={{ expanded: moreSpecs }}
+            className="mt-4 h-11 flex-row items-center gap-1"
+          >
+            <Text style={{ fontFamily: FONT.semibold, letterSpacing: 0.92, lineHeight: 16 }} className="text-[11.5px] uppercase text-inkfaint">{moreSpecs ? "More specs" : "+ More specs"}</Text>
+            <Icon name={moreSpecs ? "CaretDown" : "CaretRight"} size={12} color={COLORS.inkFaint} />
+          </Pressable>
+          {moreSpecs ? (<>
+            <FieldLabel>{extraFields.map((f) => f.label).join(" · ")}</FieldLabel>
+            {extraFields.map((f, i) => (
+              <View key={`${department}-${f.key}`}>
+                {i > 0 ? <View className="h-3" /> : null}
+                <Wheel values={wheelValues[f.key]!} value={specs[f.key] ?? wheelDefault(f)} onChange={(v) => setSpecs((s) => ({ ...s, [f.key]: v }))} unit={unitFor(f)} />
+              </View>
+            ))}
+          </>) : null}
+        </>) : null}
+        {department === "accessories" ? (<>
+          <FieldLabel>Size note</FieldLabel>
+          <TextInput
+            value={sizeNote} onChangeText={setSizeNote} maxLength={40}
+            accessibilityLabel="Size note"
+            placeholder="e.g. One size · 7 1/4" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }}
+            className="h-[52px] rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink"
+          />
+        </>) : null}
         {session.type === "selector" ? (<>
           <FieldLabel>{"Cost · Price"}</FieldLabel>
           <View className="flex-row gap-2.5">
