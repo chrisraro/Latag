@@ -137,6 +137,12 @@ importers:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.23.0)(yaml@2.9.0)
     devDependencies:
+      '@babel/plugin-transform-react-jsx':
+        specifier: ^7.29.7
+        version: 7.29.7(@babel/core@7.29.7)
+      '@babel/plugin-transform-react-jsx-development':
+        specifier: ^7.29.7
+        version: 7.29.7(@babel/core@7.29.7)
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
