@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import Constants from "expo-constants";
+import * as Updates from "expo-updates";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
 import { db } from "../db/client";
 import { entitlements } from "../db/schema";
@@ -12,6 +13,7 @@ import { fetchLicense, applyLicense, clearLicense } from "../lib/license";
 import { FREE_LOG_LIMIT, logsRemaining, ensureEntitlements } from "../lib/entitlements";
 import { getMediaUsage } from "../lib/storage-usage";
 import { showSuccess, showError } from "../lib/toast";
+import { runUpdateCheck, versionLabel } from "../lib/updates";
 import { FONT } from "../lib/theme";
 
 type Tone = "default" | "acid" | "danger";
@@ -74,6 +76,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [session, setSession] = useState<SupabaseSession | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [usage, setUsage] = useState({ count: 0, bytes: 0, label: "0 B" });
   const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
   const ent = entRows?.[0] ?? ensureEntitlements(db);
@@ -122,6 +125,30 @@ export default function SettingsScreen() {
     }
   }, [refreshing, session]);
 
+  // Manual check mirrors the launch effect's state machine but always toasts
+  // its outcome — launch is silent-by-design, a manual tap is a deliberate
+  // question that deserves an honest answer either way.
+  const checkForUpdates = useCallback(async () => {
+    if (checkingUpdate) return;
+    setCheckingUpdate(true);
+    try {
+      const phase = await runUpdateCheck({
+        isDev: __DEV__,
+        check: () => Updates.checkForUpdateAsync(),
+        fetch: () => Updates.fetchUpdateAsync(),
+      });
+      if (phase === "ready") {
+        showSuccess("Update ready — tap here to restart", { onPress: () => { void Updates.reloadAsync(); } });
+      } else if (phase === "up-to-date") {
+        showSuccess("You're on the latest version");
+      } else if (phase === "error") {
+        showError("Couldn't check — are you online?");
+      }
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }, [checkingUpdate]);
+
   const signOut = async () => {
     // Deliberately does NOT clearLicense — Pro stays cached on this phone
     // per offline-first; the toast copy carries that promise.
@@ -135,6 +162,7 @@ export default function SettingsScreen() {
 
   const remaining = logsRemaining(ent);
   const version = Constants.expoConfig?.version ?? "1.0.0";
+  const currentVersionLabel = versionLabel(version, Updates.updateId);
 
   return (
     <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8 }}>
@@ -183,6 +211,19 @@ export default function SettingsScreen() {
           icon="✈"
           title="Offline-first"
           subtitle="Inventory, photos & math never leave this phone"
+        />
+
+        <SettingsRow
+          icon="i"
+          title="Version"
+          subtitle={currentVersionLabel}
+        />
+
+        <SettingsRow
+          icon="↻"
+          title="Check for updates"
+          subtitle={checkingUpdate ? "Checking…" : "Get the latest fixes and features"}
+          onPress={() => void checkForUpdates()}
           last={!session}
         />
 
