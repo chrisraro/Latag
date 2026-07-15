@@ -1,4 +1,4 @@
-import { Modal, Pressable, Text, View } from "react-native";
+import { InteractionManager, Modal, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { FONT } from "../lib/theme";
 import { FREE_LOG_LIMIT } from "../lib/entitlements";
@@ -9,7 +9,7 @@ export function GoProSheet({ visible, onClose }: { visible: boolean; onClose: ()
 
   const signIn = () => {
     onClose();
-    router.push("/auth/sign-in");
+    InteractionManager.runAfterInteractions(() => router.push("/auth/sign-in"));
   };
 
   return (

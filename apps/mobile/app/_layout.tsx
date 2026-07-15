@@ -1,11 +1,12 @@
 import "../global.css";
 import { useEffect, useRef } from "react";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import * as Linking from "expo-linking";
 import * as Updates from "expo-updates";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { db } from "../db/client";
@@ -14,6 +15,7 @@ import { ensureEntitlements } from "../lib/entitlements";
 import { sweepOrphans } from "../lib/media";
 import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
+import { setWelcomed } from "../lib/first-run";
 import { runUpdateCheck } from "../lib/updates";
 import { showError, showSuccess } from "../lib/toast";
 import { AppToast } from "../components/AppToast";
@@ -56,7 +58,16 @@ export default function RootLayout() {
           showError("That sign-in link couldn't be used — request a new one or enter the code");
           return;
         }
-        await completeSignIn();
+        const ok = await completeSignIn();
+        if (ok) {
+          // Mirrors sign-in.tsx's verifyCode routing: land in onboarding for a
+          // fresh account, otherwise dismiss whatever sign-in UI is on top
+          // (modal or Welcome) so the deep link actually returns the user home.
+          await setWelcomed();
+          const onboarded = (await AsyncStorage.getItem("latag.onboarded").catch(() => null)) === "1";
+          if (!onboarded) router.replace("/onboarding");
+          else if (router.canDismiss()) router.dismissAll();
+        }
       } catch {
         // Malformed URL / offline / auth client error — no-op.
       }

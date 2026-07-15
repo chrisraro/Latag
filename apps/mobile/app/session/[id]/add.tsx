@@ -74,6 +74,13 @@ export default function RapidConsole() {
     setPtp(existing.ptpInches); setLen(existing.lengthInches); setPrice(existing.targetSellPrice); setCost(existing.individualCost);
   }, [editId]);
 
+  // ensureEntitlements is a write; it must never run during render (React may
+  // call render more than once per commit). Do it as a post-render effect —
+  // the live query then picks up the newly-inserted row on its own.
+  useEffect(() => {
+    if (entRows && !entRows[0]) ensureEntitlements(db);
+  }, [entRows]);
+
   const recentBrands = useMemo(() => {
     const seen = new Set<string>(); const out: string[] = [];
     for (const i of db.select().from(items).orderBy(desc(items.createdAt)).all()) {
@@ -84,7 +91,8 @@ export default function RapidConsole() {
   }, [sessionItems?.length]);
 
   if (!session) return null;
-  const ent = entRows?.[0] ?? ensureEntitlements(db);
+  const ent = entRows?.[0];
+  if (!ent) return null; // brief frame before ensureEntitlements' effect resolves
   const remaining = logsRemaining(ent);
   const filledSlots = SLOTS.filter((s) => staged[s] ?? existingPhotoMap[s]);
 

@@ -100,11 +100,11 @@ export default function ItemDetail() {
           <View className="flex-row items-baseline justify-between border-b border-hairline py-3">
             <Text style={{ fontFamily: FONT.text }} className="text-[15px] text-inkfaint">Price</Text>
             <View className="flex-row items-baseline gap-2">
-              {sold && item.soldPrice !== item.targetSellPrice ? (
+              {sold && item.soldPrice != null && item.soldPrice !== item.targetSellPrice ? (
                 <Text style={{ fontFamily: FONT.medium, fontVariant: ["tabular-nums"], textDecorationLine: "line-through" }} className="text-[12px] text-inkfaint">{formatPeso(item.targetSellPrice)}</Text>
               ) : null}
               <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"] }} className="text-[15px] text-acid">
-                {formatPeso(sold ? (item.soldPrice ?? 0) : item.targetSellPrice)}
+                {formatPeso(sold && item.soldPrice != null ? item.soldPrice : item.targetSellPrice)}
               </Text>
             </View>
           </View>
