@@ -191,7 +191,7 @@ export default function SettingsScreen() {
   const currentVersionLabel = versionLabel(version, Updates.updateId);
 
   return (
-    <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8 }}>
+    <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <AppHead title="Settings" onBack={() => router.back()} />
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">

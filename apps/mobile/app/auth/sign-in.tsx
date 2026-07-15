@@ -146,7 +146,7 @@ export default function SignInScreen() {
   const inputCls = "mb-2.5 h-[52px] rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
 
   return (
-    <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 4 }}>
+    <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 4 }}>
       <AppHead
         title={step === "email" ? "Sign in" : "Enter code"}
         onBack={step === "email" ? () => router.back() : useDifferentEmail}

@@ -31,7 +31,7 @@ export default function MarkSoldScreen() {
   };
 
   return (
-    <View className="flex-1 bg-surface1 px-4" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
+    <View className="flex-1 bg-surface1 px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
       <View className="mb-3 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
       <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">Mark Sold</Text>
       <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"] }} className="mb-3 mt-0.5 text-[12.5px] text-inkfaint">

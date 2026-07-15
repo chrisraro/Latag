@@ -40,7 +40,7 @@ export default function ExportScreen() {
   };
 
   return (
-    <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8 }}>
+    <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <AppHead
         title="IG Drop"
         onBack={() => router.back()}
