@@ -65,13 +65,17 @@ const MONEY_SPEC = {
   card: { symbolFont: FONT.semibold, symbolSize: 15, amountFont: FONT.display, amountSize: 22, amountClass: "text-acid" },
 } as const;
 
-export function Money({ value, size = "row" }: { value: number; size?: "hero" | "row" | "card" }) {
+export function Money({ value, size = "row", negative }: { value: number; size?: "hero" | "row" | "card"; negative?: boolean }) {
   const spec = MONEY_SPEC[size];
   const { symbol, amount } = formatPesoParts(value);
+  // `negative` overrides the size's default tint with danger red (e.g. a
+  // realized loss on a fully-sold Selector session) — row's default ink
+  // tone is unaffected since it was never acid to begin with.
+  const tone = negative ? "text-danger" : spec.amountClass;
   return (
     <Text style={{ fontVariant: ["tabular-nums"] }}>
-      <Text style={{ fontFamily: spec.symbolFont, fontSize: spec.symbolSize }} className={spec.amountClass}>{symbol}</Text>
-      <Text style={{ fontFamily: spec.amountFont, fontSize: spec.amountSize }} className={spec.amountClass}>{amount}</Text>
+      <Text style={{ fontFamily: spec.symbolFont, fontSize: spec.symbolSize }} className={tone}>{symbol}</Text>
+      <Text style={{ fontFamily: spec.amountFont, fontSize: spec.amountSize }} className={tone}>{amount}</Text>
     </Text>
   );
 }
