@@ -159,10 +159,7 @@ export default function SettingsScreen() {
         fetch: () => Updates.fetchUpdateAsync(),
       });
       if (phase === "ready") {
-        showSuccess("Update ready — tap here to restart", {
-          sticky: true,
-          onPress: () => { Updates.reloadAsync().catch(() => {}); },
-        });
+        showSuccess("Update downloaded — it will apply next time you open the app");
       } else if (phase === "up-to-date") {
         showSuccess("You're on the latest version");
       } else if (phase === "error") {
@@ -188,7 +185,9 @@ export default function SettingsScreen() {
 
   const remaining = logsRemaining(ent);
   const version = Constants.expoConfig?.version ?? "1.0.0";
-  const currentVersionLabel = versionLabel(version, Updates.updateId);
+  // isEmbeddedLaunch: in production the factory bundle has its own updateId,
+  // so updateId alone can't distinguish "embedded" from "OTA applied".
+  const currentVersionLabel = versionLabel(version, Updates.isEmbeddedLaunch ? null : Updates.updateId);
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>

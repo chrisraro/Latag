@@ -35,7 +35,7 @@
 - [ ] Welcome "Continue with Email" → sign-in (6 OTP boxes, active box acid); complete sign-in → lands in onboarding with license toast
 - [ ] UPDATED install (existing data from previous APK): NO welcome screen after update (onboarded users skip it)
 - [ ] Sign-in code step: resend countdown ticks 0:45 → 0:00 → becomes tappable "Resend"
-- [ ] OTA: publish a trivial update (`eas update --channel preview`), relaunch app online → "Update ready — tap here to restart" toast → tap → app restarts on new bundle
+- [ ] OTA (silent): publish an update → open app online (downloads in background) → close and reopen → second launch runs the new bundle; Settings version shows the update id (not "embedded")
 - [ ] Settings → App: version row shows v1.0.0 + short update id (or "embedded"); "Check for updates" online → honest state; AIRPLANE MODE → "Couldn't check — are you online?" error toast; boot in airplane mode unaffected
 - [ ] Icon sweep: every screen shows Phosphor icons (no blank squares): welcome rows, onboarding cards, settings tiles, camera brackets/slot chips, export checks/copy, dashboards FAB/export, item edit/delete
 - [ ] Parity spot-check vs docs/mockups/latag-mvp.html side by side: sessions card money (small ₱), hero numbers, wheel center + acid underline, OTP boxes, obcards, set-rows — spacing and type feel identical
