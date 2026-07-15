@@ -11,7 +11,8 @@ import { unmarkSold, deleteItem } from "../../../lib/repo";
 import { deleteFiles } from "../../../lib/media";
 import { showSuccess } from "../../../lib/toast";
 import { FONT } from "../../../lib/theme";
-import { formatPeso, formatInches } from "../../../lib/format";
+import { formatPeso } from "../../../lib/format";
+import { DEPARTMENTS, specRowsFor, type CatalogItem } from "../../../lib/catalog";
 import { Badge, PrimaryButton, SecondaryButton } from "../../../components/ui";
 import { AppHead } from "../../../components/AppHead";
 
@@ -27,6 +28,8 @@ export default function ItemDetail() {
   if (!item) return null;
   const pics = photoRows ?? [];
   const sold = item.status === "sold";
+  // Pre-migration rows are department "tops"; unknown values degrade to the Tops label.
+  const deptLabel = DEPARTMENTS.find((d) => d.key === item.department)?.label ?? "Tops";
 
   const confirmDelete = () =>
     Alert.alert("Delete item?", "Photos on this item are removed from your phone too.", [
@@ -49,7 +52,7 @@ export default function ItemDetail() {
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <AppHead
-        title={`${item.brand} ${item.category}`}
+        title={item.brand}
         onBack={() => router.back()}
         right={<Badge label={sold ? "SOLD" : item.condition} tone={sold ? "sold" : "default"} />}
       />
@@ -91,11 +94,11 @@ export default function ItemDetail() {
           </View>
         ) : null}
         <View className="mt-4">
+          {item.name ? <Row k="Name" v={item.name} /> : null}
           <Row k="Brand" v={item.brand} />
-          <Row k="Category" v={item.category} />
+          <Row k="Category" v={`${deptLabel} · ${item.category}`} />
           <Row k="Condition" v={item.condition} />
-          {item.ptpInches != null ? <Row k="Pit-to-pit" v={formatInches(item.ptpInches)} /> : null}
-          {item.lengthInches != null ? <Row k="Length" v={formatInches(item.lengthInches)} /> : null}
+          {specRowsFor(item as CatalogItem).map((r) => <Row key={r.k} k={r.k} v={r.v} />)}
           {item.individualCost > 0 ? <Row k="Cost" v={formatPeso(item.individualCost)} /> : null}
           <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-3 py-3.5">
             <Text style={{ fontFamily: FONT.text, lineHeight: 21 }} className="text-[15px] text-inkfaint">Price</Text>

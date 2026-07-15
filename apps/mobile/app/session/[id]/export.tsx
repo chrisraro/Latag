@@ -10,6 +10,7 @@ import { eq, desc } from "drizzle-orm";
 import { db } from "../../../db/client";
 import { items, photos } from "../../../db/schema";
 import { formatCaption } from "../../../lib/caption";
+import { captionSpecLine, type CatalogItem } from "../../../lib/catalog";
 import { formatPeso } from "../../../lib/format";
 import { FONT, COLORS } from "../../../lib/theme";
 import { showSuccess } from "../../../lib/toast";
@@ -53,6 +54,7 @@ export default function ExportScreen() {
         {all.map((i) => {
           const checked = selected.has(i.id);
           const uri = thumbOf(i.id);
+          const spec = captionSpecLine(i as CatalogItem);
           return (
             <Pressable
               key={i.id}
@@ -72,7 +74,15 @@ export default function ExportScreen() {
                   <Text style={{ fontFamily: FONT.bold }} className="text-[15px] text-inkfaint">{i.brand[0]}</Text>
                 )}
               </View>
-              <Text style={{ fontFamily: FONT.semibold, lineHeight: 21 }} className={`flex-1 text-[15px] ${checked ? "text-ink" : "text-inkdim"}`} numberOfLines={1}>{i.brand} {i.category}</Text>
+              <View className="min-w-0 flex-1">
+                <Text style={{ fontFamily: FONT.semibold, lineHeight: 21 }} className={`text-[15px] ${checked ? "text-ink" : "text-inkdim"}`} numberOfLines={1}>
+                  {i.brand}
+                  {i.name ? <Text className="text-inkdim"> · {i.name}</Text> : null}
+                </Text>
+                <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="mt-0.5 text-[12px] text-inkfaint" numberOfLines={1}>
+                  {i.category} · {i.condition}{spec ? ` · ${spec}` : ""}
+                </Text>
+              </View>
               <Text style={{ fontFamily: FONT.bold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className="ml-1 text-[15px] text-ink">{formatPeso(i.targetSellPrice)}</Text>
             </Pressable>
           );
