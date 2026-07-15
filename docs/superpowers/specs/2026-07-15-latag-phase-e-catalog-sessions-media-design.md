@@ -13,7 +13,7 @@ Expand Latag from tops-only to the full ukay scene, in three sub-phases with one
 
 User decisions: order E1→runway→E2→E3; specs = 2 key wheels + "More specs" expander; brand seed ~400–600 curated.
 
-## 2. E1 — Full Ukay Catalog
+## 2. E1 — Full Ukay Catalog (SHIPPED 2026-07-16)
 
 ### Taxonomy (department → type)
 

@@ -40,3 +40,12 @@
 - [ ] Icon sweep: every screen shows Phosphor icons (no blank squares): welcome rows, onboarding cards, settings tiles, camera brackets/slot chips, export checks/copy, dashboards FAB/export, item edit/delete
 - [ ] Parity spot-check vs docs/mockups/latag-mvp.html side by side: sessions card money (small ₱), hero numbers, wheel center + acid underline, OTP boxes, obcards, set-rows — spacing and type feel identical
 - [ ] Camera slot chips: FRONT done (acid+check) after first capture; current slot ink-bordered
+
+## Phase E1 — full ukay catalog (device)
+- [ ] Log one item per department (Bottoms/Dresses/Footwear/Bags/Accessories) end-to-end: correct wheels, chips, detail rows, captions
+- [ ] Footwear wheels: US half sizes + insole cm; Accessories: size note instead of wheels
+- [ ] "More specs" expander: extras save only when scrolled; show in caption (e.g. +RISE)
+- [ ] Brand search: seed hit (type "car" → Carhartt), recents first, add custom brand offline → suggested next session
+- [ ] Item name: "Brand · Name" in rows/detail/caption; name optional everywhere
+- [ ] PRE-EXISTING items (logged before update): still open/edit/export correctly as Tops, zero data loss after migration
+- [ ] IG caption per department matches format ("👕 Brand Type" or "👕 Brand · Name"; spec segment per dept)
