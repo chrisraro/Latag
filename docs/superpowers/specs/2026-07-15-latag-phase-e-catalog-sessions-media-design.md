@@ -45,6 +45,8 @@ All measurements inches except insole (cm) and shoe size (US, half sizes). Wheel
 
 Rapid Console (department segment → type chips → adaptive wheels → More specs expander; name field optional, under brand), item detail KV (per-department spec rows; Brand and Name as separate rows), dashboard/list rows + captions ("Brand · Name" when name present), IG caption spec line per department (e.g., `W32 · L30` for bottoms, `US 9.5 · 25.5cm` for footwear). Sold/export flows unchanged otherwise.
 
+Deviation (2026-07-16): tops caption spec segment unified to the cross-department mid-dot form (`PTP 21" · L 27"`), replacing the blueprint's `PTP: 21" | L: 27"` — owner to veto via OTA if unwanted.
+
 ## 3. Native runway
 
 - Add: `@maplibre/maplibre-react-native`, `expo-location`, `expo-notifications` (+ alarm sound asset + Android channel config), `expo-media-library`. All config-plugin work in app.json; permissions strings honest and minimal.

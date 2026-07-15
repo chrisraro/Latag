@@ -74,8 +74,8 @@ describe("specFieldsFor", () => {
     const fields = specFieldsFor("tops");
     expect(fields.map((f) => f.key)).toEqual(["ptpInches", "lengthInches", "sleeveInches"]);
     expect(fields.map((f) => f.extra)).toEqual([false, false, true]);
-    expect(fields[0]).toMatchObject({ key: "ptpInches", short: "PTP", unit: "in", wheel: { min: 14, max: 36, step: 0.5 } });
-    expect(fields[1]).toMatchObject({ key: "lengthInches", short: "L", unit: "in", wheel: { min: 20, max: 36, step: 0.5 } });
+    expect(fields[0]).toMatchObject({ key: "ptpInches", short: "PTP", unit: "in", wheel: { min: 14, max: 36, step: 0.5 }, default: 21 });
+    expect(fields[1]).toMatchObject({ key: "lengthInches", short: "L", unit: "in", wheel: { min: 20, max: 36, step: 0.5 }, default: 27 });
     expect(fields[2]).toMatchObject({ key: "sleeveInches", short: "SL", unit: "in", wheel: { min: 5, max: 30, step: 0.5 } });
   });
 
@@ -84,6 +84,7 @@ describe("specFieldsFor", () => {
     expect(fields.map((f) => f.key)).toEqual(["waistInches", "inseamInches", "riseInches", "legOpeningInches"]);
     expect(fields.map((f) => f.extra)).toEqual([false, false, true, true]);
     expect(fields[0]).toMatchObject({ short: "W", unit: "in", wheel: { min: 24, max: 46, step: 1 } });
+    expect(fields[0].default).toBeUndefined(); // non-tops/dresses keep the midpoint rule
     expect(fields[1]).toMatchObject({ short: "INS", unit: "in", wheel: { min: 24, max: 36, step: 0.5 } });
     expect(fields[2]).toMatchObject({ short: "RISE", unit: "in", wheel: { min: 8, max: 16, step: 0.5 } });
     expect(fields[3]).toMatchObject({ short: "LEG", unit: "in", wheel: { min: 5, max: 12, step: 0.5 } });
@@ -93,7 +94,8 @@ describe("specFieldsFor", () => {
     const fields = specFieldsFor("dresses");
     expect(fields.map((f) => f.key)).toEqual(["ptpInches", "lengthInches", "waistInches"]);
     expect(fields.map((f) => f.extra)).toEqual([false, false, true]);
-    expect(fields[1]).toMatchObject({ wheel: { min: 30, max: 60, step: 0.5 } });
+    expect(fields[0]).toMatchObject({ default: 21 });
+    expect(fields[1]).toMatchObject({ wheel: { min: 30, max: 60, step: 0.5 }, default: 38 });
   });
 
   test("footwear: US size, Insole (key), no extras", () => {
@@ -191,6 +193,15 @@ describe("specRowsFor", () => {
     ]);
   });
 
+  test("tops: sizeNote appended as a Size row after the spec rows (any department)", () => {
+    const item = blank("tops", { ptpInches: 22, lengthInches: 27, sizeNote: "Runs small" });
+    expect(specRowsFor(item)).toEqual([
+      { k: "Pit-to-pit", v: `22"` },
+      { k: "Length", v: `27"` },
+      { k: "Size", v: "Runs small" },
+    ]);
+  });
+
   test("bottoms: waist + inseam, full labels, rise skipped when null", () => {
     const item = blank("bottoms", { waistInches: 32, inseamInches: 30 });
     expect(specRowsFor(item)).toEqual([
@@ -222,6 +233,15 @@ describe("specRowsFor", () => {
     expect(specRowsFor(item)).toEqual([{ k: "US size", v: "10" }]);
   });
 
+  test("footwear: sizeNote (width label) appended as a Size row when set", () => {
+    const item = blank("footwear", { shoeSizeUs: 9.5, insoleCm: 25.5, sizeNote: "Wide fit" });
+    expect(specRowsFor(item)).toEqual([
+      { k: "US size", v: "9.5" },
+      { k: "Insole", v: "25.5 cm" },
+      { k: "Size", v: "Wide fit" },
+    ]);
+  });
+
   test("bags: all four when set", () => {
     const item = blank("bags", { widthInches: 14, heightInches: 11, depthInches: 5, strapDropInches: 20 });
     expect(specRowsFor(item)).toEqual([
@@ -232,8 +252,12 @@ describe("specRowsFor", () => {
     ]);
   });
 
-  test("accessories: always empty rows (one-size handled via sizeNote/caption, not rows)", () => {
-    expect(specRowsFor(blank("accessories", { sizeNote: "Adjustable" }))).toEqual([]);
+  test("accessories: sizeNote appears as a Size row when set", () => {
+    expect(specRowsFor(blank("accessories", { sizeNote: "Adjustable" }))).toEqual([{ k: "Size", v: "Adjustable" }]);
+  });
+
+  test("accessories: empty rows when sizeNote unset", () => {
+    expect(specRowsFor(blank("accessories"))).toEqual([]);
   });
 
   test("dresses: waist extra row uses full label", () => {

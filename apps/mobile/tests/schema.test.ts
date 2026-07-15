@@ -79,6 +79,10 @@ test("migration rebuild preserves pre-existing item rows (zero data loss)", () =
   sqlite.prepare(
     "INSERT INTO items (id, session_id, brand, category, ptp_inches, length_inches, condition, individual_cost, target_sell_price, status, sold_price, sold_at, created_at) VALUES ('i1', 's1', 'Carhartt', 'Jacket', 24.5, 29, '9/10', 120, 950, 'sold', 900, 1700000100, 1700000000)"
   ).run();
+  // A child photos row must also survive the items table rebuild, with item_id intact.
+  sqlite.prepare(
+    "INSERT INTO photos (id, item_id, local_uri, type) VALUES ('p1', 'i1', 'file:///x/a.jpg', 'front')"
+  ).run();
   // Apply the remaining migrations over live data.
   for (const tag of tags.slice(1)) {
     sqlite.exec(fs.readFileSync(path.join(drizzleDir, `${tag}.sql`), "utf8"));
@@ -99,5 +103,8 @@ test("migration rebuild preserves pre-existing item rows (zero data loss)", () =
   expect(row.name).toBeNull();
   expect(row.waist_inches).toBeNull();
   expect(sqlite.prepare("SELECT count(*) AS c FROM user_brands").get()).toEqual({ c: 0 });
+  const photoRow = sqlite.prepare("SELECT * FROM photos WHERE id = 'p1'").get() as Record<string, unknown>;
+  expect(photoRow.item_id).toBe("i1");
+  expect(photoRow.local_uri).toBe("file:///x/a.jpg");
   sqlite.close();
 });
