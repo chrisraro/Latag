@@ -5,7 +5,7 @@ import { FONT } from "../lib/theme";
 import { PrimaryButton } from "./ui";
 
 const MIN_ITEM_W = 64;
-const CHAR_W = 15; // ~width of a 26px bold tabular digit incl. separators
+const CHAR_W = 16; // ~width of a 28px FONT.display (expanded) tabular digit incl. separators
 const ITEM_PAD = 16;
 
 function widthFor(labels: string[]): number {
@@ -62,16 +62,33 @@ export function Wheel({ values, value, onChange, unit, format, allowCustom }: {
           }}
           scrollEventThrottle={16}
         >
-          {vals.map((v) => (
-            <View key={v} style={{ width: itemW }} className="items-center justify-center">
-              <Text
-                numberOfLines={1}
-                style={{ fontFamily: v === value ? FONT.bold : FONT.semibold, fontVariant: ["tabular-nums"] }}
-                className={v === value ? "text-[26px] text-ink" : "text-[15px] text-inkfaint"}
-              >{fmt(v)}</Text>
-              {v === value && <View className="mt-0.5 h-[3px] w-8 rounded-full bg-acid" />}
-            </View>
-          ))}
+          {vals.map((v, i) => {
+            const selIdx = vals.indexOf(value);
+            const isCenter = v === value;
+            // Mockup .wheel .v.edge: values two-or-more detents from center fade to
+            // opacity .35; the immediate neighbors stay fully opaque.
+            const dist = Math.abs(i - selIdx);
+            return (
+              <View key={v} style={{ width: itemW }} className="items-center justify-center">
+                {isCenter ? (
+                  <View className="items-center">
+                    <Text
+                      numberOfLines={1}
+                      style={{ fontFamily: FONT.display, fontVariant: ["tabular-nums"] }}
+                      className="text-[28px] text-ink"
+                    >{fmt(v)}</Text>
+                    <View pointerEvents="none" style={{ position: "absolute", left: "10%", right: "10%", bottom: -6, height: 3 }} className="rounded-full bg-acid" />
+                  </View>
+                ) : (
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"], transform: [{ scale: 0.82 }], opacity: dist >= 2 ? 0.35 : 1 }}
+                    className="text-[15px] text-inkfaint"
+                  >{fmt(v)}</Text>
+                )}
+              </View>
+            );
+          })}
         </ScrollView>
       )}
       {unit ? (
