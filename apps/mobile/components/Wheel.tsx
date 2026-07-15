@@ -77,7 +77,7 @@ export function Wheel({ values, value, onChange, unit, format, allowCustom }: {
                       style={{ fontFamily: FONT.display, fontVariant: ["tabular-nums"] }}
                       className="text-[28px] text-ink"
                     >{fmt(v)}</Text>
-                    <View pointerEvents="none" style={{ position: "absolute", left: "10%", right: "10%", bottom: -6, height: 3 }} className="rounded-full bg-acid" />
+                    <View pointerEvents="none" style={{ position: "absolute", left: "10%", right: "10%", bottom: -6, height: 3, borderRadius: 2 }} className="bg-acid" />
                   </View>
                 ) : (
                   <Text

@@ -74,7 +74,7 @@ function SettingsRow({
         {subtitle ? (
           <Text
             style={{ fontFamily: FONT.text, fontVariant: subtitleTnum ? ["tabular-nums"] : undefined }}
-            className="mt-0.5 text-[12px] text-inkfaint"
+            className="mt-px text-[12px] text-inkfaint"
           >
             {subtitle}
           </Text>
@@ -93,7 +93,14 @@ export default function SettingsScreen() {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [usage, setUsage] = useState({ count: 0, bytes: 0, label: "0 B" });
   const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
-  const ent = entRows?.[0] ?? ensureEntitlements(db);
+  const ent = entRows?.[0];
+
+  // ensureEntitlements is a write; it must never run during render (React may
+  // call render more than once per commit). Do it as a post-render effect —
+  // the live query then picks up the newly-inserted row on its own.
+  useEffect(() => {
+    if (entRows && !entRows[0]) ensureEntitlements(db);
+  }, [entRows]);
 
   // Keep the account row fresh across sign-in/out without a manual poll — the
   // initial getSession() covers a cold mount, onAuthStateChange covers changes
@@ -176,6 +183,8 @@ export default function SettingsScreen() {
     }
     showSuccess("Signed out — your data and Pro stay on this phone");
   };
+
+  if (!ent) return null; // brief frame before ensureEntitlements' effect resolves
 
   const remaining = logsRemaining(ent);
   const version = Constants.expoConfig?.version ?? "1.0.0";
