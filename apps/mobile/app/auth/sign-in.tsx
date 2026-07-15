@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,11 +7,35 @@ import { supabase } from "../../lib/supabase";
 import { completeSignIn } from "../../lib/auth-complete";
 import { setWelcomed } from "../../lib/first-run";
 import { showError } from "../../lib/toast";
-import { FONT } from "../../lib/theme";
+import { FONT, COLORS } from "../../lib/theme";
+import { formatCountdown } from "../../lib/format";
 import { FieldLabel, PrimaryButton } from "../../components/ui";
+import { AppHead } from "../../components/AppHead";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const CODE_RE = /^\d{6}$/;
+const RESEND_SECONDS = 45;
+
+/** Mockup .otp: 6 boxes driven by one invisible TextInput; the box at the cursor position gets the acid border. */
+function OtpBoxes({ code }: { code: string }) {
+  return (
+    <View className="flex-row gap-2">
+      {Array.from({ length: 6 }).map((_, i) => {
+        const digit = code[i] ?? "";
+        const active = i === code.length && code.length < 6;
+        return (
+          <View
+            key={i}
+            style={{ aspectRatio: 0.86, borderRadius: 12 }}
+            className={`flex-1 items-center justify-center border bg-surface2 ${active ? "border-acid" : "border-hairline"}`}
+          >
+            <Text style={{ fontFamily: FONT.display }} className="text-[24px] text-ink">{digit}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -22,6 +46,17 @@ export default function SignInScreen() {
   const [sending, setSending] = useState(false); // double-tap guard
   const [verifying, setVerifying] = useState(false); // double-tap guard
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
+  const [resendKey, setResendKey] = useState(0);
+
+  // Resend countdown: restarts whenever the code step is (re)entered or resend is tapped.
+  // No drift-critical precision needed — a fresh 1s interval per (re)start is enough.
+  useEffect(() => {
+    if (step !== "code") return;
+    setSecondsLeft(RESEND_SECONDS);
+    const id = setInterval(() => setSecondsLeft((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [step, resendKey]);
 
   const sendEmail = async () => {
     if (sending) return;
@@ -87,20 +122,24 @@ export default function SignInScreen() {
   };
 
   const resend = () => {
+    if (sending || secondsLeft > 0) return;
     Haptics.selectionAsync();
+    setResendKey((k) => k + 1);
     void sendEmail();
   };
 
   const inputCls = "mb-2.5 h-13 rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
 
   return (
-    <View className="flex-1 bg-surface1 px-4" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
-      <View className="mb-3 h-1 w-11 self-center rounded-full bg-hairline" />
-      <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">Sign In</Text>
+    <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 4 }}>
+      <AppHead
+        title={step === "email" ? "Sign in" : "Enter code"}
+        onBack={step === "email" ? () => router.back() : useDifferentEmail}
+      />
 
       {step === "email" ? (
         <>
-          <Text style={{ fontFamily: FONT.text }} className="mb-3 mt-0.5 text-[12.5px] text-inkdim">
+          <Text style={{ fontFamily: FONT.text }} className="mb-[18px] mt-1 text-[13.5px] text-inkdim">
             We'll email you a sign-in link — no password needed.
           </Text>
           <FieldLabel>Email</FieldLabel>
@@ -108,7 +147,7 @@ export default function SignInScreen() {
             value={email}
             onChangeText={(v) => { setEmail(v); setErrorMsg(null); }}
             placeholder="you@example.com"
-            placeholderTextColor="#8A8A8A"
+            placeholderTextColor={COLORS.inkFaint}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -118,38 +157,57 @@ export default function SignInScreen() {
           {errorMsg ? (
             <Text style={{ fontFamily: FONT.text }} className="mb-2 text-[12.5px] text-danger">{errorMsg}</Text>
           ) : null}
+          <View style={{ flex: 1 }} />
           <PrimaryButton label="Send link + code" onPress={() => void sendEmail()} disabled={sending || !email.trim()} />
         </>
       ) : (
         <>
-          <Text style={{ fontFamily: FONT.text }} className="mb-3 mt-0.5 text-[12.5px] leading-5 text-inkdim">
-            Tap the sign-in link we emailed to {email.trim()} — or enter the code below if your email shows one.
+          <Text style={{ fontFamily: FONT.text }} className="mb-[18px] mt-1 text-[13.5px] leading-5 text-inkdim">
+            We sent a 6-digit code to{" "}
+            <Text style={{ fontFamily: FONT.semibold }} className="text-ink">{email.trim()}</Text>
           </Text>
-          <FieldLabel>6-digit code</FieldLabel>
-          <TextInput
-            value={code}
-            onChangeText={(v) => { setCode(v.replace(/[^0-9]/g, "").slice(0, 6)); setErrorMsg(null); }}
-            placeholder="000000"
-            placeholderTextColor="#8A8A8A"
-            keyboardType="number-pad"
-            maxLength={6}
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            style={{ fontFamily: FONT.displayBlack, letterSpacing: 10 }}
-            className="mb-2.5 h-16 rounded-[14px] border border-hairline bg-surface2 px-4 text-center text-[28px] text-ink"
-          />
-          {errorMsg ? (
-            <Text style={{ fontFamily: FONT.text }} className="mb-2 text-[12.5px] text-danger">{errorMsg}</Text>
-          ) : null}
-          <PrimaryButton label="Verify" onPress={() => void verifyCode()} disabled={verifying || code.trim().length !== 6} />
-          <View className="mt-2 flex-row justify-center gap-6">
-            <Pressable hitSlop={8} onPress={resend} disabled={sending}>
-              <Text style={{ fontFamily: FONT.semibold }} className="text-[12.5px] text-inkdim">Resend</Text>
-            </Pressable>
-            <Pressable hitSlop={8} onPress={useDifferentEmail}>
-              <Text style={{ fontFamily: FONT.semibold }} className="text-[12.5px] text-inkdim">Use a different email</Text>
-            </Pressable>
+
+          <View className="relative">
+            <OtpBoxes code={code} />
+            <TextInput
+              value={code}
+              onChangeText={(v) => { setCode(v.replace(/[^0-9]/g, "").slice(0, 6)); setErrorMsg(null); }}
+              keyboardType="number-pad"
+              maxLength={6}
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
+              autoFocus
+              caretHidden
+              style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, opacity: 0 }}
+            />
           </View>
+
+          {errorMsg ? (
+            <Text style={{ fontFamily: FONT.text }} className="mt-2 text-[12.5px] text-danger">{errorMsg}</Text>
+          ) : null}
+
+          <View className="mt-[14px] items-center">
+            <Text style={{ fontFamily: FONT.text }} className="text-[12.5px] text-inkfaint">
+              {secondsLeft > 0 ? (
+                <>Didn't get it? Resend in {formatCountdown(secondsLeft)}</>
+              ) : (
+                <>
+                  Didn't get it?{" "}
+                  <Text onPress={resend} style={{ fontFamily: FONT.semibold }} className="text-inkdim">Resend</Text>
+                </>
+              )}
+            </Text>
+          </View>
+
+          <Pressable hitSlop={8} onPress={useDifferentEmail} className="mt-2 items-center">
+            <Text style={{ fontFamily: FONT.semibold }} className="text-[12.5px] text-inkdim">Use a different email</Text>
+          </Pressable>
+
+          <View style={{ flex: 1 }} />
+          <PrimaryButton label="Verify" onPress={() => void verifyCode()} disabled={verifying || code.trim().length !== 6} />
+          <Text style={{ fontFamily: FONT.text }} className="mb-2 text-center text-[11.5px] text-inkfaint">
+            After this, Latag never asks for a connection again.
+          </Text>
         </>
       )}
     </View>

@@ -16,3 +16,11 @@ export function formatInches(n: number): string {
 export function formatPct(n: number): string {
   return `${Math.round(n)}%`;
 }
+
+/** "0:45" mm:ss style countdown for the OTP resend timer. */
+export function formatCountdown(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return `${m}:${String(rem).padStart(2, "0")}`;
+}
