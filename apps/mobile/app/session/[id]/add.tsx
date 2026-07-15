@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { View, Text, ScrollView, TextInput } from "react-native";
+import { View, Text, ScrollView, TextInput, Pressable } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -20,6 +20,7 @@ import { AppHead } from "../../../components/AppHead";
 import { Wheel, rangeValues } from "../../../components/Wheel";
 import { PhotoSlot } from "../../../components/PhotoSlot";
 import { GoProSheet } from "../../../components/GoProSheet";
+import { BrandPickerSheet } from "../../../components/BrandPickerSheet";
 
 const PTP = rangeValues(14, 36, 0.5);
 const LEN = rangeValues(20, 36, 0.5);
@@ -39,7 +40,8 @@ export default function RapidConsole() {
   const session = sessionRows?.[0];
 
   const [brand, setBrand] = useState("");
-  const [brandQuery, setBrandQuery] = useState("");
+  const [brandPicker, setBrandPicker] = useState(false);
+  const [name, setName] = useState("");
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [condition, setCondition] = useState<string>("9/10");
   const [ptp, setPtp] = useState(21);
@@ -70,7 +72,7 @@ export default function RapidConsole() {
     if (!editId) return;
     const existing = db.select().from(items).where(eq(items.id, editId)).all()[0];
     if (!existing) return;
-    setBrand(existing.brand); setCategory(existing.category); setCondition(existing.condition);
+    setBrand(existing.brand); setName(existing.name ?? ""); setCategory(existing.category); setCondition(existing.condition);
     setPtp(existing.ptpInches ?? 21); setLen(existing.lengthInches ?? 27); setPrice(existing.targetSellPrice); setCost(existing.individualCost);
   }, [editId]);
 
@@ -105,7 +107,7 @@ export default function RapidConsole() {
     }
     setSaving(true);
     try {
-      const input = { sessionId: id, brand: brand.trim(), department: "tops" as const, category, condition, ptpInches: ptp, lengthInches: len, targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0 }; // department hardcoded until the console gains the segment (E1 Task 7)
+      const input = { sessionId: id, brand: brand.trim(), name, department: "tops" as const, category, condition, ptpInches: ptp, lengthInches: len, targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0 }; // department hardcoded until the console gains the segment (E1 Task 7)
       const saved = editId ? { item: updateItem(db, editId, input) } : addItem(db, input);
       const shots = takeStagedPhotos();
       for (const slot of SLOTS) {
@@ -157,10 +159,19 @@ export default function RapidConsole() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
           {recentBrands.map((b) => <Chip key={b} label={b} selected={brand === b} onPress={() => setBrand(b)} />)}
         </ScrollView>
+        <Pressable
+          accessibilityRole="button" accessibilityLabel="Search brands"
+          onPress={() => setBrandPicker(true)}
+          className="mt-2.5 h-11 justify-center rounded-full border border-hairline bg-surface2 px-4"
+        >
+          <Text style={{ fontFamily: FONT.text }} className={`text-[14px] ${brand ? "text-ink" : "text-inkfaint"}`}>{brand || "Search brands"}</Text>
+        </Pressable>
+        <FieldLabel>{"Item name · Optional"}</FieldLabel>
         <TextInput
-          value={brandQuery || brand} onChangeText={(t) => { setBrandQuery(t); setBrand(t); }}
-          placeholder="Search / type brand" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }}
-          className="mt-2.5 h-11 rounded-full border border-hairline bg-surface2 px-4 text-[14px] text-ink"
+          value={name} onChangeText={setName} maxLength={60}
+          accessibilityLabel="Item name"
+          placeholder="e.g. Detroit Jacket" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }}
+          className="h-[52px] rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink"
         />
         <FieldLabel>Category</FieldLabel>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
@@ -187,6 +198,11 @@ export default function RapidConsole() {
         <PrimaryButton label={editId ? "Save changes" : "Save item"} icon="Check" onPress={save} disabled={saving} />
       </View>
       <GoProSheet visible={goPro} onClose={() => setGoPro(false)} />
+      <BrandPickerSheet
+        visible={brandPicker} value={brand} recents={recentBrands}
+        onPick={(n) => { setBrand(n); setBrandPicker(false); }}
+        onClose={() => setBrandPicker(false)}
+      />
     </View>
   );
 }
