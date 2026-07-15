@@ -71,7 +71,7 @@ export default function RapidConsole() {
     const existing = db.select().from(items).where(eq(items.id, editId)).all()[0];
     if (!existing) return;
     setBrand(existing.brand); setCategory(existing.category); setCondition(existing.condition);
-    setPtp(existing.ptpInches); setLen(existing.lengthInches); setPrice(existing.targetSellPrice); setCost(existing.individualCost);
+    setPtp(existing.ptpInches ?? 21); setLen(existing.lengthInches ?? 27); setPrice(existing.targetSellPrice); setCost(existing.individualCost);
   }, [editId]);
 
   // ensureEntitlements is a write; it must never run during render (React may

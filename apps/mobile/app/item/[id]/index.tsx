@@ -94,8 +94,8 @@ export default function ItemDetail() {
           <Row k="Brand" v={item.brand} />
           <Row k="Category" v={item.category} />
           <Row k="Condition" v={item.condition} />
-          <Row k="Pit-to-pit" v={formatInches(item.ptpInches)} />
-          <Row k="Length" v={formatInches(item.lengthInches)} />
+          {item.ptpInches != null ? <Row k="Pit-to-pit" v={formatInches(item.ptpInches)} /> : null}
+          {item.lengthInches != null ? <Row k="Length" v={formatInches(item.lengthInches)} /> : null}
           {item.individualCost > 0 ? <Row k="Cost" v={formatPeso(item.individualCost)} /> : null}
           <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-3 py-3.5">
             <Text style={{ fontFamily: FONT.text, lineHeight: 21 }} className="text-[15px] text-inkfaint">Price</Text>

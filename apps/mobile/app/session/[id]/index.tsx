@@ -113,7 +113,7 @@ export default function DashboardScreen() {
                   {item.status === "sold" ? <Badge label="SOLD" tone="sold" /> : null}
                 </View>
                 <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint">
-                  {item.category} · {item.condition} · PTP {formatInches(item.ptpInches)} · L {formatInches(item.lengthInches)}
+                  {item.category} · {item.condition}{item.ptpInches != null ? ` · PTP ${formatInches(item.ptpInches)}` : ""}{item.lengthInches != null ? ` · L ${formatInches(item.lengthInches)}` : ""}
                 </Text>
               </View>
               <View className="ml-1 items-end">

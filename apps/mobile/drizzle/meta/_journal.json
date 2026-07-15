@@ -8,6 +8,13 @@
       "when": 1783918413312,
       "tag": "0000_pretty_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1784130823353,
+      "tag": "0001_demonic_professor_monster",
+      "breakpoints": true
     }
   ]
 }
