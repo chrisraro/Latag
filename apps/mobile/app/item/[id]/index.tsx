@@ -40,9 +40,9 @@ export default function ItemDetail() {
   };
 
   const Row = ({ k, v, acid }: { k: string; v: string; acid?: boolean }) => (
-    <View className="flex-row justify-between border-b border-hairline py-3">
-      <Text style={{ fontFamily: FONT.text }} className="text-[15px] text-inkfaint">{k}</Text>
-      <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"] }} className={`text-[15px] ${acid ? "text-acid" : "text-ink"}`}>{v}</Text>
+    <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-1 py-3.5">
+      <Text style={{ fontFamily: FONT.text, lineHeight: 21 }} className="text-[15px] text-inkfaint">{k}</Text>
+      <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className={`min-w-0 shrink text-right text-[15px] ${acid ? "text-acid" : "text-ink"}`}>{v}</Text>
     </View>
   );
 
@@ -74,8 +74,8 @@ export default function ItemDetail() {
                     <Text style={{ fontFamily: FONT.bold }} className="text-[64px] text-hairline">{item.brand[0]}</Text>
                   )}
                   {p ? (
-                    <View style={{ backgroundColor: "rgba(0,0,0,0.72)" }} className="absolute left-3 top-3 rounded-[6px] px-2 py-[3px]">
-                      <Text style={{ fontFamily: FONT.semibold }} className="text-[11px] text-inkdim">{p.type.toUpperCase()} · {idx + 1}/{pics.length}</Text>
+                    <View style={{ backgroundColor: "rgba(0,0,0,0.72)" }} className="absolute left-3 top-3 rounded-[6px] px-2.5 py-1">
+                      <Text style={{ fontFamily: FONT.semibold, lineHeight: 15 }} className="text-[11px] text-inkdim">{p.type.toUpperCase()} · {idx + 1}/{pics.length}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -84,26 +84,26 @@ export default function ItemDetail() {
           )}
         </View>
         {pics.length > 1 ? (
-          <View className="mb-0.5 mt-2.5 flex-row justify-center gap-1.5">
+          <View className="mb-1 mt-3 flex-row justify-center gap-1.5">
             {pics.map((p, idx) => (
               <View key={p.id} className={`h-1.5 w-1.5 rounded-full ${idx === activeIdx ? "bg-acid" : "bg-hairline"}`} />
             ))}
           </View>
         ) : null}
-        <View className="mt-2">
+        <View className="mt-4">
           <Row k="Brand" v={item.brand} />
           <Row k="Category" v={item.category} />
           <Row k="Condition" v={item.condition} />
           <Row k="Pit-to-pit" v={formatInches(item.ptpInches)} />
           <Row k="Length" v={formatInches(item.lengthInches)} />
           {item.individualCost > 0 ? <Row k="Cost" v={formatPeso(item.individualCost)} /> : null}
-          <View className="flex-row items-baseline justify-between border-b border-hairline py-3">
-            <Text style={{ fontFamily: FONT.text }} className="text-[15px] text-inkfaint">Price</Text>
+          <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-1 py-3.5">
+            <Text style={{ fontFamily: FONT.text, lineHeight: 21 }} className="text-[15px] text-inkfaint">Price</Text>
             <View className="flex-row items-baseline gap-2">
               {sold && item.soldPrice != null && item.soldPrice !== item.targetSellPrice ? (
-                <Text style={{ fontFamily: FONT.medium, fontVariant: ["tabular-nums"], textDecorationLine: "line-through" }} className="text-[12px] text-inkfaint">{formatPeso(item.targetSellPrice)}</Text>
+                <Text style={{ fontFamily: FONT.medium, fontVariant: ["tabular-nums"], textDecorationLine: "line-through", lineHeight: 17 }} className="text-[12px] text-inkfaint">{formatPeso(item.targetSellPrice)}</Text>
               ) : null}
-              <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"] }} className="text-[15px] text-acid">
+              <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className="text-[15px] text-acid">
                 {formatPeso(sold && item.soldPrice != null ? item.soldPrice : item.targetSellPrice)}
               </Text>
             </View>

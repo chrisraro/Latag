@@ -33,19 +33,20 @@ function Dots({ active }: { active: number }) {
   );
 }
 
-/** Mockup .obcard: radius 14, gap 14 items-start, 44px icon tile (surface2, acid icon), title 16px display, body 13px inkdim lh19 mt3. */
+/** Mockup .obcard: radius 14, gap 14 items-start, 44px icon tile (surface2, acid icon), title 16px display, body 13px inkdim lh19.
+ * Spacing polish pass: padding 16→18 and title→body gap 3→6 for breathing room. */
 function ModeCard({ icon, title, body, accent }: { icon: IconName; title: string; body: string; accent?: boolean }) {
   return (
     <View
       style={{ borderRadius: 14 }}
-      className={`mb-3 flex-row items-start gap-3.5 border bg-surface1 p-4 ${accent ? "border-acid" : "border-hairline"}`}
+      className={`mb-3 flex-row items-start gap-3.5 border bg-surface1 p-[18px] ${accent ? "border-acid" : "border-hairline"}`}
     >
       <View className="h-11 w-11 flex-none items-center justify-center rounded-xl bg-surface2">
         <Icon name={icon} size={24} color={COLORS.acid} />
       </View>
       <View className="flex-1">
         <Text style={{ fontFamily: FONT.display }} className="text-[16px] text-ink">{title}</Text>
-        <Text style={{ fontFamily: FONT.text }} className="mt-[3px] text-[13px] leading-[19px] text-inkdim">{body}</Text>
+        <Text style={{ fontFamily: FONT.text }} className="mt-1.5 text-[13px] leading-[19px] text-inkdim">{body}</Text>
       </View>
     </View>
   );
@@ -79,7 +80,7 @@ export default function OnboardingScreen() {
           <View className="flex-row items-start justify-between">
             <View className="flex-1 pr-2">
               <Text style={{ fontFamily: FONT.display }} className="text-[24px] text-ink">How do you source?</Text>
-              <Text style={{ fontFamily: FONT.text }} className="mt-1 text-[13.5px] text-inkdim">
+              <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="mt-1.5 text-[13.5px] text-inkdim">
                 You pick per session — run both styles anytime.
               </Text>
             </View>
@@ -113,7 +114,7 @@ export default function OnboardingScreen() {
         {/* Pane 2 — camera & privacy */}
         <View style={{ width: SCREEN_WIDTH, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }} className="flex-1 px-5">
           <Text style={{ fontFamily: FONT.display }} className="text-[24px] text-ink">Shoot it. Tag it. Sell it.</Text>
-          <Text style={{ fontFamily: FONT.text }} className="mt-1 text-[13.5px] text-inkdim">
+          <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="mt-1.5 text-[13.5px] text-inkdim">
             Four angles per piece — buyers claim faster when they see the flaws too.
           </Text>
 

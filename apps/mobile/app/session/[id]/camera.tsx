@@ -39,9 +39,9 @@ export default function CameraScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-bg px-6" style={{ paddingBottom: insets.bottom }}>
         <Text style={{ fontFamily: FONT.display }} className="text-[18px] text-ink">Camera access needed</Text>
-        <Text style={{ fontFamily: FONT.text }} className="mt-2 text-center text-[13px] text-inkdim">Photos are compressed and stored on your phone only — never uploaded.</Text>
+        <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="mt-2 text-center text-[13px] text-inkdim">Photos are compressed and stored on your phone only — never uploaded.</Text>
         <View className="mt-4 w-full"><PrimaryButton label="Allow Camera" onPress={requestPermission} /></View>
-        <Pressable onPress={() => router.back()}><Text className="text-[13px] text-inkfaint">Not now</Text></Pressable>
+        <Pressable onPress={() => router.back()} className="h-11 items-center justify-center px-4"><Text style={{ lineHeight: 18 }} className="text-[13px] text-inkfaint">Not now</Text></Pressable>
       </View>
     );
   }
@@ -61,7 +61,7 @@ export default function CameraScreen() {
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom }}>
-      <View className="flex-row items-center gap-3 pb-2 pt-3">
+      <View className="flex-row items-center gap-3 pb-2.5 pt-3">
         <Pressable hitSlop={6} onPress={() => router.back()} className="h-10 w-10 flex-none items-center justify-center rounded-full bg-surface2">
           <Icon name="X" size={18} color={COLORS.inkDim} />
         </Pressable>
@@ -79,18 +79,18 @@ export default function CameraScreen() {
           FILL THE FRAME — AUTO-COMPRESSES TO 1200PX
         </Text>
       </CameraView>
-      <View className="mt-3 flex-row justify-center gap-2">
+      <View className="mt-3.5 flex-row justify-center gap-2">
         {SLOTS.map((s) => {
           const isCurrent = s === activeSlot;
           const isDone = !isCurrent && filledSlots.has(s);
           return (
             <View
               key={s}
-              className={`flex-row items-center gap-1 rounded-full border px-[11px] py-[5px] ${isDone ? "border-acid" : isCurrent ? "border-ink" : "border-hairline"}`}
+              className={`flex-row items-center gap-1 rounded-full border px-3 py-1.5 ${isDone ? "border-acid" : isCurrent ? "border-ink" : "border-hairline"}`}
             >
               {isDone ? <Icon name="Check" size={12} color={COLORS.acid} /> : null}
               <Text
-                style={{ fontFamily: FONT.display, letterSpacing: 0.44 }}
+                style={{ fontFamily: FONT.display, letterSpacing: 0.44, lineHeight: 15 }}
                 className={`text-[11px] ${isDone ? "text-acid" : isCurrent ? "text-ink" : "text-inkfaint"}`}
               >{s.toUpperCase()}</Text>
             </View>

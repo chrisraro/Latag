@@ -73,8 +73,8 @@ function SettingsRow({
         <Text style={{ fontFamily: FONT.semibold }} className={`text-[15px] ${toneClass(titleTone, "text-ink")}`} numberOfLines={1}>{title}</Text>
         {subtitle ? (
           <Text
-            style={{ fontFamily: FONT.text, fontVariant: subtitleTnum ? ["tabular-nums"] : undefined }}
-            className="mt-px text-[12px] text-inkfaint"
+            style={{ fontFamily: FONT.text, fontVariant: subtitleTnum ? ["tabular-nums"] : undefined, lineHeight: 17 }}
+            className="mt-1 text-[12px] text-inkfaint"
           >
             {subtitle}
           </Text>
@@ -215,9 +215,9 @@ export default function SettingsScreen() {
             noPadding
           />
           {session ? (
-            <Pressable hitSlop={8} disabled={refreshing} onPress={() => void refreshLicense()} className="ml-12 mt-1 flex-row items-center gap-1">
+            <Pressable hitSlop={8} disabled={refreshing} onPress={() => void refreshLicense()} className="ml-12 mt-2 flex-row items-center gap-1.5">
               <Icon name="ArrowsClockwise" size={12} color={COLORS.inkDim} />
-              <Text style={{ fontFamily: FONT.semibold }} className="text-[12.5px] text-inkdim">
+              <Text style={{ fontFamily: FONT.semibold, lineHeight: 17 }} className="text-[12.5px] text-inkdim">
                 {refreshing ? "Refreshing…" : "Refresh license"}
               </Text>
             </Pressable>
@@ -265,7 +265,7 @@ export default function SettingsScreen() {
         ) : null}
       </ScrollView>
 
-      <Text style={{ fontFamily: FONT.text }} className="pb-4 pt-2 text-center text-[11.5px] text-inkfaint">
+      <Text style={{ fontFamily: FONT.text, lineHeight: 16 }} className="pb-4 pt-3 text-center text-[11.5px] text-inkfaint">
         Latag {version} · Made for the ukay grind
       </Text>
     </View>

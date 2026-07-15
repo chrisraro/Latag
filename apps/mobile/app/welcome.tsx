@@ -10,7 +10,7 @@ function FeatRow({ icon, label }: { icon: "Target" | "Camera" | "WifiSlash"; lab
   return (
     <View className="flex-row items-center gap-3 py-2.5">
       <Icon name={icon} size={18} color={COLORS.acid} />
-      <Text style={{ fontFamily: FONT.text }} className="flex-1 text-[14px] text-inkdim">{label}</Text>
+      <Text style={{ fontFamily: FONT.text, lineHeight: 20 }} className="flex-1 text-[14px] text-inkdim">{label}</Text>
     </View>
   );
 }
@@ -38,7 +38,7 @@ export default function WelcomeScreen() {
           Latag
         </Text>
         <Text
-          style={{ fontFamily: FONT.text, marginTop: 8, marginBottom: 22, maxWidth: 260 }}
+          style={{ fontFamily: FONT.text, lineHeight: 22, marginTop: 8, marginBottom: 22, maxWidth: 260 }}
           className="text-[15px] text-inkdim"
         >
           {"Log fast. Know your margins.\nWork where there's no signal."}
@@ -54,7 +54,7 @@ export default function WelcomeScreen() {
           <SecondaryButton label="Start offline — sign in later" onPress={() => void startOffline()} />
         </View>
         <Text
-          style={{ fontFamily: FONT.text, marginBottom: 8 }}
+          style={{ fontFamily: FONT.text, lineHeight: 16, marginBottom: 8 }}
           className="mt-3 text-center text-[11.5px] text-inkfaint"
         >
           {"Sign-in is only for Pro licensing.\nYour inventory never leaves this phone."}

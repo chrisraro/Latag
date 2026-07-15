@@ -143,7 +143,7 @@ export default function SignInScreen() {
     void sendEmail();
   };
 
-  const inputCls = "mb-2.5 h-[52px] rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
+  const inputCls = "mb-3 h-[52px] rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 4 }}>
@@ -154,7 +154,7 @@ export default function SignInScreen() {
 
       {step === "email" ? (
         <>
-          <Text style={{ fontFamily: FONT.text }} className="mb-[18px] mt-1 text-[13.5px] text-inkdim">
+          <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="mb-[18px] mt-1 text-[13.5px] text-inkdim">
             We'll email you a sign-in link — no password needed.
           </Text>
           <FieldLabel>Email</FieldLabel>
@@ -170,7 +170,7 @@ export default function SignInScreen() {
             className={inputCls}
           />
           {errorMsg ? (
-            <Text style={{ fontFamily: FONT.text }} className="mb-2 text-[12.5px] text-danger">{errorMsg}</Text>
+            <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mb-2 text-[12.5px] text-danger">{errorMsg}</Text>
           ) : null}
           <View style={{ flex: 1 }} />
           <PrimaryButton label="Send link + code" onPress={() => void sendEmail()} disabled={sending || !email.trim()} />
@@ -198,11 +198,11 @@ export default function SignInScreen() {
           </View>
 
           {errorMsg ? (
-            <Text style={{ fontFamily: FONT.text }} className="mt-2 text-[12.5px] text-danger">{errorMsg}</Text>
+            <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-2 text-[12.5px] text-danger">{errorMsg}</Text>
           ) : null}
 
-          <View className="mt-[14px] items-center">
-            <Text style={{ fontFamily: FONT.text }} className="text-[12.5px] text-inkfaint">
+          <View className="mt-4 items-center">
+            <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="text-[12.5px] text-inkfaint">
               {secondsLeft > 0 ? (
                 <>Didn't get it? Resend in {formatCountdown(secondsLeft)}</>
               ) : (
@@ -214,13 +214,13 @@ export default function SignInScreen() {
             </Text>
           </View>
 
-          <Pressable hitSlop={8} onPress={useDifferentEmail} className="mt-2 items-center">
-            <Text style={{ fontFamily: FONT.semibold }} className="text-[12.5px] text-inkdim">Use a different email</Text>
+          <Pressable hitSlop={8} onPress={useDifferentEmail} className="mt-2 h-11 items-center justify-center">
+            <Text style={{ fontFamily: FONT.semibold, lineHeight: 17 }} className="text-[12.5px] text-inkdim">Use a different email</Text>
           </Pressable>
 
           <View style={{ flex: 1 }} />
           <PrimaryButton label="Verify" onPress={() => void verifyCode()} disabled={verifying || code.trim().length !== 6} />
-          <Text style={{ fontFamily: FONT.text }} className="mb-2 text-center text-[11.5px] text-inkfaint">
+          <Text style={{ fontFamily: FONT.text, lineHeight: 16 }} className="mb-2 text-center text-[11.5px] text-inkfaint">
             After this, Latag never asks for a connection again.
           </Text>
         </>

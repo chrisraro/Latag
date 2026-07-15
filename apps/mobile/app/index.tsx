@@ -65,7 +65,7 @@ export default function SessionsScreen() {
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-      <View className="flex-row items-center gap-3 pb-2 pt-3">
+      <View className="flex-row items-center gap-3 pb-2.5 pt-3">
         <Text style={{ fontFamily: FONT.displayBlack }} className="flex-1 text-[26px] uppercase text-acid">Latag</Text>
         {list.length > 0 ? <Badge label={`${list.length} SESSIONS`} /> : null}
         <Pressable hitSlop={8} onPress={() => router.push("/settings")} className="h-10 w-10 items-center justify-center rounded-full bg-surface2">
@@ -75,7 +75,7 @@ export default function SessionsScreen() {
       {list.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-3.5 px-4">
           <View className="h-[92px] w-full items-center justify-center rounded-card border-[1.5px] border-dashed border-hairline">
-            <Text style={{ fontFamily: FONT.text }} className="text-[13px] text-inkfaint">Your first run will show up here</Text>
+            <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="text-[13px] text-inkfaint">Your first run will show up here</Text>
           </View>
           <View className="items-center">
             <Text style={{ fontFamily: FONT.display }} className="text-[18px] text-ink">No sessions yet</Text>
@@ -89,14 +89,14 @@ export default function SessionsScreen() {
           data={list}
           keyExtractor={({ s }) => s.id}
           renderItem={({ item: { s, count, soldCount, pct, money, note, negative } }) => (
-            <Pressable onPress={() => router.push(`/session/${s.id}`)} className="mb-3 rounded-card border border-hairline bg-surface1 p-4">
-              <View className="flex-row items-center gap-2">
+            <Pressable onPress={() => router.push(`/session/${s.id}`)} className="mb-3 rounded-card border border-hairline bg-surface1 p-[18px]">
+              <View className="flex-row items-center gap-3">
                 <Text style={{ fontFamily: FONT.semibold }} className="flex-1 text-[17px] text-ink" numberOfLines={1}>{s.name}</Text>
                 <Badge label={s.type.toUpperCase()} />
               </View>
-              {s.location ? <Text style={{ fontFamily: FONT.text }} className="mt-0.5 text-[12px] text-inkfaint">{s.location}</Text> : null}
-              <View className="mt-4 flex-row items-baseline justify-between">
-                <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"] }} className="text-[12px] text-inkfaint">{count} items · {soldCount} sold</Text>
+              {s.location ? <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint">{s.location}</Text> : null}
+              <View className="mt-4 flex-row items-baseline justify-between gap-3">
+                <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="text-[12px] text-inkfaint">{count} items · {soldCount} sold</Text>
                 {s.type === "bulto" ? (
                   <Text style={{ fontFamily: FONT.display, fontVariant: ["tabular-nums"] }} className={`text-[22px] ${negative ? "text-danger" : "text-acid"}`}>
                     {pct === null ? "—" : formatPct(pct)} <Text style={{ fontFamily: FONT.medium }} className="text-[12px] text-inkfaint">{note}</Text>

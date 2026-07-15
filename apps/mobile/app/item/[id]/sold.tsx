@@ -32,15 +32,15 @@ export default function MarkSoldScreen() {
 
   return (
     <View className="flex-1 bg-surface1 px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
-      <View className="mb-3 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
+      <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
       <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">Mark Sold</Text>
-      <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"] }} className="mb-3 mt-0.5 text-[12.5px] text-inkfaint">
+      <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 18 }} className="mb-4 mt-1 text-[12.5px] text-inkfaint">
         Listed at {formatPeso(item.targetSellPrice)} — set the final price if you haggled.
       </Text>
       <FieldLabel>Sold for</FieldLabel>
       <Wheel values={values} value={price} onChange={setPrice} unit="₱" format={(v) => v.toLocaleString("en-PH")} allowCustom />
       <PrimaryButton label="Confirm Sale" icon="Check" onPress={confirm} disabled={confirming} />
-      <Text style={{ fontFamily: FONT.text }} className="text-center text-[11.5px] text-inkfaint">Records price + date. Undo anytime from the item.</Text>
+      <Text style={{ fontFamily: FONT.text, lineHeight: 16 }} className="text-center text-[11.5px] text-inkfaint">Records price + date. Undo anytime from the item.</Text>
     </View>
   );
 }

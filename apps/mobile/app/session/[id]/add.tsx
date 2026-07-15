@@ -142,8 +142,8 @@ export default function RapidConsole() {
           />
         }
       />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
-        <View className="mt-1.5 flex-row gap-2">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 12 }}>
+        <View className="mt-2.5 flex-row gap-2">
           {SLOTS.map((s) => (
             <PhotoSlot
               key={s}
@@ -160,7 +160,7 @@ export default function RapidConsole() {
         <TextInput
           value={brandQuery || brand} onChangeText={(t) => { setBrandQuery(t); setBrand(t); }}
           placeholder="Search / type brand" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }}
-          className="mt-2 h-11 rounded-full border border-hairline bg-surface2 px-4 text-[14px] text-ink"
+          className="mt-2.5 h-11 rounded-full border border-hairline bg-surface2 px-4 text-[14px] text-ink"
         />
         <FieldLabel>Category</FieldLabel>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
@@ -170,11 +170,11 @@ export default function RapidConsole() {
         <View className="flex-row gap-2 py-1">{CONDITIONS.map((c) => <Chip key={c} label={c} selected={condition === c} onPress={() => setCondition(c)} />)}</View>
         <FieldLabel>{"Pit-to-pit · Length"}</FieldLabel>
         <Wheel values={PTP} value={ptp} onChange={setPtp} unit={'PTP "'} />
-        <View className="h-2" />
+        <View className="h-3" />
         <Wheel values={LEN} value={len} onChange={setLen} unit={'L "'} />
         {session.type === "selector" ? (<>
           <FieldLabel>{"Cost · Price"}</FieldLabel>
-          <View className="flex-row gap-2">
+          <View className="flex-row gap-2.5">
             <View className="flex-1"><Wheel values={COST} value={cost} onChange={setCost} unit="COST ₱" allowCustom /></View>
             <View className="flex-[1.4]"><Wheel values={PRICE} value={price} onChange={setPrice} unit="₱" allowCustom /></View>
           </View>
