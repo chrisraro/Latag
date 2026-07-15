@@ -3,9 +3,10 @@ import { View, Text, Pressable, ScrollView, useWindowDimensions, type NativeSynt
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FONT } from "../lib/theme";
+import { FONT, COLORS } from "../lib/theme";
 import { PrimaryButton } from "../components/ui";
 import { PhotoSlot } from "../components/PhotoSlot";
+import { Icon, type IconName } from "../components/Icon";
 
 const PANES = 2;
 
@@ -32,11 +33,20 @@ function Dots({ active }: { active: number }) {
   );
 }
 
-function ModeCard({ title, body, accent }: { title: string; body: string; accent?: boolean }) {
+/** Mockup .obcard: radius 14, gap 14 items-start, 44px icon tile (surface2, acid icon), title 16px display, body 13px inkdim lh19 mt3. */
+function ModeCard({ icon, title, body, accent }: { icon: IconName; title: string; body: string; accent?: boolean }) {
   return (
-    <View className={`mb-3 rounded-card border p-4 ${accent ? "border-acid bg-surface1" : "border-hairline bg-surface1"}`}>
-      <Text style={{ fontFamily: FONT.display }} className="text-[15px] text-ink">{title}</Text>
-      <Text style={{ fontFamily: FONT.text }} className="mt-1.5 text-[13px] leading-5 text-inkdim">{body}</Text>
+    <View
+      style={{ borderRadius: 14 }}
+      className={`mb-3 flex-row items-start gap-3.5 border bg-surface1 p-4 ${accent ? "border-acid" : "border-hairline"}`}
+    >
+      <View className="h-11 w-11 flex-none items-center justify-center rounded-xl bg-surface2">
+        <Icon name={icon} size={24} color={COLORS.acid} />
+      </View>
+      <View className="flex-1">
+        <Text style={{ fontFamily: FONT.display }} className="text-[16px] text-ink">{title}</Text>
+        <Text style={{ fontFamily: FONT.text }} className="mt-[3px] text-[13px] leading-[19px] text-inkdim">{body}</Text>
+      </View>
     </View>
   );
 }
@@ -84,10 +94,12 @@ export default function OnboardingScreen() {
 
           <View className="flex-1 justify-center">
             <ModeCard
+              icon="Target"
               title="Selector"
               body="Cherry-pick pieces at per-item prices. Latag tracks profit piece by piece."
             />
             <ModeCard
+              icon="Package"
               title="Bulto"
               body="Buy the whole bale at one fixed cost. Latag tracks capital recovery to break-even and beyond."
               accent
@@ -114,6 +126,7 @@ export default function OnboardingScreen() {
             </View>
             <View className="mt-4">
               <ModeCard
+                icon="ShieldCheck"
                 title="Photos stay on your phone"
                 body="Compressed and stored on-device. Nothing is ever uploaded."
               />
