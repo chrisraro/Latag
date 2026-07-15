@@ -18,7 +18,7 @@ export function Chip({ label, selected, onPress }: { label: string; selected?: b
 
 export function Badge({ label, tone = "default" }: { label: string; tone?: "default" | "sold" }) {
   return (
-    <View className="flex-none rounded-full border border-hairline px-[9px] py-[3px]">
+    <View className={`flex-none rounded-full border px-[9px] py-[3px] ${tone === "sold" ? "border-inkfaint" : "border-hairline"}`}>
       <Text style={{ fontFamily: FONT.display, letterSpacing: 0.42 }} className={`text-[10.5px] ${tone === "sold" ? "text-inkfaint" : "text-inkdim"}`}>{label}</Text>
     </View>
   );
