@@ -34,7 +34,7 @@ test("tops caption matches blueprint template (spec line via captionSpecLine)", 
   ]);
   expect(out).toBe(
     `👕 Stüssy Tee\n📏 Size: (PTP 21" · L 27")\n✨ Condition: 9/10\n💸 ₱550\n📍 Comment "Mine" to claim\n---\n` +
-    `👕 Carhartt\n📏 Size: (PTP 24" · L 28.5")\n✨ Condition: 10/10\n💸 ₱1,250\n📍 Comment "Mine" to claim\n---`
+    `👕 Carhartt Tee\n📏 Size: (PTP 24" · L 28.5")\n✨ Condition: 10/10\n💸 ₱1,250\n📍 Comment "Mine" to claim\n---`
   );
 });
 
