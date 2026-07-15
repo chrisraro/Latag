@@ -22,6 +22,16 @@ function isFeedbackStatus(value: unknown): value is FeedbackStatus {
 }
 
 /**
+ * Raw Postgres error text (constraint names, column names, internal detail)
+ * must never reach the admin UI. Log the real error server-side for
+ * debugging and hand back a short, action-specific message instead.
+ */
+function toUserFacingError(action: string, message: string, rawError: unknown): ActionResult {
+  console.error(`[admin:${action}]`, rawError);
+  return { error: message };
+}
+
+/**
  * Every admin action re-verifies the caller is an admin from scratch — the
  * page-level gate (`notFound()` in page.tsx) only hides the UI. Actions are
  * directly callable endpoints and must not trust that a form only renders
@@ -51,7 +61,7 @@ export async function grantPro(userId: string): Promise<ActionResult> {
     .insert({ user_id: userId, sku: PRO_SKU, status: "active" });
 
   if (error && error.code !== "23505") {
-    return { error: error.message };
+    return toUserFacingError("grantPro", "Couldn't grant Pro access — try again", error);
   }
 
   revalidatePath("/admin");
@@ -71,7 +81,7 @@ export async function revokePro(userId: string): Promise<ActionResult> {
     .eq("sku", PRO_SKU)
     .eq("status", "active");
 
-  if (error) return { error: error.message };
+  if (error) return toUserFacingError("revokePro", "Couldn't revoke Pro access — try again", error);
 
   revalidatePath("/admin");
   return {};
@@ -87,7 +97,7 @@ export async function updatePrice(sku: string, price: number): Promise<ActionRes
   const admin = createAdminSupabase();
   const { error } = await admin.from("pricing").update({ price }).eq("sku", sku);
 
-  if (error) return { error: error.message };
+  if (error) return toUserFacingError("updatePrice", "Couldn't update pricing — try again", error);
 
   revalidatePath("/admin");
   return {};
@@ -101,7 +111,7 @@ export async function setFeedbackStatus(id: string, status: string): Promise<Act
   const admin = createAdminSupabase();
   const { error } = await admin.from("feedback").update({ status }).eq("id", id);
 
-  if (error) return { error: error.message };
+  if (error) return toUserFacingError("setFeedbackStatus", "Couldn't update feedback status — try again", error);
 
   revalidatePath("/admin");
   return {};
@@ -115,7 +125,7 @@ export async function setFlag(key: string, enabled: boolean): Promise<ActionResu
   const admin = createAdminSupabase();
   const { error } = await admin.from("feature_flags").update({ enabled }).eq("key", key);
 
-  if (error) return { error: error.message };
+  if (error) return toUserFacingError("setFlag", "Couldn't update feature flag — try again", error);
 
   revalidatePath("/admin");
   return {};
@@ -133,7 +143,7 @@ export async function addFlag(key: string, notes: string): Promise<ActionResult>
     .from("feature_flags")
     .insert({ key, notes: trimmedNotes.length > 0 ? trimmedNotes : null, enabled: false });
 
-  if (error) return { error: error.message };
+  if (error) return toUserFacingError("addFlag", "Couldn't add feature flag — try again", error);
 
   revalidatePath("/admin");
   return {};
