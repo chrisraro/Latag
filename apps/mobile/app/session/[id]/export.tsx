@@ -48,7 +48,7 @@ export default function ExportScreen() {
       />
       <ScrollView className="max-h-56">
         {all.map((i) => (
-          <Pressable key={i.id} onPress={() => toggle(i.id)} className="flex-row items-center gap-3 border-b border-hairline px-1 py-3.5">
+          <Pressable key={i.id} onPress={() => toggle(i.id)} className="flex-row items-center gap-3 border-b border-hairline px-3 py-3.5">
             <View className={`h-6 w-6 items-center justify-center rounded-lg border-[1.5px] ${selected.has(i.id) ? "border-acid bg-acid" : "border-hairline"}`}>
               {selected.has(i.id) ? <Icon name="Check" size={14} color={COLORS.acidInk} /> : null}
             </View>
