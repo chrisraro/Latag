@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../../lib/supabase";
 import { completeSignIn } from "../../lib/auth-complete";
 import { setWelcomed } from "../../lib/first-run";
@@ -104,8 +105,22 @@ export default function SignInScreen() {
         showError(error.message);
         return;
       }
-      const signedIn = await completeSignIn(router);
-      if (signedIn) await setWelcomed();
+      // No router arg to completeSignIn: it must not router.back() here, since
+      // a fresh Welcome-originated sign-in needs to land in onboarding instead
+      // of popping back to whatever screen pushed this modal.
+      const ok = await completeSignIn();
+      if (ok) {
+        const onboarded = (await AsyncStorage.getItem("latag.onboarded").catch(() => null)) === "1";
+        if (!onboarded) {
+          await setWelcomed();
+          router.replace("/onboarding");
+        } else {
+          router.back();
+        }
+      }
+      // !ok: no session was found (shouldn't normally happen right after a
+      // successful verifyOtp) — stay on screen as-is; completeSignIn already
+      // swallows its own errors internally.
     } catch {
       setErrorMsg("Couldn't verify the code — check your connection and try again.");
       showError("Couldn't verify the code — check your connection and try again");

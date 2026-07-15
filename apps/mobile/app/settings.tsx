@@ -44,6 +44,7 @@ function SettingsRow({
   onPress,
   chevron,
   last,
+  noPadding,
 }: {
   icon: IconName;
   iconTone?: Tone;
@@ -54,12 +55,16 @@ function SettingsRow({
   onPress?: () => void;
   chevron?: boolean;
   last?: boolean;
+  /** Suppress the row's own vertical padding — for callers that wrap the row
+   * (plus extra content, e.g. a link below it) in their own padded/bordered
+   * container, so the two don't stack into double padding. */
+  noPadding?: boolean;
 }) {
   const Wrapper = (onPress ? Pressable : View) as typeof Pressable;
   return (
     <Wrapper
       onPress={onPress}
-      className={`flex-row items-center gap-3 py-3.5 ${last ? "" : "border-b border-hairline"}`}
+      className={`flex-row items-center gap-3 ${noPadding ? "" : "py-3.5"} ${last ? "" : "border-b border-hairline"}`}
     >
       <View className="h-9 w-9 items-center justify-center rounded-[10px] bg-surface2">
         <Icon name={icon} size={18} color={toneColor(iconTone)} />
@@ -147,7 +152,10 @@ export default function SettingsScreen() {
         fetch: () => Updates.fetchUpdateAsync(),
       });
       if (phase === "ready") {
-        showSuccess("Update ready — tap here to restart", { onPress: () => { void Updates.reloadAsync(); } });
+        showSuccess("Update ready — tap here to restart", {
+          sticky: true,
+          onPress: () => { Updates.reloadAsync().catch(() => {}); },
+        });
       } else if (phase === "up-to-date") {
         showSuccess("You're on the latest version");
       } else if (phase === "error") {
@@ -195,6 +203,7 @@ export default function SettingsScreen() {
             titleTone={ent.pro ? "acid" : "default"}
             subtitle={ent.pro ? "Unlimited item logs, works offline forever" : `${remaining} left · Pro unlocks unlimited`}
             last
+            noPadding
           />
           {session ? (
             <Pressable hitSlop={8} disabled={refreshing} onPress={() => void refreshLicense()} className="ml-12 mt-1 flex-row items-center gap-1">

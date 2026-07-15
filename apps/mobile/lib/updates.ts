@@ -17,8 +17,12 @@ export async function runUpdateCheck({ isDev, check, fetch }: Deps): Promise<Upd
   try {
     const { isAvailable } = await check();
     if (!isAvailable) return "up-to-date";
-    const { isNew } = await fetch();
-    return isNew ? "ready" : "up-to-date";
+    // A resolved fetch means a newer bundle is on disk regardless of isNew —
+    // checkForUpdateAsync already compared against the RUNNING bundle, so
+    // isNew:false just means it was downloaded earlier and is still pending
+    // a restart. Either way the honest answer is "ready".
+    await fetch();
+    return "ready";
   } catch {
     return "error";
   }
