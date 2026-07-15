@@ -64,7 +64,7 @@ export default function SessionsScreen() {
   });
 
   return (
-    <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8 }}>
+    <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <View className="flex-row items-center gap-3 pb-2 pt-3">
         <Text style={{ fontFamily: FONT.displayBlack }} className="flex-1 text-[26px] uppercase text-acid">Latag</Text>
         {list.length > 0 ? <Badge label={`${list.length} SESSIONS`} /> : null}

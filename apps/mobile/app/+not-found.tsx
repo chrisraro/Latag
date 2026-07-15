@@ -10,7 +10,7 @@ export default function NotFoundScreen() {
 
   return (
     <View
-      className="flex-1 items-center justify-center bg-bg px-4"
+      className="flex-1 items-center justify-center bg-bg px-5"
       style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}
     >
       <Text style={{ fontFamily: FONT.display }} className="text-[22px] text-ink">Screen not found</Text>

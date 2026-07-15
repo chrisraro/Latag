@@ -60,7 +60,7 @@ export default function CameraScreen() {
   };
 
   return (
-    <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom }}>
+    <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom }}>
       <View className="flex-row items-center gap-3 pb-2 pt-3">
         <Pressable hitSlop={6} onPress={() => router.back()} className="h-10 w-10 flex-none items-center justify-center rounded-full bg-surface2">
           <Icon name="X" size={18} color={COLORS.inkDim} />

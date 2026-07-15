@@ -34,7 +34,7 @@ export default function NewSessionScreen() {
 
   const inputCls = "mb-2.5 h-[52px] rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
   return (
-    <View className="flex-1 bg-surface1 px-4" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
+    <View className="flex-1 bg-surface1 px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
       <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
       <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">New Session</Text>
       <Text style={{ fontFamily: FONT.text }} className="mb-3.5 mt-0.5 text-[12.5px] text-inkfaint">Name it after the spot — you'll thank yourself later.</Text>

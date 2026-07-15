@@ -25,7 +25,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
+    <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
       <View className="flex-1 justify-center">
         <Image
           source={require("../assets/images/android-icon-foreground.png")}

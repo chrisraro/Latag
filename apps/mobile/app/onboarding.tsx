@@ -75,7 +75,7 @@ export default function OnboardingScreen() {
         onMomentumScrollEnd={onMomentumScrollEnd}
       >
         {/* Pane 1 — modes */}
-        <View style={{ width: SCREEN_WIDTH, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }} className="flex-1 px-4">
+        <View style={{ width: SCREEN_WIDTH, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }} className="flex-1 px-5">
           <View className="flex-row items-start justify-between">
             <View className="flex-1 pr-2">
               <Text style={{ fontFamily: FONT.display }} className="text-[24px] text-ink">How do you source?</Text>
@@ -111,7 +111,7 @@ export default function OnboardingScreen() {
         </View>
 
         {/* Pane 2 — camera & privacy */}
-        <View style={{ width: SCREEN_WIDTH, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }} className="flex-1 px-4">
+        <View style={{ width: SCREEN_WIDTH, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }} className="flex-1 px-5">
           <Text style={{ fontFamily: FONT.display }} className="text-[24px] text-ink">Shoot it. Tag it. Sell it.</Text>
           <Text style={{ fontFamily: FONT.text }} className="mt-1 text-[13.5px] text-inkdim">
             Four angles per piece — buyers claim faster when they see the flaws too.

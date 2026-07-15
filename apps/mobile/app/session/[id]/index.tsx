@@ -38,7 +38,7 @@ export default function DashboardScreen() {
   const realized = selectorRealized(all);
 
   return (
-    <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8 }}>
+    <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <AppHead
         title={session.name}
         onBack={() => router.back()}
@@ -87,7 +87,7 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      <View className="flex-row gap-2 py-1" style={{ marginTop: session.type === "selector" ? 10 : 8 }}>
+      <View className="mb-2 flex-row gap-2 py-1" style={{ marginTop: session.type === "selector" ? 10 : 8 }}>
         {(["all", "available", "sold"] as const).map((f) => (
           <Chip key={f} label={f[0].toUpperCase() + f.slice(1)} selected={filter === f} onPress={() => setFilter(f)} />
         ))}

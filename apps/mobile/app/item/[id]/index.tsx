@@ -47,7 +47,7 @@ export default function ItemDetail() {
   );
 
   return (
-    <View className="flex-1 bg-bg px-4" style={{ paddingTop: insets.top + 8 }}>
+    <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <AppHead
         title={`${item.brand} ${item.category}`}
         onBack={() => router.back()}

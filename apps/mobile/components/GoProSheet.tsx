@@ -15,7 +15,7 @@ export function GoProSheet({ visible, onClose }: { visible: boolean; onClose: ()
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/60" onPress={onClose} />
-      <View className="rounded-t-sheet border-t border-hairline bg-surface1 px-4 pb-7 pt-3">
+      <View className="rounded-t-sheet border-t border-hairline bg-surface1 px-5 pb-7 pt-3">
         <View className="mb-3 h-1 w-11 self-center rounded-full bg-hairline" />
         <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">You logged all {FREE_LOG_LIMIT} free items</Text>
         <Text style={{ fontFamily: FONT.text }} className="mt-1 text-[13px] leading-5 text-inkdim">
