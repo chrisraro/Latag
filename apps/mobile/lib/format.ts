@@ -3,6 +3,13 @@ export function formatPeso(n: number): string {
   const sign = r < 0 ? "-" : "";
   return `${sign}₱${Math.abs(r).toLocaleString("en-PH")}`;
 }
+
+/** Symbol/amount split for Money's nested-Text currency scale (₱ smaller than digits). */
+export function formatPesoParts(n: number): { symbol: "₱"; amount: string } {
+  const r = Math.round(n);
+  const sign = r < 0 ? "-" : "";
+  return { symbol: "₱", amount: `${sign}${Math.abs(r).toLocaleString("en-PH")}` };
+}
 export function formatInches(n: number): string {
   return `${Number.isInteger(n) ? n : n.toFixed(1)}"`;
 }
