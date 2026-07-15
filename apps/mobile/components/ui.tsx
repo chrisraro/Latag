@@ -47,9 +47,20 @@ export function PrimaryButton({
   );
 }
 
-export function SecondaryButton({ label, onPress, danger }: { label: string; onPress: () => void; danger?: boolean }) {
+export function SecondaryButton({
+  label,
+  onPress,
+  danger,
+  icon,
+}: {
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+  icon?: IconName;
+}) {
   return (
-    <Pressable onPress={onPress} className={`h-12 flex-1 items-center justify-center rounded-full border ${danger ? "border-danger" : "border-hairline bg-surface2"}`}>
+    <Pressable onPress={onPress} className={`h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-full border ${danger ? "border-danger" : "border-hairline bg-surface2"}`}>
+      {icon ? <Icon name={icon} size={16} color={danger ? COLORS.danger : COLORS.ink} /> : null}
       <Text style={{ fontFamily: FONT.display, letterSpacing: 0.42 }} className={`text-[14px] uppercase ${danger ? "text-danger" : "text-ink"}`}>{label}</Text>
     </Pressable>
   );
