@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "./types";
 
 /**
  * Supabase client for use in Client Components. Cookie access is handled
@@ -6,7 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
  * wiring needed here (per the installed package's createBrowserClient docs).
  */
 export function createBrowserSupabase() {
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );

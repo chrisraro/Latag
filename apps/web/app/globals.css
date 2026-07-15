@@ -16,6 +16,25 @@
 
 body { background: var(--color-bg); color: var(--color-ink); }
 
+/*
+ * Unified focus-visible ring for every interactive element. Several links
+ * (header nav, footer, logo) had no focus indicator at all; others relied on
+ * one-off `focus-visible:outline-*` utilities repeated per component. This
+ * base rule guarantees a visible, on-brand ring everywhere by default —
+ * component-level `focus-visible:outline-acid`/`outline-danger` utilities
+ * still apply on top for context-specific coloring (e.g. destructive
+ * actions) and are left in place since they don't conflict with this rule.
+ */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-acid);
+  outline-offset: 2px;
+}
+
 .display { font-stretch: 125%; font-weight: 800; }
 .display-black { font-stretch: 125%; font-weight: 900; }
 .tnum { font-variant-numeric: tabular-nums; }
