@@ -1,0 +1,1878 @@
+[
+  {
+    "name": "10 Deep",
+    "tier": "common"
+  },
+  {
+    "name": "45rpm",
+    "tier": "common"
+  },
+  {
+    "name": "5.11 Tactical",
+    "tier": "common"
+  },
+  {
+    "name": "A.P.C.",
+    "tier": "common"
+  },
+  {
+    "name": "Abercrombie & Fitch",
+    "tier": "core"
+  },
+  {
+    "name": "Adidas",
+    "tier": "core"
+  },
+  {
+    "name": "Aeropostale",
+    "tier": "core"
+  },
+  {
+    "name": "Aigle",
+    "tier": "common"
+  },
+  {
+    "name": "Air Jordan",
+    "tier": "core"
+  },
+  {
+    "name": "Airwalk",
+    "tier": "common"
+  },
+  {
+    "name": "Akademiks",
+    "tier": "common"
+  },
+  {
+    "name": "Aldo",
+    "tier": "core"
+  },
+  {
+    "name": "Alien Workshop",
+    "tier": "common"
+  },
+  {
+    "name": "Allen Edmonds",
+    "tier": "common"
+  },
+  {
+    "name": "Alltimers",
+    "tier": "common"
+  },
+  {
+    "name": "American Apparel",
+    "tier": "common"
+  },
+  {
+    "name": "American Eagle",
+    "tier": "core"
+  },
+  {
+    "name": "American Tourister",
+    "tier": "common"
+  },
+  {
+    "name": "And Wander",
+    "tier": "common"
+  },
+  {
+    "name": "And1",
+    "tier": "common"
+  },
+  {
+    "name": "Ann Taylor",
+    "tier": "common"
+  },
+  {
+    "name": "Anne Klein",
+    "tier": "common"
+  },
+  {
+    "name": "Anta",
+    "tier": "common"
+  },
+  {
+    "name": "Anti Social Social Club",
+    "tier": "common"
+  },
+  {
+    "name": "Arc'teryx",
+    "tier": "core"
+  },
+  {
+    "name": "Ariat",
+    "tier": "common"
+  },
+  {
+    "name": "Arizona Jean Co.",
+    "tier": "common"
+  },
+  {
+    "name": "Armitron",
+    "tier": "common"
+  },
+  {
+    "name": "Asics",
+    "tier": "core"
+  },
+  {
+    "name": "Asolo",
+    "tier": "common"
+  },
+  {
+    "name": "Avirex",
+    "tier": "core"
+  },
+  {
+    "name": "Babolat",
+    "tier": "common"
+  },
+  {
+    "name": "Baggallini",
+    "tier": "common"
+  },
+  {
+    "name": "Baker Skateboards",
+    "tier": "common"
+  },
+  {
+    "name": "Balenciaga",
+    "tier": "core"
+  },
+  {
+    "name": "Bally",
+    "tier": "common"
+  },
+  {
+    "name": "Banana Republic",
+    "tier": "core"
+  },
+  {
+    "name": "BAPE",
+    "tier": "core"
+  },
+  {
+    "name": "Bapy",
+    "tier": "common"
+  },
+  {
+    "name": "Bass Weejuns",
+    "tier": "common"
+  },
+  {
+    "name": "Beams",
+    "tier": "core"
+  },
+  {
+    "name": "Beams Plus",
+    "tier": "common"
+  },
+  {
+    "name": "Beauty & Youth",
+    "tier": "common"
+  },
+  {
+    "name": "Bebe",
+    "tier": "common"
+  },
+  {
+    "name": "Ben Davis",
+    "tier": "core"
+  },
+  {
+    "name": "Berghaus",
+    "tier": "common"
+  },
+  {
+    "name": "Berne",
+    "tier": "common"
+  },
+  {
+    "name": "Big Agnes",
+    "tier": "common"
+  },
+  {
+    "name": "Big John",
+    "tier": "common"
+  },
+  {
+    "name": "Billabong",
+    "tier": "core"
+  },
+  {
+    "name": "Billionaire Boys Club",
+    "tier": "common"
+  },
+  {
+    "name": "Birkenstock",
+    "tier": "core"
+  },
+  {
+    "name": "Blue Blue Japan",
+    "tier": "common"
+  },
+  {
+    "name": "Bogs",
+    "tier": "common"
+  },
+  {
+    "name": "Bongo",
+    "tier": "common"
+  },
+  {
+    "name": "Bottega Veneta",
+    "tier": "common"
+  },
+  {
+    "name": "Briggs & Riley",
+    "tier": "common"
+  },
+  {
+    "name": "Brixton",
+    "tier": "common"
+  },
+  {
+    "name": "Brooks Brothers",
+    "tier": "core"
+  },
+  {
+    "name": "Brooks Running",
+    "tier": "common"
+  },
+  {
+    "name": "Bugle Boy",
+    "tier": "common"
+  },
+  {
+    "name": "Burberry",
+    "tier": "core"
+  },
+  {
+    "name": "Calvin Klein",
+    "tier": "core"
+  },
+  {
+    "name": "Camber",
+    "tier": "common"
+  },
+  {
+    "name": "Canterbury",
+    "tier": "common"
+  },
+  {
+    "name": "Carhartt",
+    "tier": "core"
+  },
+  {
+    "name": "Carhartt WIP",
+    "tier": "common"
+  },
+  {
+    "name": "Carrots",
+    "tier": "common"
+  },
+  {
+    "name": "Casio",
+    "tier": "core"
+  },
+  {
+    "name": "Caterpillar",
+    "tier": "core"
+  },
+  {
+    "name": "Celine",
+    "tier": "common"
+  },
+  {
+    "name": "Chaco",
+    "tier": "common"
+  },
+  {
+    "name": "Champion",
+    "tier": "core"
+  },
+  {
+    "name": "Chanel",
+    "tier": "core"
+  },
+  {
+    "name": "Chaps",
+    "tier": "core"
+  },
+  {
+    "name": "Charlotte Russe",
+    "tier": "common"
+  },
+  {
+    "name": "Cherokee",
+    "tier": "common"
+  },
+  {
+    "name": "Chess King",
+    "tier": "common"
+  },
+  {
+    "name": "Chic Jeans",
+    "tier": "common"
+  },
+  {
+    "name": "Chico's",
+    "tier": "common"
+  },
+  {
+    "name": "Chippewa Boots",
+    "tier": "common"
+  },
+  {
+    "name": "Chocolate Skateboards",
+    "tier": "common"
+  },
+  {
+    "name": "Christian Louboutin",
+    "tier": "common"
+  },
+  {
+    "name": "Chrome Hearts",
+    "tier": "common"
+  },
+  {
+    "name": "Cinch Jeans",
+    "tier": "common"
+  },
+  {
+    "name": "Circa",
+    "tier": "common"
+  },
+  {
+    "name": "Citizen",
+    "tier": "common"
+  },
+  {
+    "name": "Clarks",
+    "tier": "core"
+  },
+  {
+    "name": "Coach",
+    "tier": "core"
+  },
+  {
+    "name": "Coccinelle",
+    "tier": "common"
+  },
+  {
+    "name": "Coldwater Creek",
+    "tier": "common"
+  },
+  {
+    "name": "Cole Haan",
+    "tier": "core"
+  },
+  {
+    "name": "Columbia",
+    "tier": "core"
+  },
+  {
+    "name": "Comme Ca Ism",
+    "tier": "common"
+  },
+  {
+    "name": "Comme des Garcons",
+    "tier": "core"
+  },
+  {
+    "name": "Comme des Garcons Play",
+    "tier": "common"
+  },
+  {
+    "name": "Contempo Casuals",
+    "tier": "common"
+  },
+  {
+    "name": "Converse",
+    "tier": "core"
+  },
+  {
+    "name": "Coogi",
+    "tier": "core"
+  },
+  {
+    "name": "Cotopaxi",
+    "tier": "common"
+  },
+  {
+    "name": "Craghoppers",
+    "tier": "common"
+  },
+  {
+    "name": "Crocs",
+    "tier": "core"
+  },
+  {
+    "name": "Croft & Barrow",
+    "tier": "common"
+  },
+  {
+    "name": "Crooks & Castles",
+    "tier": "common"
+  },
+  {
+    "name": "Cross Colours",
+    "tier": "common"
+  },
+  {
+    "name": "Dakine",
+    "tier": "common"
+  },
+  {
+    "name": "Danner",
+    "tier": "common"
+  },
+  {
+    "name": "DC Shoes",
+    "tier": "core"
+  },
+  {
+    "name": "Delia's",
+    "tier": "common"
+  },
+  {
+    "name": "Delsey",
+    "tier": "common"
+  },
+  {
+    "name": "Denime",
+    "tier": "common"
+  },
+  {
+    "name": "Descente",
+    "tier": "common"
+  },
+  {
+    "name": "Deuter",
+    "tier": "common"
+  },
+  {
+    "name": "Diadora",
+    "tier": "core"
+  },
+  {
+    "name": "Diamond Supply Co.",
+    "tier": "common"
+  },
+  {
+    "name": "Dickies",
+    "tier": "core"
+  },
+  {
+    "name": "Diesel",
+    "tier": "common"
+  },
+  {
+    "name": "Dior",
+    "tier": "core"
+  },
+  {
+    "name": "DKNY",
+    "tier": "core"
+  },
+  {
+    "name": "Dockers",
+    "tier": "core"
+  },
+  {
+    "name": "Dooney & Bourke",
+    "tier": "common"
+  },
+  {
+    "name": "Doublet",
+    "tier": "common"
+  },
+  {
+    "name": "Dr. Martens",
+    "tier": "core"
+  },
+  {
+    "name": "Duluth Trading",
+    "tier": "common"
+  },
+  {
+    "name": "Dunlop",
+    "tier": "common"
+  },
+  {
+    "name": "DVS Shoes",
+    "tier": "common"
+  },
+  {
+    "name": "Eastpak",
+    "tier": "core"
+  },
+  {
+    "name": "Easy Spirit",
+    "tier": "common"
+  },
+  {
+    "name": "Ecco",
+    "tier": "common"
+  },
+  {
+    "name": "Ecko Unltd",
+    "tier": "common"
+  },
+  {
+    "name": "Eddie Bauer",
+    "tier": "core"
+  },
+  {
+    "name": "Edwin",
+    "tier": "core"
+  },
+  {
+    "name": "Element",
+    "tier": "core"
+  },
+  {
+    "name": "Ellesse",
+    "tier": "core"
+  },
+  {
+    "name": "Emerica",
+    "tier": "common"
+  },
+  {
+    "name": "Engineered Garments",
+    "tier": "common"
+  },
+  {
+    "name": "Enyce",
+    "tier": "common"
+  },
+  {
+    "name": "Erke",
+    "tier": "common"
+  },
+  {
+    "name": "Es Footwear",
+    "tier": "common"
+  },
+  {
+    "name": "Etienne Aigner",
+    "tier": "common"
+  },
+  {
+    "name": "Etnies",
+    "tier": "common"
+  },
+  {
+    "name": "Everlast",
+    "tier": "common"
+  },
+  {
+    "name": "Evisu",
+    "tier": "core"
+  },
+  {
+    "name": "Express",
+    "tier": "common"
+  },
+  {
+    "name": "Faded Glory",
+    "tier": "common"
+  },
+  {
+    "name": "Fear of God",
+    "tier": "common"
+  },
+  {
+    "name": "Fendi",
+    "tier": "core"
+  },
+  {
+    "name": "Fila",
+    "tier": "core"
+  },
+  {
+    "name": "Filson",
+    "tier": "core"
+  },
+  {
+    "name": "Fjallraven",
+    "tier": "core"
+  },
+  {
+    "name": "Florsheim",
+    "tier": "common"
+  },
+  {
+    "name": "Forever 21",
+    "tier": "common"
+  },
+  {
+    "name": "Fossil",
+    "tier": "core"
+  },
+  {
+    "name": "Franco Sarto",
+    "tier": "common"
+  },
+  {
+    "name": "Franklin Sports",
+    "tier": "common"
+  },
+  {
+    "name": "Fred Perry",
+    "tier": "common"
+  },
+  {
+    "name": "FUBU",
+    "tier": "common"
+  },
+  {
+    "name": "Full Count",
+    "tier": "common"
+  },
+  {
+    "name": "Furla",
+    "tier": "common"
+  },
+  {
+    "name": "G-Shock",
+    "tier": "core"
+  },
+  {
+    "name": "G-Star Raw",
+    "tier": "common"
+  },
+  {
+    "name": "Gadzooks",
+    "tier": "common"
+  },
+  {
+    "name": "Gap",
+    "tier": "core"
+  },
+  {
+    "name": "Georgia Boot",
+    "tier": "common"
+  },
+  {
+    "name": "Gilbert",
+    "tier": "common"
+  },
+  {
+    "name": "Girbaud",
+    "tier": "common"
+  },
+  {
+    "name": "Girl Skateboards",
+    "tier": "common"
+  },
+  {
+    "name": "Givenchy",
+    "tier": "common"
+  },
+  {
+    "name": "Globe",
+    "tier": "common"
+  },
+  {
+    "name": "Gloria Vanderbilt",
+    "tier": "common"
+  },
+  {
+    "name": "Goldwin",
+    "tier": "common"
+  },
+  {
+    "name": "Gramicci",
+    "tier": "common"
+  },
+  {
+    "name": "Green Label Relaxing",
+    "tier": "common"
+  },
+  {
+    "name": "Gregory",
+    "tier": "common"
+  },
+  {
+    "name": "Grundens",
+    "tier": "common"
+  },
+  {
+    "name": "GU",
+    "tier": "core"
+  },
+  {
+    "name": "Gucci",
+    "tier": "core"
+  },
+  {
+    "name": "Guess",
+    "tier": "core"
+  },
+  {
+    "name": "Habitat Skateboards",
+    "tier": "common"
+  },
+  {
+    "name": "Haglofs",
+    "tier": "common"
+  },
+  {
+    "name": "Hang Ten",
+    "tier": "common"
+  },
+  {
+    "name": "Head",
+    "tier": "common"
+  },
+  {
+    "name": "Head Porter",
+    "tier": "common"
+  },
+  {
+    "name": "Helikon-Tex",
+    "tier": "common"
+  },
+  {
+    "name": "Helly Hansen",
+    "tier": "core"
+  },
+  {
+    "name": "Hermes",
+    "tier": "core"
+  },
+  {
+    "name": "Herschel Supply Co.",
+    "tier": "core"
+  },
+  {
+    "name": "High Sierra",
+    "tier": "common"
+  },
+  {
+    "name": "Hoka",
+    "tier": "common"
+  },
+  {
+    "name": "Hollister",
+    "tier": "core"
+  },
+  {
+    "name": "Hot Topic",
+    "tier": "common"
+  },
+  {
+    "name": "HUF",
+    "tier": "common"
+  },
+  {
+    "name": "Hugo Boss",
+    "tier": "common"
+  },
+  {
+    "name": "Human Made",
+    "tier": "common"
+  },
+  {
+    "name": "Hummel",
+    "tier": "common"
+  },
+  {
+    "name": "Hush Puppies",
+    "tier": "common"
+  },
+  {
+    "name": "Icebreaker",
+    "tier": "common"
+  },
+  {
+    "name": "Icecream",
+    "tier": "common"
+  },
+  {
+    "name": "In4mation",
+    "tier": "common"
+  },
+  {
+    "name": "Invicta",
+    "tier": "common"
+  },
+  {
+    "name": "Iron Heart",
+    "tier": "common"
+  },
+  {
+    "name": "Issey Miyake",
+    "tier": "core"
+  },
+  {
+    "name": "Izod",
+    "tier": "core"
+  },
+  {
+    "name": "J.Crew",
+    "tier": "core"
+  },
+  {
+    "name": "Jack Wolfskin",
+    "tier": "common"
+  },
+  {
+    "name": "Jams World",
+    "tier": "common"
+  },
+  {
+    "name": "Jansport",
+    "tier": "core"
+  },
+  {
+    "name": "Jimmy Choo",
+    "tier": "common"
+  },
+  {
+    "name": "JNCO",
+    "tier": "core"
+  },
+  {
+    "name": "Johnston & Murphy",
+    "tier": "common"
+  },
+  {
+    "name": "Joma",
+    "tier": "common"
+  },
+  {
+    "name": "Jordache",
+    "tier": "common"
+  },
+  {
+    "name": "Journal Standard",
+    "tier": "common"
+  },
+  {
+    "name": "Junya Watanabe",
+    "tier": "common"
+  },
+  {
+    "name": "Justin Boots",
+    "tier": "common"
+  },
+  {
+    "name": "K-Swiss",
+    "tier": "common"
+  },
+  {
+    "name": "K-Way",
+    "tier": "common"
+  },
+  {
+    "name": "K1X",
+    "tier": "common"
+  },
+  {
+    "name": "Kaepa",
+    "tier": "common"
+  },
+  {
+    "name": "Kapital",
+    "tier": "common"
+  },
+  {
+    "name": "Kappa",
+    "tier": "core"
+  },
+  {
+    "name": "Karhu",
+    "tier": "common"
+  },
+  {
+    "name": "Karl Kani",
+    "tier": "common"
+  },
+  {
+    "name": "Karrimor",
+    "tier": "common"
+  },
+  {
+    "name": "Kate Spade",
+    "tier": "core"
+  },
+  {
+    "name": "Keen",
+    "tier": "common"
+  },
+  {
+    "name": "Kelme",
+    "tier": "common"
+  },
+  {
+    "name": "Kelty",
+    "tier": "common"
+  },
+  {
+    "name": "Kenneth Cole",
+    "tier": "common"
+  },
+  {
+    "name": "Kenzo",
+    "tier": "common"
+  },
+  {
+    "name": "Key Industries",
+    "tier": "common"
+  },
+  {
+    "name": "Kipling",
+    "tier": "core"
+  },
+  {
+    "name": "Kith",
+    "tier": "common"
+  },
+  {
+    "name": "Krooked",
+    "tier": "common"
+  },
+  {
+    "name": "L.L.Bean",
+    "tier": "core"
+  },
+  {
+    "name": "La Sportiva",
+    "tier": "common"
+  },
+  {
+    "name": "Lacoste",
+    "tier": "core"
+  },
+  {
+    "name": "Lakai",
+    "tier": "common"
+  },
+  {
+    "name": "Land's End",
+    "tier": "common"
+  },
+  {
+    "name": "Le Coq Sportif",
+    "tier": "core"
+  },
+  {
+    "name": "Le Sportsac",
+    "tier": "common"
+  },
+  {
+    "name": "Le Tigre",
+    "tier": "common"
+  },
+  {
+    "name": "Lee",
+    "tier": "core"
+  },
+  {
+    "name": "Levi's",
+    "tier": "core"
+  },
+  {
+    "name": "Li-Ning",
+    "tier": "common"
+  },
+  {
+    "name": "Limited Too",
+    "tier": "common"
+  },
+  {
+    "name": "Liz Claiborne",
+    "tier": "common"
+  },
+  {
+    "name": "Loewe",
+    "tier": "common"
+  },
+  {
+    "name": "Loft",
+    "tier": "common"
+  },
+  {
+    "name": "London Fog",
+    "tier": "common"
+  },
+  {
+    "name": "Longchamp",
+    "tier": "core"
+  },
+  {
+    "name": "Lotto",
+    "tier": "core"
+  },
+  {
+    "name": "Louis Vuitton",
+    "tier": "core"
+  },
+  {
+    "name": "LRG",
+    "tier": "common"
+  },
+  {
+    "name": "Lucky Brand",
+    "tier": "common"
+  },
+  {
+    "name": "Macron",
+    "tier": "common"
+  },
+  {
+    "name": "Mammut",
+    "tier": "common"
+  },
+  {
+    "name": "Manhattan Portage",
+    "tier": "common"
+  },
+  {
+    "name": "Manolo Blahnik",
+    "tier": "common"
+  },
+  {
+    "name": "Marc by Marc Jacobs",
+    "tier": "common"
+  },
+  {
+    "name": "Marc Jacobs",
+    "tier": "common"
+  },
+  {
+    "name": "Marmot",
+    "tier": "common"
+  },
+  {
+    "name": "Married to the Mob",
+    "tier": "common"
+  },
+  {
+    "name": "Maui Jim",
+    "tier": "common"
+  },
+  {
+    "name": "Mavi",
+    "tier": "common"
+  },
+  {
+    "name": "Mecca USA",
+    "tier": "common"
+  },
+  {
+    "name": "Members Only",
+    "tier": "common"
+  },
+  {
+    "name": "Merona",
+    "tier": "common"
+  },
+  {
+    "name": "Merrell",
+    "tier": "core"
+  },
+  {
+    "name": "Michael Kors",
+    "tier": "core"
+  },
+  {
+    "name": "Mishka NYC",
+    "tier": "common"
+  },
+  {
+    "name": "Mitchell & Ness",
+    "tier": "common"
+  },
+  {
+    "name": "Miu Miu",
+    "tier": "common"
+  },
+  {
+    "name": "Mizuno",
+    "tier": "core"
+  },
+  {
+    "name": "Momotaro Jeans",
+    "tier": "common"
+  },
+  {
+    "name": "Montbell",
+    "tier": "core"
+  },
+  {
+    "name": "Mossimo",
+    "tier": "common"
+  },
+  {
+    "name": "Mountain Equipment",
+    "tier": "common"
+  },
+  {
+    "name": "Mountain Hardwear",
+    "tier": "common"
+  },
+  {
+    "name": "Mountain Warehouse",
+    "tier": "common"
+  },
+  {
+    "name": "Muji",
+    "tier": "core"
+  },
+  {
+    "name": "Musto",
+    "tier": "common"
+  },
+  {
+    "name": "Naked & Famous",
+    "tier": "common"
+  },
+  {
+    "name": "Nanamica",
+    "tier": "common"
+  },
+  {
+    "name": "Nanga",
+    "tier": "common"
+  },
+  {
+    "name": "Nano Universe",
+    "tier": "common"
+  },
+  {
+    "name": "Napapijri",
+    "tier": "common"
+  },
+  {
+    "name": "Naturalizer",
+    "tier": "common"
+  },
+  {
+    "name": "Nautica",
+    "tier": "core"
+  },
+  {
+    "name": "Nautica Competition",
+    "tier": "common"
+  },
+  {
+    "name": "Needles",
+    "tier": "common"
+  },
+  {
+    "name": "Neighborhood",
+    "tier": "common"
+  },
+  {
+    "name": "Nepenthes",
+    "tier": "common"
+  },
+  {
+    "name": "New Balance",
+    "tier": "core"
+  },
+  {
+    "name": "New Era",
+    "tier": "common"
+  },
+  {
+    "name": "Nike",
+    "tier": "core"
+  },
+  {
+    "name": "Nine West",
+    "tier": "core"
+  },
+  {
+    "name": "No Boundaries",
+    "tier": "common"
+  },
+  {
+    "name": "Nonnative",
+    "tier": "common"
+  },
+  {
+    "name": "North Sails",
+    "tier": "common"
+  },
+  {
+    "name": "Nudie Jeans",
+    "tier": "common"
+  },
+  {
+    "name": "Number Nine",
+    "tier": "common"
+  },
+  {
+    "name": "Oakley",
+    "tier": "core"
+  },
+  {
+    "name": "Obey",
+    "tier": "core"
+  },
+  {
+    "name": "Ocean Current",
+    "tier": "common"
+  },
+  {
+    "name": "Off-White",
+    "tier": "common"
+  },
+  {
+    "name": "Old Navy",
+    "tier": "core"
+  },
+  {
+    "name": "On Running",
+    "tier": "common"
+  },
+  {
+    "name": "Onitsuka Tiger",
+    "tier": "core"
+  },
+  {
+    "name": "Online Ceramics",
+    "tier": "common"
+  },
+  {
+    "name": "Orslow",
+    "tier": "common"
+  },
+  {
+    "name": "OshKosh B'gosh",
+    "tier": "common"
+  },
+  {
+    "name": "Osiris Shoes",
+    "tier": "common"
+  },
+  {
+    "name": "Osprey",
+    "tier": "common"
+  },
+  {
+    "name": "Outdoor Research",
+    "tier": "common"
+  },
+  {
+    "name": "Pacific Sunwear",
+    "tier": "common"
+  },
+  {
+    "name": "Palace",
+    "tier": "core"
+  },
+  {
+    "name": "Pass~Port",
+    "tier": "common"
+  },
+  {
+    "name": "Patagonia",
+    "tier": "core"
+  },
+  {
+    "name": "Peak",
+    "tier": "common"
+  },
+  {
+    "name": "Peak Performance",
+    "tier": "common"
+  },
+  {
+    "name": "Pelle Pelle",
+    "tier": "common"
+  },
+  {
+    "name": "Pendleton",
+    "tier": "core"
+  },
+  {
+    "name": "Pepe Jeans",
+    "tier": "common"
+  },
+  {
+    "name": "Perry Ellis",
+    "tier": "common"
+  },
+  {
+    "name": "Persol",
+    "tier": "common"
+  },
+  {
+    "name": "Peter Storm",
+    "tier": "common"
+  },
+  {
+    "name": "Phat Farm",
+    "tier": "common"
+  },
+  {
+    "name": "Pierre Cardin",
+    "tier": "common"
+  },
+  {
+    "name": "Play Cloths",
+    "tier": "common"
+  },
+  {
+    "name": "Pointer Brand",
+    "tier": "common"
+  },
+  {
+    "name": "Polo Ralph Lauren",
+    "tier": "core"
+  },
+  {
+    "name": "Porter",
+    "tier": "common"
+  },
+  {
+    "name": "Powell Peralta",
+    "tier": "common"
+  },
+  {
+    "name": "Prada",
+    "tier": "core"
+  },
+  {
+    "name": "prAna",
+    "tier": "common"
+  },
+  {
+    "name": "Primitive Skate",
+    "tier": "common"
+  },
+  {
+    "name": "Prince",
+    "tier": "common"
+  },
+  {
+    "name": "Puma",
+    "tier": "core"
+  },
+  {
+    "name": "Quechua",
+    "tier": "common"
+  },
+  {
+    "name": "Quiksilver",
+    "tier": "core"
+  },
+  {
+    "name": "Rab",
+    "tier": "common"
+  },
+  {
+    "name": "Radley London",
+    "tier": "common"
+  },
+  {
+    "name": "Ralph Lauren",
+    "tier": "core"
+  },
+  {
+    "name": "Rampage",
+    "tier": "common"
+  },
+  {
+    "name": "Rawlings",
+    "tier": "common"
+  },
+  {
+    "name": "Ray-Ban",
+    "tier": "core"
+  },
+  {
+    "name": "Real Skateboards",
+    "tier": "common"
+  },
+  {
+    "name": "Red Wing",
+    "tier": "core"
+  },
+  {
+    "name": "Reebok",
+    "tier": "core"
+  },
+  {
+    "name": "Regatta",
+    "tier": "common"
+  },
+  {
+    "name": "REI Co-op",
+    "tier": "common"
+  },
+  {
+    "name": "Replay",
+    "tier": "common"
+  },
+  {
+    "name": "Reyn Spooner",
+    "tier": "common"
+  },
+  {
+    "name": "Rip Curl",
+    "tier": "core"
+  },
+  {
+    "name": "RIPNDIP",
+    "tier": "common"
+  },
+  {
+    "name": "Rocawear",
+    "tier": "common"
+  },
+  {
+    "name": "Rockport",
+    "tier": "common"
+  },
+  {
+    "name": "Roper",
+    "tier": "common"
+  },
+  {
+    "name": "Round House",
+    "tier": "common"
+  },
+  {
+    "name": "Route 66",
+    "tier": "common"
+  },
+  {
+    "name": "Rue21",
+    "tier": "common"
+  },
+  {
+    "name": "Russell Athletic",
+    "tier": "core"
+  },
+  {
+    "name": "Rustler",
+    "tier": "common"
+  },
+  {
+    "name": "Sacai",
+    "tier": "common"
+  },
+  {
+    "name": "Saint Laurent",
+    "tier": "common"
+  },
+  {
+    "name": "Salewa",
+    "tier": "common"
+  },
+  {
+    "name": "Salomon",
+    "tier": "core"
+  },
+  {
+    "name": "Salvatore Ferragamo",
+    "tier": "common"
+  },
+  {
+    "name": "Sam Edelman",
+    "tier": "common"
+  },
+  {
+    "name": "Samsonite",
+    "tier": "core"
+  },
+  {
+    "name": "Santa Cruz",
+    "tier": "core"
+  },
+  {
+    "name": "Sasson",
+    "tier": "common"
+  },
+  {
+    "name": "Saucony",
+    "tier": "common"
+  },
+  {
+    "name": "Scarpa",
+    "tier": "common"
+  },
+  {
+    "name": "Sean John",
+    "tier": "common"
+  },
+  {
+    "name": "Sebago",
+    "tier": "common"
+  },
+  {
+    "name": "Seiko",
+    "tier": "common"
+  },
+  {
+    "name": "Sergio Rossi",
+    "tier": "common"
+  },
+  {
+    "name": "Sergio Tacchini",
+    "tier": "common"
+  },
+  {
+    "name": "Sergio Valente",
+    "tier": "common"
+  },
+  {
+    "name": "Ships",
+    "tier": "common"
+  },
+  {
+    "name": "Ships Jet Blue",
+    "tier": "common"
+  },
+  {
+    "name": "Sierra Designs",
+    "tier": "common"
+  },
+  {
+    "name": "Silver Jeans",
+    "tier": "common"
+  },
+  {
+    "name": "Skagen",
+    "tier": "common"
+  },
+  {
+    "name": "Skechers",
+    "tier": "core"
+  },
+  {
+    "name": "Slazenger",
+    "tier": "core"
+  },
+  {
+    "name": "Snow Peak",
+    "tier": "common"
+  },
+  {
+    "name": "Sonoma",
+    "tier": "common"
+  },
+  {
+    "name": "Sorel",
+    "tier": "common"
+  },
+  {
+    "name": "South2 West8",
+    "tier": "common"
+  },
+  {
+    "name": "Southpole",
+    "tier": "common"
+  },
+  {
+    "name": "Spalding",
+    "tier": "common"
+  },
+  {
+    "name": "Speedo",
+    "tier": "core"
+  },
+  {
+    "name": "Sperry",
+    "tier": "common"
+  },
+  {
+    "name": "Spitfire Wheels",
+    "tier": "common"
+  },
+  {
+    "name": "St. John's Bay",
+    "tier": "common"
+  },
+  {
+    "name": "Stacy Adams",
+    "tier": "common"
+  },
+  {
+    "name": "Starter",
+    "tier": "core"
+  },
+  {
+    "name": "Steve Madden",
+    "tier": "core"
+  },
+  {
+    "name": "Structure",
+    "tier": "common"
+  },
+  {
+    "name": "Studio D'Artisan",
+    "tier": "common"
+  },
+  {
+    "name": "Stussy",
+    "tier": "core"
+  },
+  {
+    "name": "Sugar Cane",
+    "tier": "common"
+  },
+  {
+    "name": "Sun Surf",
+    "tier": "common"
+  },
+  {
+    "name": "Supreme",
+    "tier": "core"
+  },
+  {
+    "name": "Swatch",
+    "tier": "common"
+  },
+  {
+    "name": "Swiss Gear",
+    "tier": "common"
+  },
+  {
+    "name": "Talbots",
+    "tier": "common"
+  },
+  {
+    "name": "Teva",
+    "tier": "common"
+  },
+  {
+    "name": "The Hundreds",
+    "tier": "common"
+  },
+  {
+    "name": "The Limited",
+    "tier": "common"
+  },
+  {
+    "name": "The North Face",
+    "tier": "core"
+  },
+  {
+    "name": "Thrasher",
+    "tier": "core"
+  },
+  {
+    "name": "Timberland",
+    "tier": "core"
+  },
+  {
+    "name": "Timberland PRO",
+    "tier": "common"
+  },
+  {
+    "name": "Timbuk2",
+    "tier": "common"
+  },
+  {
+    "name": "Timex",
+    "tier": "common"
+  },
+  {
+    "name": "Tod's",
+    "tier": "common"
+  },
+  {
+    "name": "Tommy Bahama",
+    "tier": "common"
+  },
+  {
+    "name": "Tommy Hilfiger",
+    "tier": "core"
+  },
+  {
+    "name": "Tomorrowland",
+    "tier": "common"
+  },
+  {
+    "name": "Tory Burch",
+    "tier": "core"
+  },
+  {
+    "name": "Toy Machine",
+    "tier": "common"
+  },
+  {
+    "name": "Trespass",
+    "tier": "common"
+  },
+  {
+    "name": "True Religion",
+    "tier": "common"
+  },
+  {
+    "name": "Tumi",
+    "tier": "common"
+  },
+  {
+    "name": "Ugg",
+    "tier": "common"
+  },
+  {
+    "name": "Uhlsport",
+    "tier": "common"
+  },
+  {
+    "name": "Umbro",
+    "tier": "core"
+  },
+  {
+    "name": "Undefeated",
+    "tier": "common"
+  },
+  {
+    "name": "Under Armour",
+    "tier": "core"
+  },
+  {
+    "name": "Undercover",
+    "tier": "common"
+  },
+  {
+    "name": "Unionbay",
+    "tier": "common"
+  },
+  {
+    "name": "Uniqlo",
+    "tier": "core"
+  },
+  {
+    "name": "United Arrows",
+    "tier": "core"
+  },
+  {
+    "name": "Valentino",
+    "tier": "common"
+  },
+  {
+    "name": "Van Heusen",
+    "tier": "common"
+  },
+  {
+    "name": "Vans",
+    "tier": "core"
+  },
+  {
+    "name": "Vasque",
+    "tier": "common"
+  },
+  {
+    "name": "Vaude",
+    "tier": "common"
+  },
+  {
+    "name": "Vera Bradley",
+    "tier": "common"
+  },
+  {
+    "name": "Versace",
+    "tier": "core"
+  },
+  {
+    "name": "Vince Camuto",
+    "tier": "common"
+  },
+  {
+    "name": "Visvim",
+    "tier": "common"
+  },
+  {
+    "name": "Volcom",
+    "tier": "core"
+  },
+  {
+    "name": "Vuarnet",
+    "tier": "common"
+  },
+  {
+    "name": "Wacko Maria",
+    "tier": "common"
+  },
+  {
+    "name": "Wallace & Barnes",
+    "tier": "common"
+  },
+  {
+    "name": "Warehouse & Co.",
+    "tier": "common"
+  },
+  {
+    "name": "WeSC",
+    "tier": "common"
+  },
+  {
+    "name": "Wet Seal",
+    "tier": "common"
+  },
+  {
+    "name": "Wilson",
+    "tier": "core"
+  },
+  {
+    "name": "Wilsons Leather",
+    "tier": "common"
+  },
+  {
+    "name": "Wolverine Boots",
+    "tier": "common"
+  },
+  {
+    "name": "Woolrich",
+    "tier": "core"
+  },
+  {
+    "name": "Wrangler",
+    "tier": "core"
+  },
+  {
+    "name": "WTAPS",
+    "tier": "common"
+  },
+  {
+    "name": "X-Girl",
+    "tier": "common"
+  },
+  {
+    "name": "X-Large",
+    "tier": "common"
+  },
+  {
+    "name": "Xtratuf",
+    "tier": "common"
+  },
+  {
+    "name": "Y-3",
+    "tier": "common"
+  },
+  {
+    "name": "Yohji Yamamoto",
+    "tier": "common"
+  },
+  {
+    "name": "Yonex",
+    "tier": "common"
+  },
+  {
+    "name": "Z. Cavaricci",
+    "tier": "common"
+  },
+  {
+    "name": "Zero Skateboards",
+    "tier": "common"
+  },
+  {
+    "name": "Zoo York",
+    "tier": "common"
+  },
+  {
+    "name": "Zubaz",
+    "tier": "common"
+  }
+]
