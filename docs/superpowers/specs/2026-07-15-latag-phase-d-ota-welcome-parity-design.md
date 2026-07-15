@@ -68,6 +68,8 @@ New route `app/welcome.tsx`, composition per mockup:
 
 D1 → D2 → D3 (SDD per task, whole-phase review at the end) → **one APK rebuild** → device QA → future fixes via `eas update`.
 
+**Status 2026-07-15:** D1 SHIPPED (Tasks 1–2), D2 SHIPPED (Task 4), D3 SHIPPED (Tasks 3, 5–11 — icons, primitives, all six screen groups). Awaiting whole-phase review → merge → rebuild.
+
 ## 6. Out of scope (future)
 
 - Google OAuth on Welcome.

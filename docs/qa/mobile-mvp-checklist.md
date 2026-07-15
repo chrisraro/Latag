@@ -28,3 +28,15 @@
 - [ ] Go Pro sheet (21st save attempt): "Already Pro? Sign in" opens sign-in
 - [ ] Deep link with a stale/used email link → app opens, no crash, no sign-in (silent no-op)
 - [ ] Cross-device case: open the email link on a COMPUTER instead → phone code becomes invalid → Resend from the phone recovers (known PKCE same-device limitation until custom SMTP ships codes)
+
+## Phase D — OTA, welcome, parity (device)
+- [ ] FRESH install (clear data): Welcome screen shows — logo mark, LATAG wordmark, 3 feature rows with icons
+- [ ] Welcome "Start offline — sign in later" → onboarding → sessions; relaunch → straight to sessions (no welcome, no onboarding)
+- [ ] Welcome "Continue with Email" → sign-in (6 OTP boxes, active box acid); complete sign-in → lands in onboarding with license toast
+- [ ] UPDATED install (existing data from previous APK): NO welcome screen after update (onboarded users skip it)
+- [ ] Sign-in code step: resend countdown ticks 0:45 → 0:00 → becomes tappable "Resend"
+- [ ] OTA: publish a trivial update (`eas update --channel preview`), relaunch app online → "Update ready — tap here to restart" toast → tap → app restarts on new bundle
+- [ ] Settings → App: version row shows v1.0.0 + short update id (or "embedded"); "Check for updates" online → honest state; AIRPLANE MODE → "Couldn't check — are you online?" error toast; boot in airplane mode unaffected
+- [ ] Icon sweep: every screen shows Phosphor icons (no blank squares): welcome rows, onboarding cards, settings tiles, camera brackets/slot chips, export checks/copy, dashboards FAB/export, item edit/delete
+- [ ] Parity spot-check vs docs/mockups/latag-mvp.html side by side: sessions card money (small ₱), hero numbers, wheel center + acid underline, OTP boxes, obcards, set-rows — spacing and type feel identical
+- [ ] Camera slot chips: FRONT done (acid+check) after first capture; current slot ink-bordered
