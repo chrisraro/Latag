@@ -105,7 +105,7 @@ export default function RapidConsole() {
     }
     setSaving(true);
     try {
-      const input = { sessionId: id, brand: brand.trim(), category, condition, ptpInches: ptp, lengthInches: len, targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0 };
+      const input = { sessionId: id, brand: brand.trim(), department: "tops" as const, category, condition, ptpInches: ptp, lengthInches: len, targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0 }; // department hardcoded until the console gains the segment (E1 Task 7)
       const saved = editId ? { item: updateItem(db, editId, input) } : addItem(db, input);
       const shots = takeStagedPhotos();
       for (const slot of SLOTS) {

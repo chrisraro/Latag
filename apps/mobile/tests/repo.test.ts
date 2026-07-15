@@ -4,7 +4,7 @@ import { createSession, addItem, updateItem, addPhoto, replacePhoto, markSold, u
 import { ensureEntitlements, FREE_LOG_LIMIT, FreeTierExhaustedError } from "../lib/entitlements";
 import { items, photos } from "../db/schema";
 
-const base = { brand: "Nike", category: "Tee", ptpInches: 21.5, lengthInches: 27, condition: "9/10", targetSellPrice: 350 };
+const base = { brand: "Nike", department: "tops" as const, category: "Tee", ptpInches: 21.5, lengthInches: 27, condition: "9/10", targetSellPrice: 350 };
 
 test("create session → add item consumes a log", () => {
   const { db } = makeTestDb();
@@ -61,6 +61,60 @@ test("replacePhoto swaps a single slot's row without leaving duplicates", () => 
   expect(frontRows[0].localUri).toBe("file:///m/front-new.jpg");
   expect(photo.localUri).toBe("file:///m/front-new.jpg");
   expect(replacedUris).toEqual(["file:///m/front-old.jpg"]);
+});
+test("addItem writes only the department's own specs — cross-department fields stored null", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, {
+    sessionId: s.id, brand: "Levi's", department: "bottoms", category: "Jeans",
+    waistInches: 32, inseamInches: 30, ptpInches: 22, // ptp is bogus for bottoms — must not be stored
+    condition: "9/10", targetSellPrice: 500,
+  });
+  expect(item.department).toBe("bottoms");
+  expect(item.waistInches).toBe(32);
+  expect(item.inseamInches).toBe(30);
+  expect(item.ptpInches).toBeNull();
+});
+test("updateItem department switch nulls the previous department's specs", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, {
+    sessionId: s.id, brand: "Levi's", department: "bottoms", category: "Jeans",
+    waistInches: 32, inseamInches: 30, condition: "9/10", targetSellPrice: 500,
+  });
+  expect(item.waistInches).toBe(32); // precondition: specs really were stored before the switch
+  expect(item.inseamInches).toBe(30);
+  const updated = updateItem(db, item.id, {
+    department: "footwear", category: "Sneakers", shoeSizeUs: 9.5, insoleCm: 25.5, sizeNote: "Wide fit",
+  });
+  expect(updated.department).toBe("footwear");
+  expect(updated.shoeSizeUs).toBe(9.5);
+  expect(updated.insoleCm).toBe(25.5);
+  expect(updated.waistInches).toBeNull();
+  expect(updated.inseamInches).toBeNull();
+  expect(updated.sizeNote).toBe("Wide fit");
+});
+test("updateItem without a department change leaves existing specs untouched", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  const updated = updateItem(db, item.id, { targetSellPrice: 400 });
+  expect(updated.ptpInches).toBe(21.5);
+  expect(updated.lengthInches).toBe(27);
+});
+test("item name: stored trimmed; whitespace-only becomes null on add and edit", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const blank = addItem(db, { sessionId: s.id, ...base, name: "  " }).item;
+  expect(blank.name).toBeNull();
+  const named = addItem(db, { sessionId: s.id, ...base, name: " Detroit Jacket " }).item;
+  expect(named.name).toBe("Detroit Jacket");
+  const cleared = updateItem(db, named.id, { name: "   " });
+  expect(cleared.name).toBeNull();
 });
 test("replacePhoto on a type with no existing row behaves like addPhoto", () => {
   const { db } = makeTestDb();
