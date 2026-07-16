@@ -68,7 +68,7 @@ Deviation (2026-07-16): tops caption spec segment unified to the cross-departmen
 - Reminders: expo-notifications **local scheduled** notifications; presets At time / 30 min / 1 hr / 1 day before (multi-select). Android: dedicated high-priority channel `session-reminders` with bundled alarm sound + vibration; iOS: custom sound, time-sensitive interruption level. Tap → deep-link to the session. Reminders rescheduled on edit, cancelled on delete/start. Works offline and with the app killed.
 - The scheduled→live conversion is the ONLY path between tabs; a scheduled session holds no items until started.
 
-## 5. E3 — Media & Sharing
+## 5. E3 — Media & Sharing (SHIPPED 2026-07-16)
 
 - **Albums**: expo-media-library; on first save, album `Latag · <session name>` is created; item screen gets one-tap **Save photos** (all of that item's images), export screen gets **Save all images** (whole drop). Toast confirms count + album name. Photos remain also in the app's private store (source of truth); albums are user-facing copies.
 - **Permissions onboarding**: onboarding gains pane 3 "Permissions" — cards for Photos, Notifications, Location, each with an Allow button triggering the real OS prompt; skippable; every feature also re-asks contextually at first use (best practice; onboarding is preview, not gate).
