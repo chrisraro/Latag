@@ -49,3 +49,11 @@
 - [ ] Item name: "Brand · Name" in rows/detail/caption; name optional everywhere
 - [ ] PRE-EXISTING items (logged before update): still open/edit/export correctly as Tops, zero data loss after migration
 - [ ] IG caption per department matches format ("👕 Brand Type" or "👕 Brand · Name"; spec segment per dept)
+
+## Phase E2 — sessions 2.0 (device)
+- [ ] Pin location on new session: search a PH place, drag map under pin, locate-me (grant + deny paths); offline → typed name + pin still saves
+- [ ] Schedule a session (wheel date/time picker) with 2 reminders → lock phone → alarm notification fires WITH sound at offset → tap opens the session
+- [ ] Scheduled tab: soonest-first, countdown ticks, overdue card highlighted "now"; Start now → converts to live, pending reminders cancelled (verify none fire after)
+- [ ] Edit scheduled session: change time → old reminders cancelled, new ones fire; delete → reminders cancelled
+- [ ] Session cards show pin + location name; Sessions tab unchanged for existing sessions
+- [ ] Foreground: reminder still shows banner + sound while app is open
