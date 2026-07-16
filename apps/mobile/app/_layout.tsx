@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import * as Linking from "expo-linking";
+import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
@@ -17,10 +18,22 @@ import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
 import { setWelcomed } from "../lib/first-run";
 import { runUpdateCheck } from "../lib/updates";
+import { ensureAlarmChannel } from "../lib/notifications";
 import { showError } from "../lib/toast";
 import { AppToast } from "../components/AppToast";
 
 SplashScreen.preventAutoHideAsync();
+
+// Session reminders must still alert (banner + alarm sound) when the app is
+// already in the foreground — the default is to silently drop them.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function RootLayout() {
   const { success: migrated } = useMigrations(db, migrations);
@@ -73,6 +86,22 @@ export default function RootLayout() {
       }
     })();
   }, [url, migrated]);
+
+  // Session reminders: ensure the Android alarm channel exists, and route a
+  // notification tap to its session via the deep-link URL stashed in data.
+  useEffect(() => {
+    if (!migrated) return;
+    void ensureAlarmChannel();
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      try {
+        const url = response.notification.request.content.data?.url;
+        if (typeof url === "string") router.push(url as Parameters<typeof router.push>[0]);
+      } catch {
+        // Malformed notification payload — ignore the tap.
+      }
+    });
+    return () => sub.remove();
+  }, [migrated]);
 
   // OTA: fully silent — download in the background on launch; expo-updates
   // runs the downloaded bundle automatically on the NEXT cold start.
