@@ -56,6 +56,35 @@ test("bottoms item with null ptp/length and waist 32 inserts", () => {
   expect(item.inseamInches).toBe(30);
 });
 
+test("scheduled session with location pin and reminder offsets round-trips", () => {
+  const { db } = makeTestDb();
+  const scheduledAt = new Date(1800000000 * 1000);
+  db.insert(s.sessions).values({
+    id: "s2", name: "Planned Run", type: "selector", createdAt: new Date(),
+    locationName: "Naga City Public Market", lat: 13.6218, lng: 123.1948,
+    scheduledAt, reminderOffsets: "[0,60,1440]", reminderNotificationIds: '["n1","n2"]',
+  }).run();
+  const row = db.select().from(s.sessions).all()[0];
+  expect(row.locationName).toBe("Naga City Public Market");
+  expect(row.lat).toBe(13.6218);
+  expect(row.lng).toBe(123.1948);
+  expect(row.scheduledAt).toEqual(scheduledAt);
+  expect(row.reminderOffsets).toBe("[0,60,1440]");
+  expect(row.reminderNotificationIds).toBe('["n1","n2"]');
+});
+
+test("unscheduled session leaves all location/schedule columns null", () => {
+  const { db } = makeTestDb();
+  db.insert(s.sessions).values({ id: "s3", name: "Plain Run", type: "bulto", createdAt: new Date() }).run();
+  const row = db.select().from(s.sessions).all()[0];
+  expect(row.locationName).toBeNull();
+  expect(row.lat).toBeNull();
+  expect(row.lng).toBeNull();
+  expect(row.scheduledAt).toBeNull();
+  expect(row.reminderOffsets).toBeNull();
+  expect(row.reminderNotificationIds).toBeNull();
+});
+
 test("user_brands accepts a row", () => {
   const { db } = makeTestDb();
   db.insert(s.userBrands).values({ id: "b1", name: "Osaka Vintage", createdAt: new Date() }).run();
@@ -68,7 +97,7 @@ test("migration rebuild preserves pre-existing item rows (zero data loss)", () =
   const drizzleDir = path.join(__dirname, "..", "drizzle");
   const journal = JSON.parse(fs.readFileSync(path.join(drizzleDir, "meta/_journal.json"), "utf8")) as { entries: { tag: string }[] };
   const tags: string[] = journal.entries.map((e) => e.tag);
-  expect(tags.length).toBeGreaterThanOrEqual(2); // 0000 + the E1 migration
+  expect(tags.length).toBeGreaterThanOrEqual(3); // 0000 + E1 + E2 sessions migration
 
   const sqlite = new Database(":memory:");
   // Apply the initial migration only, then seed an old-shape row.
@@ -106,5 +135,18 @@ test("migration rebuild preserves pre-existing item rows (zero data loss)", () =
   const photoRow = sqlite.prepare("SELECT * FROM photos WHERE id = 'p1'").get() as Record<string, unknown>;
   expect(photoRow.item_id).toBe("i1");
   expect(photoRow.local_uri).toBe("file:///x/a.jpg");
+  // Old-shape session row survives the E2 sessions migration: legacy fields intact, new cols null.
+  const sessionRow = sqlite.prepare("SELECT * FROM sessions WHERE id = 's1'").get() as Record<string, unknown>;
+  expect(sessionRow.name).toBe("Old Run");
+  expect(sessionRow.type).toBe("bulto");
+  expect(sessionRow.total_bale_cost).toBe(10000);
+  expect(sessionRow.location).toBe("Naga");
+  expect(sessionRow.created_at).toBe(1700000000);
+  expect(sessionRow.location_name).toBeNull();
+  expect(sessionRow.lat).toBeNull();
+  expect(sessionRow.lng).toBeNull();
+  expect(sessionRow.scheduled_at).toBeNull();
+  expect(sessionRow.reminder_offsets).toBeNull();
+  expect(sessionRow.reminder_notification_ids).toBeNull();
   sqlite.close();
 });
