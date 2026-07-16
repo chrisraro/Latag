@@ -53,7 +53,7 @@ Deviation (2026-07-16): tops caption spec segment unified to the cross-departmen
 - `version` → 1.1.0 (runtimeVersion policy appVersion ⇒ new OTA lane; 1.0.0 installs keep receiving nothing new — acceptable, single-user fleet today).
 - One `eas build --profile preview` + user reinstall. Gate: all suites, tsc, export, on-device smoke.
 
-## 4. E2 — Sessions 2.0
+## 4. E2 — Sessions 2.0 (SHIPPED 2026-07-16)
 
 ### Location pinning
 
