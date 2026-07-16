@@ -10,6 +10,8 @@ import { items, photos, sessions } from "../../../db/schema";
 import { unmarkSold, deleteItem } from "../../../lib/repo";
 import { deleteFiles } from "../../../lib/media";
 import { savePhotosToAlbum } from "../../../lib/albums";
+import { shareToInstagram } from "../../../lib/ig-share";
+import { formatCaption } from "../../../lib/caption";
 import { showSuccess, showError } from "../../../lib/toast";
 import { FONT } from "../../../lib/theme";
 import { formatPeso } from "../../../lib/format";
@@ -50,6 +52,25 @@ export default function ItemDetail() {
       if (res.ok) showSuccess(`Saved ${res.count} photo(s) to "${res.album}"`);
       else if (res.reason === "permission") showError("Photos permission needed — enable it in system settings");
       else if (res.reason === "empty") showError("No photos to save");
+      else showError("Couldn't save photos — try again");
+    } finally {
+      setSavingPhotos(false);
+    }
+  };
+
+  const shareIG = async () => {
+    if (savingPhotos) return; // shares reuse the save guard — both hit the album
+    setSavingPhotos(true);
+    try {
+      const res = await shareToInstagram({
+        uris: pics.map((p) => p.localUri),
+        caption: formatCaption([item]),
+        sessionName,
+      });
+      if (res.step === "saved-opened") showSuccess("Photos saved + caption copied — paste it in your IG post");
+      else if (res.step === "saved-only") showSuccess("Photos saved + caption copied — open Instagram to post");
+      else if (res.step === "permission") showError("Photos permission needed — enable it in system settings");
+      else if (res.step === "empty") showError("No photos to save");
       else showError("Couldn't save photos — try again");
     } finally {
       setSavingPhotos(false);
@@ -142,6 +163,7 @@ export default function ItemDetail() {
         </View>
         <View className="mb-2 flex-row gap-2">
           <SecondaryButton label="Save photos" icon="Download" onPress={savePhotos} />
+          <SecondaryButton label="Share to IG" icon="InstagramLogo" onPress={shareIG} />
         </View>
       </View>
     </View>

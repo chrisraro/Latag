@@ -2,7 +2,7 @@ import {
   CaretLeft, CaretRight, CaretDown, Plus, Check, X, Camera, ClipboardText,
   PencilSimple, Trash, MagnifyingGlass, GearSix, SignOut, WifiSlash,
   HardDrives, ShieldCheck, Package, Target, EnvelopeSimple, ArrowsClockwise, Download,
-  MapPin, CrosshairSimple, Bell, Images,
+  MapPin, CrosshairSimple, Bell, Images, InstagramLogo,
 } from "phosphor-react-native";
 import { COLORS } from "../lib/theme";
 
@@ -10,7 +10,7 @@ const ICONS = {
   CaretLeft, CaretRight, CaretDown, Plus, Check, X, Camera, ClipboardText,
   PencilSimple, Trash, MagnifyingGlass, GearSix, SignOut, WifiSlash,
   HardDrives, ShieldCheck, Package, Target, EnvelopeSimple, ArrowsClockwise, Download,
-  MapPin, CrosshairSimple, Bell, Images,
+  MapPin, CrosshairSimple, Bell, Images, InstagramLogo,
 } as const;
 
 export type IconName = keyof typeof ICONS;
