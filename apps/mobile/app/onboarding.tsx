@@ -3,12 +3,16 @@ import { View, Text, Pressable, ScrollView, useWindowDimensions, type NativeSynt
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+// Legacy entry keeps parity with lib/albums — the v57 main-entry classic API is deprecated.
+import * as MediaLibrary from "expo-media-library/legacy";
+import * as Location from "expo-location";
 import { FONT, COLORS } from "../lib/theme";
+import { ensureNotifPermission } from "../lib/notifications";
 import { PrimaryButton } from "../components/ui";
 import { PhotoSlot } from "../components/PhotoSlot";
 import { Icon, type IconName } from "../components/Icon";
 
-const PANES = 2;
+const PANES = 3;
 
 /** Sets the first-run flags and lands on the sessions list. Shared by both exits (Skip and Start logging). */
 async function finishOnboarding(router: ReturnType<typeof useRouter>) {
@@ -52,6 +56,55 @@ function ModeCard({ icon, title, body, accent }: { icon: IconName; title: string
   );
 }
 
+/** Obcard-style permission row: icon tile + copy + right-side "Allow" chip that
+ *  fires the real OS prompt. Grant flips the chip to an acid "Granted ✓" state;
+ *  deny leaves it tappable for a retry. `request` never needs to throw-guard —
+ *  the row swallows failures and simply stays un-granted. */
+function PermissionRow({ icon, title, body, request }: { icon: IconName; title: string; body: string; request: () => Promise<boolean> }) {
+  const [granted, setGranted] = useState(false);
+  const busy = useRef(false);
+
+  const onAllow = async () => {
+    if (busy.current || granted) return;
+    busy.current = true;
+    try {
+      if (await request()) setGranted(true);
+    } catch {
+      // Denied/errored prompts leave the chip in "Allow" — user can retry.
+    } finally {
+      busy.current = false;
+    }
+  };
+
+  return (
+    <View
+      style={{ borderRadius: 14 }}
+      className="mb-3 flex-row items-center gap-3.5 border border-hairline bg-surface1 p-[18px]"
+    >
+      <View className="h-11 w-11 flex-none items-center justify-center rounded-xl bg-surface2">
+        <Icon name={icon} size={24} color={COLORS.acid} />
+      </View>
+      <View className="flex-1">
+        <Text style={{ fontFamily: FONT.display }} className="text-[16px] text-ink">{title}</Text>
+        <Text style={{ fontFamily: FONT.text }} className="mt-1.5 text-[13px] leading-[19px] text-inkdim">{body}</Text>
+      </View>
+      <Pressable
+        hitSlop={8}
+        disabled={granted}
+        onPress={() => void onAllow()}
+        accessibilityRole="button"
+        accessibilityLabel={granted ? `${title} permission granted` : `Allow ${title.toLowerCase()} permission`}
+        accessibilityState={{ disabled: granted }}
+        className={`h-9 flex-none items-center justify-center rounded-full px-3.5 ${granted ? "bg-acid" : "border border-hairline bg-surface2"}`}
+      >
+        <Text style={{ fontFamily: FONT.semibold }} className={`text-[12px] ${granted ? "text-acidink" : "text-ink"}`}>
+          {granted ? "Granted ✓" : "Allow"}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -60,7 +113,7 @@ export default function OnboardingScreen() {
   // Reactive: pane math survives rotation, split-screen, and foldable resizes.
   const { width: SCREEN_WIDTH } = useWindowDimensions();
 
-  const goToPane2 = () => scrollRef.current?.scrollTo({ x: SCREEN_WIDTH, animated: true });
+  const goToPane = (idx: number) => scrollRef.current?.scrollTo({ x: SCREEN_WIDTH * idx, animated: true });
 
   const onMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setActive(Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH));
@@ -108,7 +161,7 @@ export default function OnboardingScreen() {
           </View>
 
           <Dots active={active} />
-          <PrimaryButton label="Continue" onPress={goToPane2} />
+          <PrimaryButton label="Continue" onPress={() => goToPane(1)} />
         </View>
 
         {/* Pane 2 — camera & privacy */}
@@ -132,6 +185,38 @@ export default function OnboardingScreen() {
                 body="Compressed and stored on-device. Nothing is ever uploaded."
               />
             </View>
+          </View>
+
+          <Dots active={active} />
+          <PrimaryButton label="Continue" onPress={() => goToPane(2)} />
+        </View>
+
+        {/* Pane 3 — permissions */}
+        <View style={{ width: SCREEN_WIDTH, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }} className="flex-1 px-5">
+          <Text style={{ fontFamily: FONT.display }} className="text-[24px] text-ink">Latag asks only when needed</Text>
+
+          <View className="flex-1 justify-center">
+            <PermissionRow
+              icon="Images"
+              title="Photos"
+              body="Save listing photos to your gallery"
+              request={async () => (await MediaLibrary.requestPermissionsAsync(false)).granted}
+            />
+            <PermissionRow
+              icon="Bell"
+              title="Notifications"
+              body="Session reminders that ring like an alarm"
+              request={ensureNotifPermission}
+            />
+            <PermissionRow
+              icon="MapPin"
+              title="Location"
+              body="Pin sessions on the map"
+              request={async () => (await Location.requestForegroundPermissionsAsync()).granted}
+            />
+            <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-1 text-center text-[12px] text-inkfaint">
+              All optional — Latag asks again only when a feature needs it.
+            </Text>
           </View>
 
           <Dots active={active} />
