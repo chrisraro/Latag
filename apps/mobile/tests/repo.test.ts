@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 import { makeTestDb } from "./helpers/testDb";
-import { createSession, addItem, updateItem, addPhoto, replacePhoto, markSold, unmarkSold, deleteItem } from "../lib/repo";
+import { createSession, addItem, updateItem, addPhoto, replacePhoto, markSold, unmarkSold, deleteItem, updateSession, startScheduledSession, deleteSession } from "../lib/repo";
 import { ensureEntitlements, FREE_LOG_LIMIT, FreeTierExhaustedError } from "../lib/entitlements";
-import { items, photos } from "../db/schema";
+import { parseOffsets } from "../lib/schedule";
+import { items, photos, sessions } from "../db/schema";
 
 const base = { brand: "Nike", department: "tops" as const, category: "Tee", ptpInches: 21.5, lengthInches: 27, condition: "9/10", targetSellPrice: 350 };
 
@@ -179,6 +180,88 @@ test("item name: stored trimmed; whitespace-only becomes null on add and edit", 
   expect(named.name).toBe("Detroit Jacket");
   const cleared = updateItem(db, named.id, { name: "   " });
   expect(cleared.name).toBeNull();
+});
+test("createSession accepts location + schedule fields; offsets stored as JSON text", () => {
+  const { db } = makeTestDb();
+  const when = new Date("2026-07-18T06:30:00");
+  const s = createSession(db, {
+    name: "Sat run", type: "selector",
+    locationName: "Bagong Silang Market", lat: 14.777, lng: 121.043,
+    scheduledAt: when, reminderOffsets: [0, 30],
+  });
+  expect(s.locationName).toBe("Bagong Silang Market");
+  expect(s.lat).toBe(14.777);
+  expect(s.lng).toBe(121.043);
+  expect(s.scheduledAt?.getTime()).toBe(when.getTime());
+  expect(parseOffsets(s.reminderOffsets)).toEqual([0, 30]);
+  expect(s.reminderNotificationIds).toBeNull();
+});
+test("createSession without new fields leaves them all null (legacy path unchanged)", () => {
+  const { db } = makeTestDb();
+  const s = createSession(db, { name: "Run", type: "selector" });
+  expect(s.locationName).toBeNull();
+  expect(s.lat).toBeNull();
+  expect(s.lng).toBeNull();
+  expect(s.scheduledAt).toBeNull();
+  expect(s.reminderOffsets).toBeNull();
+});
+test("updateSession patches fields, serializes arrays, and clears via null", () => {
+  const { db } = makeTestDb();
+  const s = createSession(db, { name: "Run", type: "selector", scheduledAt: new Date("2026-07-18T06:30:00"), reminderOffsets: [30] });
+  const when = new Date("2026-07-19T07:00:00");
+  const updated = updateSession(db, s.id, {
+    name: "Sunday run", locationName: "Anonas", lat: 14.62, lng: 121.06,
+    scheduledAt: when, reminderOffsets: [0, 60, 1440], reminderNotificationIds: ["n1", "n2"],
+  });
+  expect(updated.name).toBe("Sunday run");
+  expect(updated.locationName).toBe("Anonas");
+  expect(updated.scheduledAt?.getTime()).toBe(when.getTime());
+  expect(parseOffsets(updated.reminderOffsets)).toEqual([0, 60, 1440]);
+  expect(JSON.parse(updated.reminderNotificationIds!)).toEqual(["n1", "n2"]);
+  const cleared = updateSession(db, s.id, { scheduledAt: null, reminderOffsets: null, reminderNotificationIds: null });
+  expect(cleared.scheduledAt).toBeNull();
+  expect(cleared.reminderOffsets).toBeNull();
+  expect(cleared.reminderNotificationIds).toBeNull();
+  expect(cleared.locationName).toBe("Anonas"); // untouched fields survive
+});
+test("startScheduledSession clears schedule, keeps location, returns old notif ids", () => {
+  const { db } = makeTestDb();
+  const s = createSession(db, {
+    name: "Sat run", type: "selector",
+    locationName: "Bagong Silang", lat: 14.7, lng: 121.0,
+    scheduledAt: new Date("2026-07-18T06:30:00"), reminderOffsets: [0, 30],
+  });
+  updateSession(db, s.id, { reminderNotificationIds: ["a", "b"] });
+  const { session, notificationIds } = startScheduledSession(db, s.id);
+  expect(notificationIds).toEqual(["a", "b"]);
+  expect(session.scheduledAt).toBeNull();
+  expect(session.reminderOffsets).toBeNull();
+  expect(session.reminderNotificationIds).toBeNull();
+  expect(session.locationName).toBe("Bagong Silang");
+  expect(session.lat).toBe(14.7);
+  expect(session.lng).toBe(121.0);
+});
+test("startScheduledSession tolerates a session with no reminders", () => {
+  const { db } = makeTestDb();
+  const s = createSession(db, { name: "Run", type: "selector", scheduledAt: new Date("2026-07-18T06:30:00") });
+  const { session, notificationIds } = startScheduledSession(db, s.id);
+  expect(notificationIds).toEqual([]);
+  expect(session.scheduledAt).toBeNull();
+});
+test("deleteSession cascades items + photos, returns photo uris and notif ids", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector", scheduledAt: new Date("2026-07-18T06:30:00") });
+  updateSession(db, s.id, { reminderNotificationIds: ["n1"] });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  addPhoto(db, { itemId: item.id, localUri: "file:///m/a.jpg", type: "front" });
+  const keep = createSession(db, { name: "Other", type: "selector" });
+  const { photoUris, reminderNotificationIds } = deleteSession(db, s.id);
+  expect(photoUris).toEqual(["file:///m/a.jpg"]);
+  expect(reminderNotificationIds).toEqual(["n1"]);
+  expect(db.select().from(sessions).all().map((r) => r.id)).toEqual([keep.id]);
+  expect(db.select().from(items).all()).toHaveLength(0);
+  expect(db.select().from(photos).all()).toHaveLength(0);
 });
 test("replacePhoto on a type with no existing row behaves like addPhoto", () => {
   const { db } = makeTestDb();
