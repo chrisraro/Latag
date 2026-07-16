@@ -13,6 +13,7 @@ import { formatCaption } from "../../../lib/caption";
 import { captionSpecLine, type CatalogItem } from "../../../lib/catalog";
 import { formatPeso } from "../../../lib/format";
 import { savePhotosToAlbum } from "../../../lib/albums";
+import { shareToInstagram } from "../../../lib/ig-share";
 import { FONT, COLORS } from "../../../lib/theme";
 import { showSuccess, showError } from "../../../lib/toast";
 import { Badge, FieldLabel, PrimaryButton, SecondaryButton } from "../../../components/ui";
@@ -59,9 +60,26 @@ export default function ExportScreen() {
     }
   };
   const copy = async () => {
+    if (chosen.length === 0 || !caption.trim()) return;
     await Clipboard.setStringAsync(caption);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showSuccess(`Copied ${chosen.length} listings to clipboard`);
+  };
+  const [sharing, setSharing] = useState(false); // double-tap guard
+  const shareIG = async () => {
+    if (sharing) return; // double-tap guard
+    setSharing(true);
+    try {
+      const uris = chosen.flatMap((i) => (photoRows ?? []).filter((p) => p.itemId === i.id).map((p) => p.localUri));
+      const res = await shareToInstagram({ uris, caption, sessionName });
+      if (res.step === "saved-opened") showSuccess("Photos saved + caption copied — paste it in your IG post");
+      else if (res.step === "saved-only") showSuccess("Photos saved + caption copied — open Instagram to post");
+      else if (res.step === "permission") showError("Photos permission needed — enable it in system settings");
+      else if (res.step === "empty") showError("No photos to save");
+      else showError("Couldn't save photos — try again");
+    } finally {
+      setSharing(false);
+    }
   };
 
   return (
@@ -126,8 +144,12 @@ export default function ExportScreen() {
         className={`flex-1 rounded-card border bg-surface1 px-4 py-4 text-[13.5px] leading-[22px] text-inkdim ${captionFocused ? "border-acid" : "border-hairline"}`}
       />
       <View style={{ paddingBottom: insets.bottom + 4 }}>
-        <PrimaryButton label="Copy to Clipboard" icon="ClipboardText" onPress={copy} disabled={chosen.length === 0 || !caption.trim()} />
+        <PrimaryButton label="Share to IG" icon="InstagramLogo" onPress={shareIG} disabled={chosen.length === 0 || !caption.trim()} />
+        <Text style={{ fontFamily: FONT.text, lineHeight: 16 }} className="mb-3 -mt-1 text-[11.5px] text-inkfaint">
+          IG doesn't allow direct multi-photo posting from apps — your photos land in the gallery first, caption's on your clipboard.
+        </Text>
         <View className="mb-2 flex-row gap-2">
+          <SecondaryButton label="Copy caption" icon="ClipboardText" onPress={copy} />
           <SecondaryButton label="Save all images" icon="Download" onPress={saveAllImages} />
         </View>
       </View>
