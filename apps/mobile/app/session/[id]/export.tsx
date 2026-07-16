@@ -8,13 +8,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq, desc } from "drizzle-orm";
 import { db } from "../../../db/client";
-import { items, photos } from "../../../db/schema";
+import { items, photos, sessions } from "../../../db/schema";
 import { formatCaption } from "../../../lib/caption";
 import { captionSpecLine, type CatalogItem } from "../../../lib/catalog";
 import { formatPeso } from "../../../lib/format";
+import { savePhotosToAlbum } from "../../../lib/albums";
 import { FONT, COLORS } from "../../../lib/theme";
-import { showSuccess } from "../../../lib/toast";
-import { Badge, FieldLabel, PrimaryButton } from "../../../components/ui";
+import { showSuccess, showError } from "../../../lib/toast";
+import { Badge, FieldLabel, PrimaryButton, SecondaryButton } from "../../../components/ui";
 import { AppHead } from "../../../components/AppHead";
 import { Icon } from "../../../components/Icon";
 
@@ -24,7 +25,9 @@ export default function ExportScreen() {
   const insets = useSafeAreaInsets();
   const { data: itemRows } = useLiveQuery(db.select().from(items).where(eq(items.sessionId, id)).orderBy(desc(items.createdAt)), [id]);
   const { data: photoRows } = useLiveQuery(db.select().from(photos), []);
+  const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(eq(sessions.id, id)), [id]);
   const all = itemRows ?? [];
+  const sessionName = sessionRows?.[0]?.name ?? null;
   const thumbOf = (itemId: string) => (photoRows ?? []).find((p) => p.itemId === itemId && p.type === "front")?.localUri ?? null;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [caption, setCaption] = useState("");
@@ -37,6 +40,24 @@ export default function ExportScreen() {
   // manual edits apply on top and reset on the next selection change.
   useEffect(() => { setCaption(formatCaption(chosen)); }, [selected, itemRows]);
   const toggle = (itemId: string) => setSelected((prev) => { const n = new Set(prev); n.has(itemId) ? n.delete(itemId) : n.add(itemId); return n; });
+  const [savingImages, setSavingImages] = useState(false); // double-tap guard
+  const saveAllImages = async () => {
+    if (savingImages) return; // double-tap guard
+    setSavingImages(true);
+    try {
+      // Selection semantics: save the selected items' photos; when nothing is
+      // selected, fall back to every item's photos.
+      const targets = chosen.length > 0 ? chosen : all;
+      const uris = targets.flatMap((i) => (photoRows ?? []).filter((p) => p.itemId === i.id).map((p) => p.localUri));
+      const res = await savePhotosToAlbum(uris, sessionName);
+      if (res.ok) showSuccess(`Saved ${res.count} photo(s) to "${res.album}"`);
+      else if (res.reason === "permission") showError("Photos permission needed — enable it in system settings");
+      else if (res.reason === "empty") showError("No photos to save");
+      else showError("Couldn't save photos — try again");
+    } finally {
+      setSavingImages(false);
+    }
+  };
   const copy = async () => {
     await Clipboard.setStringAsync(caption);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -106,6 +127,9 @@ export default function ExportScreen() {
       />
       <View style={{ paddingBottom: insets.bottom + 4 }}>
         <PrimaryButton label="Copy to Clipboard" icon="ClipboardText" onPress={copy} disabled={chosen.length === 0 || !caption.trim()} />
+        <View className="mb-2 flex-row gap-2">
+          <SecondaryButton label="Save all images" icon="Download" onPress={saveAllImages} />
+        </View>
       </View>
     </View>
   );
