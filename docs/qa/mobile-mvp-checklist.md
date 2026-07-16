@@ -64,3 +64,4 @@
 - [ ] Fresh install: onboarding shows 3 panes; pane 3 Allow chips trigger real OS prompts, "Granted ✓" state, all skippable
 - [ ] Share to IG (export + item detail): photos land in gallery, caption pastes from clipboard, Instagram opens (or web fallback)
 - [ ] Deny photos permission then Share to IG → permission toast, no partial state
+- [ ] Mid-batch save failure (storage full) → no orphan photos in camera roll, honest error toast

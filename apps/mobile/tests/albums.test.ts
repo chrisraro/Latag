@@ -103,4 +103,32 @@ describe("savePhotosToAlbum", () => {
     const res = await savePhotosToAlbum(["file:///a.jpg"], "Ukay Run");
     expect(res).toEqual({ ok: false, reason: "error" });
   });
+
+  test("mid-batch createAsset failure -> orphan cleanup deletes the assets already created", async () => {
+    (mocked.createAssetAsync as jest.Mock)
+      .mockImplementationOnce(async (uri: string) => ({ id: "asset-" + uri, uri }))
+      .mockImplementationOnce(async () => { throw new Error("storage full"); });
+    const res = await savePhotosToAlbum(["file:///a.jpg", "file:///b.jpg", "file:///c.jpg"], "Ukay Run");
+    expect(res).toEqual({ ok: false, reason: "error" });
+    expect(mocked.deleteAssetsAsync).toHaveBeenCalledTimes(1);
+    expect(mocked.deleteAssetsAsync).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "asset-file:///a.jpg" }),
+    ]);
+    expect(mocked.createAlbumAsync).not.toHaveBeenCalled();
+  });
+
+  test("album-op failure with limited access -> permission (not error), orphans cleaned up", async () => {
+    (mocked.requestPermissionsAsync as jest.Mock).mockImplementation(async () => ({ granted: true, accessPrivileges: "limited" }));
+    (mocked.createAlbumAsync as jest.Mock).mockImplementation(async () => { throw new Error("limited access denied"); });
+    const res = await savePhotosToAlbum(["file:///a.jpg"], "Ukay Run");
+    expect(res).toEqual({ ok: false, reason: "permission" });
+    expect(mocked.deleteAssetsAsync).toHaveBeenCalledTimes(1);
+  });
+
+  test("album-op failure without limited access -> error, orphans cleaned up", async () => {
+    (mocked.createAlbumAsync as jest.Mock).mockImplementation(async () => { throw new Error("boom"); });
+    const res = await savePhotosToAlbum(["file:///a.jpg"], "Ukay Run");
+    expect(res).toEqual({ ok: false, reason: "error" });
+    expect(mocked.deleteAssetsAsync).toHaveBeenCalledTimes(1);
+  });
 });

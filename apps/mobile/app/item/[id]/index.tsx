@@ -68,7 +68,8 @@ export default function ItemDetail() {
         sessionName,
       });
       if (res.step === "saved-opened") showSuccess("Photos saved + caption copied — paste it in your IG post");
-      else if (res.step === "saved-only") showSuccess("Photos saved + caption copied — open Instagram to post");
+      else if (res.step === "saved-no-launch") showSuccess("Photos saved + caption copied — open Instagram to post");
+      else if (res.step === "saved-no-caption") showError("Photos saved — couldn't copy the caption, copy it manually");
       else if (res.step === "permission") showError("Photos permission needed — enable it in system settings");
       else if (res.step === "empty") showError("No photos to save");
       else showError("Couldn't save photos — try again");

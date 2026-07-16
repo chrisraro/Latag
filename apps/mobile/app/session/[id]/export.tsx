@@ -41,10 +41,10 @@ export default function ExportScreen() {
   // manual edits apply on top and reset on the next selection change.
   useEffect(() => { setCaption(formatCaption(chosen)); }, [selected, itemRows]);
   const toggle = (itemId: string) => setSelected((prev) => { const n = new Set(prev); n.has(itemId) ? n.delete(itemId) : n.add(itemId); return n; });
-  const [savingImages, setSavingImages] = useState(false); // double-tap guard
+  const [mediaBusy, setMediaBusy] = useState(false); // shared guard: save + share both touch the album
   const saveAllImages = async () => {
-    if (savingImages) return; // double-tap guard
-    setSavingImages(true);
+    if (mediaBusy) return; // double-tap guard
+    setMediaBusy(true);
     try {
       // Selection semantics: save the selected items' photos; when nothing is
       // selected, fall back to every item's photos.
@@ -56,29 +56,30 @@ export default function ExportScreen() {
       else if (res.reason === "empty") showError("No photos to save");
       else showError("Couldn't save photos — try again");
     } finally {
-      setSavingImages(false);
+      setMediaBusy(false);
     }
   };
   const copy = async () => {
-    if (chosen.length === 0 || !caption.trim()) return;
+    if (chosen.length === 0) return showError("Select items first");
+    if (!caption.trim()) return;
     await Clipboard.setStringAsync(caption);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showSuccess(`Copied ${chosen.length} listings to clipboard`);
   };
-  const [sharing, setSharing] = useState(false); // double-tap guard
   const shareIG = async () => {
-    if (sharing) return; // double-tap guard
-    setSharing(true);
+    if (mediaBusy) return; // double-tap guard
+    setMediaBusy(true);
     try {
       const uris = chosen.flatMap((i) => (photoRows ?? []).filter((p) => p.itemId === i.id).map((p) => p.localUri));
       const res = await shareToInstagram({ uris, caption, sessionName });
       if (res.step === "saved-opened") showSuccess("Photos saved + caption copied — paste it in your IG post");
-      else if (res.step === "saved-only") showSuccess("Photos saved + caption copied — open Instagram to post");
+      else if (res.step === "saved-no-launch") showSuccess("Photos saved + caption copied — open Instagram to post");
+      else if (res.step === "saved-no-caption") showError("Photos saved — couldn't copy the caption, copy it manually");
       else if (res.step === "permission") showError("Photos permission needed — enable it in system settings");
       else if (res.step === "empty") showError("No photos to save");
       else showError("Couldn't save photos — try again");
     } finally {
-      setSharing(false);
+      setMediaBusy(false);
     }
   };
 
