@@ -57,3 +57,10 @@
 - [ ] Edit scheduled session: change time → old reminders cancelled, new ones fire; delete → reminders cancelled
 - [ ] Session cards show pin + location name; Sessions tab unchanged for existing sessions
 - [ ] Foreground: reminder still shows banner + sound while app is open
+
+## Phase E3 — media & sharing (device)
+- [ ] Item detail "Save photos" → gallery album "Latag · {session}" appears with the item's photos; toast counts correctly
+- [ ] Export "Save all images" (selected items; none selected → all); permission DENY path → honest toast, nothing crashes
+- [ ] Fresh install: onboarding shows 3 panes; pane 3 Allow chips trigger real OS prompts, "Granted ✓" state, all skippable
+- [ ] Share to IG (export + item detail): photos land in gallery, caption pastes from clipboard, Instagram opens (or web fallback)
+- [ ] Deny photos permission then Share to IG → permission toast, no partial state
