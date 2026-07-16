@@ -16,6 +16,7 @@ jest.mock("expo-media-library/legacy", () => ({
   getAlbumAsync: jest.fn(async () => null),
   createAlbumAsync: jest.fn(async (name: string) => ({ id: "album-1", title: name })),
   addAssetsToAlbumAsync: jest.fn(async () => true),
+  deleteAssetsAsync: jest.fn(async () => true),
 }));
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),

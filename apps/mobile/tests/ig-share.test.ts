@@ -48,17 +48,17 @@ describe("shareToInstagram", () => {
     expect(mockedLinking.openURL).toHaveBeenCalledWith("https://www.instagram.com");
   });
 
-  test("openURL fails: photos saved + caption copied -> saved-only", async () => {
+  test("openURL fails: photos saved + caption copied -> saved-no-launch", async () => {
     (mockedLinking.openURL as jest.Mock).mockRejectedValue(new Error("boom"));
     const res = await shareToInstagram(ARGS);
-    expect(res).toEqual({ ok: true, step: "saved-only" });
+    expect(res).toEqual({ ok: true, step: "saved-no-launch" });
     expect(mockedClipboard.setStringAsync).toHaveBeenCalledWith("drop caption");
   });
 
-  test("clipboard fails: photos are already saved -> saved-only, IG not opened", async () => {
+  test("clipboard fails: photos are already saved -> saved-no-caption, IG not opened", async () => {
     (mockedClipboard.setStringAsync as jest.Mock).mockRejectedValue(new Error("boom"));
     const res = await shareToInstagram(ARGS);
-    expect(res).toEqual({ ok: true, step: "saved-only" });
+    expect(res).toEqual({ ok: true, step: "saved-no-caption" });
     expect(mockedLinking.openURL).not.toHaveBeenCalled();
   });
 

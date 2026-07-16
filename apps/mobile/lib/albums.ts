@@ -21,9 +21,14 @@ export type SaveToAlbumResult =
   | { ok: false; reason: "permission" | "empty" | "error" };
 
 /** Save local photo files to the session's gallery album. Requests write
- *  access, creates one asset per uri, then creates the album once (seeded
- *  with the first asset — Android can't create empty albums) or reuses an
- *  existing one. copyAsset=false so assets move instead of duplicating. */
+ *  access, creates one asset per uri (each createAssetAsync call is a
+ *  media-store insert, not a copy — the original file the asset points at
+ *  stays put), then creates the album once (seeded with the first asset —
+ *  Android can't create empty albums) or reuses an existing one.
+ *  copyAsset=false so the media-store entry references the existing file
+ *  instead of duplicating it. A mid-batch failure best-effort deletes
+ *  whatever assets were already created, so a storage-full or permission
+ *  hiccup never leaves orphan photos loose in the camera roll. */
 export async function savePhotosToAlbum(
   uris: string[],
   sessionName: string | null,
@@ -35,16 +40,26 @@ export async function savePhotosToAlbum(
 
     const album = albumNameFor(sessionName);
     const assets: MediaLibrary.Asset[] = [];
-    for (const uri of uris) assets.push(await MediaLibrary.createAssetAsync(uri));
+    try {
+      for (const uri of uris) assets.push(await MediaLibrary.createAssetAsync(uri));
 
-    const existing = await MediaLibrary.getAlbumAsync(album);
-    if (existing) {
-      await MediaLibrary.addAssetsToAlbumAsync(assets, existing, false);
-    } else {
-      const created = await MediaLibrary.createAlbumAsync(album, assets[0], false);
-      if (assets.length > 1) await MediaLibrary.addAssetsToAlbumAsync(assets.slice(1), created, false);
+      const existing = await MediaLibrary.getAlbumAsync(album);
+      if (existing) {
+        await MediaLibrary.addAssetsToAlbumAsync(assets, existing, false);
+      } else {
+        const created = await MediaLibrary.createAlbumAsync(album, assets[0], false);
+        if (assets.length > 1) await MediaLibrary.addAssetsToAlbumAsync(assets.slice(1), created, false);
+      }
+      return { ok: true, count: assets.length, album };
+    } catch {
+      // Best-effort orphan cleanup — a mid-batch failure (e.g. storage full)
+      // shouldn't leave already-created assets loose in the camera roll.
+      if (assets.length > 0) await MediaLibrary.deleteAssetsAsync(assets).catch(() => {});
+      // iOS "limited" photo access can pass requestPermissionsAsync as
+      // granted yet still fail on the actual write — surface that as a
+      // permission problem rather than a generic error.
+      return { ok: false, reason: perm.accessPrivileges === "limited" ? "permission" : "error" };
     }
-    return { ok: true, count: assets.length, album };
   } catch {
     return { ok: false, reason: "error" };
   }
