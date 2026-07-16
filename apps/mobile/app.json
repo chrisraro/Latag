@@ -2,7 +2,7 @@
   "expo": {
     "name": "Latag",
     "slug": "latag",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "latag",
@@ -52,6 +52,27 @@
         "expo-camera",
         {
           "cameraPermission": "Latag uses your camera to photograph items. Photos are compressed and stored on your phone only — never uploaded."
+        }
+      ],
+      "@maplibre/maplibre-react-native",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Latag uses your location only to pin a session on the map. Never tracked, never uploaded."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/sounds/alarm.wav"]
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Latag saves your listing photos to gallery albums you can share.",
+          "savePhotosPermission": "Latag saves your listing photos to gallery albums.",
+          "isAccessMediaLocationEnabled": false
         }
       ]
     ],
