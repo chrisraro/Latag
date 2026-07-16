@@ -5,7 +5,13 @@ export const sessions = sqliteTable("sessions", {
   name: text("name").notNull(),
   type: text("type", { enum: ["selector", "bulto"] }).notNull(),
   totalBaleCost: real("total_bale_cost").default(0),
-  location: text("location"),
+  location: text("location"), // legacy free-text; new code reads/writes locationName
+  locationName: text("location_name"),
+  lat: real("lat"),
+  lng: real("lng"),
+  scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
+  reminderOffsets: text("reminder_offsets"),               // JSON array of minutes, e.g. "[0,60,1440]"
+  reminderNotificationIds: text("reminder_notification_ids"), // JSON array of strings
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 

@@ -15,6 +15,13 @@
       "when": 1784130823353,
       "tag": "0001_demonic_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784179682299,
+      "tag": "0002_unusual_wong",
+      "breakpoints": true
     }
   ]
 }
