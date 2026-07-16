@@ -3,6 +3,7 @@ import { Modal, Pressable, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { FONT } from "../lib/theme";
 import { formatScheduleStamp } from "../lib/schedule";
+import { showError } from "../lib/toast";
 import { FieldLabel, PrimaryButton } from "./ui";
 import { Wheel, rangeValues } from "./Wheel";
 
@@ -47,6 +48,10 @@ export function DateTimeSheet({
     const h24 = period === "AM" ? hour % 12 : (hour % 12) + 12;
     const d = dayStart(new Date(), dayOffset);
     d.setHours(h24, minute, 0, 0);
+    if (d <= new Date()) {
+      showError("Pick a time in the future");
+      return;
+    }
     onConfirm(d);
   };
 

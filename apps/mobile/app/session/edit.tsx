@@ -57,7 +57,8 @@ export default function EditSessionScreen() {
     const oldOffsets = parseOffsets(session.reminderOffsets);
     const newTime = scheduledAt?.getTime() ?? null;
     const newOffsets = scheduledAt ? offsets : [];
-    const scheduleChanged = oldTime !== newTime || JSON.stringify(oldOffsets) !== JSON.stringify(newOffsets);
+    const nameChanged = name.trim() !== session.name;
+    const scheduleChanged = oldTime !== newTime || JSON.stringify(oldOffsets) !== JSON.stringify(newOffsets) || nameChanged;
 
     updateSession(db, session.id, {
       name: name.trim(),

@@ -6,6 +6,7 @@ import {
   cancelReminders,
   parseNotifIds,
   reminderBodyFor,
+  notifResponsePath,
 } from "../lib/notifications";
 
 const MIN = 60_000;
@@ -51,6 +52,33 @@ describe("reminderBodyFor", () => {
   });
   test("offset 1440 -> countdown-style hours", () => {
     expect(reminderBodyFor(1440)).toBe("Bale opens in 24h");
+  });
+});
+
+describe("notifResponsePath", () => {
+  const respWithUrl = (url: unknown) =>
+    ({ notification: { request: { content: { data: { url } } } } }) as any;
+
+  test("latag:// url -> in-app path", () => {
+    expect(notifResponsePath(respWithUrl("latag://session/abc"))).toBe("/session/abc");
+  });
+  test("null response -> null", () => {
+    expect(notifResponsePath(null)).toBeNull();
+  });
+  test("undefined response -> null", () => {
+    expect(notifResponsePath(undefined)).toBeNull();
+  });
+  test("missing data -> null", () => {
+    expect(notifResponsePath({ notification: { request: { content: {} } } } as any)).toBeNull();
+  });
+  test("non-latag scheme -> null (never routed as a raw URL)", () => {
+    expect(notifResponsePath(respWithUrl("https://evil.example/phish"))).toBeNull();
+  });
+  test("non-string url -> null", () => {
+    expect(notifResponsePath(respWithUrl(42))).toBeNull();
+  });
+  test("malformed payload shape -> null, never throws", () => {
+    expect(notifResponsePath({ notification: null } as any)).toBeNull();
   });
 });
 
@@ -138,6 +166,17 @@ describe("scheduleSessionReminders", () => {
     const ids = await scheduleSessionReminders(session([1440, 2880]), now);
     expect(ids).toEqual([]);
     expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test("one call failing does not drop the rest — collected ids still returned", async () => {
+    (mocked.scheduleNotificationAsync as jest.Mock)
+      .mockImplementationOnce(async () => {
+        throw new Error("boom");
+      })
+      .mockImplementationOnce(async () => "id-ok");
+    const ids = await scheduleSessionReminders(session([0, 30]), now);
+    expect(mocked.scheduleNotificationAsync).toHaveBeenCalledTimes(2);
+    expect(ids).toEqual(["id-ok"]);
   });
 });
 
