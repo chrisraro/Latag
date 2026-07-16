@@ -6,10 +6,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq } from "drizzle-orm";
 import { db } from "../../../db/client";
-import { items, photos } from "../../../db/schema";
+import { items, photos, sessions } from "../../../db/schema";
 import { unmarkSold, deleteItem } from "../../../lib/repo";
 import { deleteFiles } from "../../../lib/media";
-import { showSuccess } from "../../../lib/toast";
+import { savePhotosToAlbum } from "../../../lib/albums";
+import { showSuccess, showError } from "../../../lib/toast";
 import { FONT } from "../../../lib/theme";
 import { formatPeso } from "../../../lib/format";
 import { DEPARTMENTS, specRowsFor, type CatalogItem } from "../../../lib/catalog";
@@ -23,9 +24,13 @@ export default function ItemDetail() {
   const { data: itemRows } = useLiveQuery(db.select().from(items).where(eq(items.id, id)), [id]);
   const { data: photoRows } = useLiveQuery(db.select().from(photos).where(eq(photos.itemId, id)), [id]);
   const item = itemRows?.[0];
+  const sessionId = item?.sessionId ?? "";
+  const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(eq(sessions.id, sessionId)), [sessionId]);
   const [carouselW, setCarouselW] = useState(0);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [savingPhotos, setSavingPhotos] = useState(false); // double-tap guard
   if (!item) return null;
+  const sessionName = sessionRows?.[0]?.name ?? null;
   const pics = photoRows ?? [];
   const sold = item.status === "sold";
   // Pre-migration rows are department "tops"; unknown values degrade to the Tops label.
@@ -36,6 +41,20 @@ export default function ItemDetail() {
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: () => { const { photoUris } = deleteItem(db, id); deleteFiles(photoUris).catch(() => {}); showSuccess("Item deleted"); router.back(); } },
     ]);
+
+  const savePhotos = async () => {
+    if (savingPhotos) return; // double-tap guard
+    setSavingPhotos(true);
+    try {
+      const res = await savePhotosToAlbum(pics.map((p) => p.localUri), sessionName);
+      if (res.ok) showSuccess(`Saved ${res.count} photo(s) to "${res.album}"`);
+      else if (res.reason === "permission") showError("Photos permission needed — enable it in system settings");
+      else if (res.reason === "empty") showError("No photos to save");
+      else showError("Couldn't save photos — try again");
+    } finally {
+      setSavingPhotos(false);
+    }
+  };
 
   const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!carouselW) return;
@@ -120,6 +139,9 @@ export default function ItemDetail() {
         <View className="mb-2 flex-row gap-2">
           <SecondaryButton label="Edit" icon="PencilSimple" onPress={() => router.push(`/session/${item.sessionId}/add?item=${id}`)} />
           <SecondaryButton label="Delete" icon="Trash" danger onPress={confirmDelete} />
+        </View>
+        <View className="mb-2 flex-row gap-2">
+          <SecondaryButton label="Save photos" icon="Download" onPress={savePhotos} />
         </View>
       </View>
     </View>

@@ -10,6 +10,13 @@ jest.mock("expo-notifications", () => ({
   AndroidImportance: { MAX: 7 },
   SchedulableTriggerInputTypes: { DATE: "date" },
 }));
+jest.mock("expo-media-library/legacy", () => ({
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  createAssetAsync: jest.fn(async (uri: string) => ({ id: "asset-" + uri, uri })),
+  getAlbumAsync: jest.fn(async () => null),
+  createAlbumAsync: jest.fn(async (name: string) => ({ id: "album-1", title: name })),
+  addAssetsToAlbumAsync: jest.fn(async () => true),
+}));
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
 );
