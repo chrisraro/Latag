@@ -7,10 +7,86 @@ import { consumeLog } from "./entitlements";
 type AnyDb = any;
 const newId = () => Crypto.randomUUID();
 
-export function createSession(db: AnyDb, input: { name: string; type: "selector" | "bulto"; totalBaleCost?: number; location?: string }): Session {
-  const row = { id: newId(), name: input.name, type: input.type, totalBaleCost: input.totalBaleCost ?? 0, location: input.location ?? null, createdAt: new Date() };
+export function createSession(db: AnyDb, input: {
+  name: string; type: "selector" | "bulto"; totalBaleCost?: number; location?: string;
+  locationName?: string | null; lat?: number | null; lng?: number | null;
+  scheduledAt?: Date | null; reminderOffsets?: number[] | null;
+}): Session {
+  const row = {
+    id: newId(), name: input.name, type: input.type, totalBaleCost: input.totalBaleCost ?? 0,
+    location: input.location ?? null,
+    locationName: input.locationName ?? null, lat: input.lat ?? null, lng: input.lng ?? null,
+    scheduledAt: input.scheduledAt ?? null,
+    reminderOffsets: input.reminderOffsets ? JSON.stringify(input.reminderOffsets) : null,
+    createdAt: new Date(),
+  };
   db.insert(sessions).values(row).run();
   return db.select().from(sessions).where(eq(sessions.id, row.id)).all()[0];
+}
+
+export type SessionPatch = Partial<{
+  name: string;
+  locationName: string | null;
+  lat: number | null;
+  lng: number | null;
+  scheduledAt: Date | null;
+  reminderOffsets: number[] | null;          // stored as JSON text
+  reminderNotificationIds: string[] | null;  // stored as JSON text
+}>;
+
+export function updateSession(db: AnyDb, id: string, patch: SessionPatch): Session {
+  const set: Record<string, unknown> = { ...patch };
+  if ("reminderOffsets" in patch) set.reminderOffsets = patch.reminderOffsets ? JSON.stringify(patch.reminderOffsets) : null;
+  if ("reminderNotificationIds" in patch) set.reminderNotificationIds = patch.reminderNotificationIds ? JSON.stringify(patch.reminderNotificationIds) : null;
+  db.update(sessions).set(set).where(eq(sessions.id, id)).run();
+  return db.select().from(sessions).where(eq(sessions.id, id)).all()[0];
+}
+
+/**
+ * Converts a scheduled session into a live one: clears scheduledAt/
+ * reminderOffsets/reminderNotificationIds (location pin survives). Returns the
+ * previously stored notification ids so the caller can cancelReminders them.
+ */
+export function startScheduledSession(db: AnyDb, id: string): { session: Session; notificationIds: string[] } {
+  const existing = db.select().from(sessions).where(eq(sessions.id, id)).all()[0] as Session | undefined;
+  const notificationIds = parseNotifIdsText(existing?.reminderNotificationIds ?? null);
+  db.update(sessions).set({ scheduledAt: null, reminderOffsets: null, reminderNotificationIds: null }).where(eq(sessions.id, id)).run();
+  return { session: db.select().from(sessions).where(eq(sessions.id, id)).all()[0], notificationIds };
+}
+
+/**
+ * Deletes a session with the same cascade semantics as deleteItem: photo rows,
+ * then item rows, then the session — transactionally. Returns the photo uris
+ * (caller deletes files via deleteFiles) and any pending reminder notification
+ * ids (caller cancels via cancelReminders).
+ */
+export function deleteSession(db: AnyDb, id: string): { photoUris: string[]; reminderNotificationIds: string[] } {
+  return db.transaction((tx: AnyDb) => {
+    const session = tx.select().from(sessions).where(eq(sessions.id, id)).all()[0] as Session | undefined;
+    const reminderNotificationIds = parseNotifIdsText(session?.reminderNotificationIds ?? null);
+    const sessionItems = tx.select().from(items).where(eq(items.sessionId, id)).all() as Item[];
+    const photoUris: string[] = [];
+    for (const item of sessionItems) {
+      const uris = tx.select().from(photos).where(eq(photos.itemId, item.id)).all().map((p: Photo) => p.localUri);
+      photoUris.push(...uris);
+      tx.delete(photos).where(eq(photos.itemId, item.id)).run();
+    }
+    tx.delete(items).where(eq(items.sessionId, id)).run();
+    tx.delete(sessions).where(eq(sessions.id, id)).run();
+    return { photoUris, reminderNotificationIds };
+  });
+}
+
+/** Local tolerant JSON-array-of-strings parse (mirrors lib/notifications.parseNotifIds
+ *  without importing the expo-notifications module into pure repo code). */
+function parseNotifIdsText(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 export type AddItemInput = {

@@ -122,6 +122,7 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#000" } }}>
         <Stack.Screen name="session/new" options={{ presentation: "modal" }} />
+        <Stack.Screen name="session/edit" options={{ presentation: "modal" }} />
         <Stack.Screen name="session/[id]/camera" options={{ presentation: "fullScreenModal" }} />
         <Stack.Screen name="item/[id]/sold" options={{ presentation: "modal" }} />
         <Stack.Screen name="auth/sign-in" options={{ presentation: "modal" }} />
