@@ -18,7 +18,7 @@ import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
 import { setWelcomed } from "../lib/first-run";
 import { runUpdateCheck } from "../lib/updates";
-import { ensureAlarmChannel } from "../lib/notifications";
+import { ensureAlarmChannel, notifResponsePath } from "../lib/notifications";
 import { showError } from "../lib/toast";
 import { AppToast } from "../components/AppToast";
 
@@ -47,6 +47,7 @@ export default function RootLayout() {
   });
   const url = Linking.useURL();
   const lastHandledUrl = useRef<string | null>(null);
+  const handled = useRef(false); // cold-start launch response — replay at most once
 
   useEffect(() => {
     if (migrated) { ensureEntitlements(db); sweepOrphans(db).catch(() => {}); }
@@ -88,18 +89,21 @@ export default function RootLayout() {
   }, [url, migrated]);
 
   // Session reminders: ensure the Android alarm channel exists, and route a
-  // notification tap to its session via the deep-link URL stashed in data.
+  // notification tap to its session by PATH (never the raw scheme-URL) —
+  // both the response that launched a cold-started app and any tap received
+  // while the app is already running.
   useEffect(() => {
     if (!migrated) return;
     void ensureAlarmChannel();
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      try {
-        const url = response.notification.request.content.data?.url;
-        if (typeof url === "string") router.push(url as Parameters<typeof router.push>[0]);
-      } catch {
-        // Malformed notification payload — ignore the tap.
-      }
-    });
+    const routeNotif = (resp: Notifications.NotificationResponse | null) => {
+      const path = notifResponsePath(resp);
+      if (path) router.push(path as Parameters<typeof router.push>[0]);
+    };
+    if (!handled.current) {
+      handled.current = true;
+      routeNotif(Notifications.getLastNotificationResponse());
+    }
+    const sub = Notifications.addNotificationResponseReceivedListener(routeNotif);
     return () => sub.remove();
   }, [migrated]);
 

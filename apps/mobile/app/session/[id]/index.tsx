@@ -43,8 +43,28 @@ export default function DashboardScreen() {
       <AppHead
         title={session.name}
         onBack={() => router.back()}
-        right={<Badge label={session.type.toUpperCase()} />}
+        right={
+          <View className="flex-row items-center gap-2">
+            <Badge label={session.type.toUpperCase()} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Edit session"
+              onPress={() => router.push(`/session/edit?id=${id}`)}
+              className="h-10 w-10 items-center justify-center rounded-full bg-surface2"
+            >
+              <Icon name="PencilSimple" size={16} color={COLORS.inkDim} />
+            </Pressable>
+          </View>
+        }
       />
+      {session.locationName || session.location ? (
+        <View className="flex-row items-center gap-1.5">
+          <Icon name="MapPin" size={12} color={COLORS.inkFaint} />
+          <Text style={{ fontFamily: FONT.text, lineHeight: 16 }} className="text-[12px] text-inkfaint" numberOfLines={1}>
+            {session.locationName ?? session.location}
+          </Text>
+        </View>
+      ) : null}
 
       {session.type === "selector" ? (
         <View style={{ paddingTop: 12, paddingBottom: 8 }}>

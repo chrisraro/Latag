@@ -59,21 +59,25 @@ export async function scheduleSessionReminders(
 
   const ids: string[] = [];
   for (const { offset, time } of entries) {
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `⏰ ${s.name}`,
-        body: reminderBodyFor(offset),
-        sound: "alarm.wav",
-        interruptionLevel: "timeSensitive",
-        data: { url: `latag://session/${s.id}` },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: new Date(time),
-        channelId: ALARM_CHANNEL_ID,
-      },
-    });
-    ids.push(id);
+    try {
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `⏰ ${s.name}`,
+          body: reminderBodyFor(offset),
+          sound: "alarm.wav",
+          interruptionLevel: "timeSensitive",
+          data: { url: `latag://session/${s.id}` },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: new Date(time),
+          channelId: ALARM_CHANNEL_ID,
+        },
+      });
+      ids.push(id);
+    } catch {
+      // One reminder failing to schedule must not drop the rest.
+    }
   }
   return ids;
 }
@@ -89,6 +93,25 @@ export async function cancelReminders(ids: string[] | null | undefined): Promise
       // Already fired or unknown — nothing to cancel.
     }
   }
+}
+
+/** Extracts the in-app router path (e.g. "/session/abc") from a notification
+ *  response's stashed `latag://...` deep-link (see scheduleSessionReminders'
+ *  data.url above). Routes by PATH, never by the raw scheme-URL. Returns null
+ *  for anything else — missing response, malformed payload, non-latag scheme —
+ *  so callers can no-op safely. */
+export function notifResponsePath(
+  resp: Notifications.NotificationResponse | null | undefined,
+): string | null {
+  try {
+    const url = resp?.notification.request.content.data?.url;
+    if (typeof url === "string" && url.startsWith("latag://")) {
+      return url.replace(/^latag:\/\//, "/");
+    }
+  } catch {
+    // Malformed payload — no-op.
+  }
+  return null;
 }
 
 /** Tolerant JSON-array-of-strings parser for sessions.reminderNotificationIds:
