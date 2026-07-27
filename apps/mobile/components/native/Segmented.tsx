@@ -2,6 +2,7 @@ import { Component, type ReactNode } from "react";
 import { Platform, ScrollView, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { COLORS, FONT } from "../../lib/theme";
+import { NATIVE_UI_ENABLED } from "../../lib/native-ui";
 import { Chip } from "../ui";
 
 /**
@@ -62,7 +63,16 @@ export function resolveSegmentedUI(platform: string, loadModule: () => Segmented
 
 // Resolved once at module load — Platform.OS never changes for a running
 // process, and the native side does not appear halfway through a session.
-const segmentedUI = resolveSegmentedUI(Platform.OS, () => require("@expo/ui/jetpack-compose"));
+//
+// Gated on NATIVE_UI_ENABLED, currently false. `SegmentedButton` is ordinary
+// Material 3, not the expressive component that crash-looped the tab bar on
+// 2026-07-27, and it may well be perfectly fine — but "may well be" is not
+// something to find out through an OTA, which is the one channel a bricked
+// device cannot roll back for itself. This ships in a native build or not at
+// all; until then the chip row below is the control, exactly as before.
+const segmentedUI = NATIVE_UI_ENABLED
+  ? resolveSegmentedUI(Platform.OS, () => require("@expo/ui/jetpack-compose"))
+  : null;
 
 /** Anything that goes wrong *after* the module resolves — a bad prop, a native
  *  layout edge case — still must not take the filters (or the list under them)
