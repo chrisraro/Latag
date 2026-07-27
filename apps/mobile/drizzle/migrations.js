@@ -6,6 +6,7 @@ import m0001 from './0001_demonic_professor_monster.sql';
 import m0002 from './0002_unusual_wong.sql';
 import m0003 from './0003_omniscient_mariko_yashida.sql';
 import m0004 from './0004_wet_zzzax.sql';
+import m0005 from './0005_futuristic_iron_patriot.sql';
 
   export default {
     journal,
@@ -14,7 +15,8 @@ import m0004 from './0004_wet_zzzax.sql';
 m0001,
 m0002,
 m0003,
-m0004
+m0004,
+m0005
     }
   }
   
