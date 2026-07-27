@@ -340,7 +340,7 @@ test("bumpAttempt increments and dequeuePublish removes only its own row", () =>
   expect(listPublishQueue(db).map((r) => r.id)).toEqual([rowB.id]);
 });
 
-test("markPublished sets publishedAt + shopCode; markUnpublished nulls both", () => {
+test("markPublished sets publishedAt + shopCode; markUnpublished keeps the code (stable forever)", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);
   const s = createSession(db, { name: "Run", type: "selector" });
@@ -352,7 +352,8 @@ test("markPublished sets publishedAt + shopCode; markUnpublished nulls both", ()
   expect(published.shopCode).toBe("LT-7K2Q9");
   const unpublished = markUnpublished(db, item.id);
   expect(unpublished.publishedAt).toBeNull();
-  expect(unpublished.shopCode).toBeNull();
+  // Code survives: a buyer may still hold it from a screenshot or DM thread.
+  expect(unpublished.shopCode).toBe(published.shopCode);
 });
 
 test("generateShopCode produces LT- codes with no ambiguous 0/O/1/I/L characters", () => {
