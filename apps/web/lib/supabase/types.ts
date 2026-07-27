@@ -23,7 +23,14 @@ export type ShopItemStatus = "available" | "sold";
 /** One ordered measurement pair, e.g. `{ k: "Waist", v: "32\"" }`. */
 export type ShopItemSpec = { k: string; v: string };
 
-/** `public.shops` — see supabase/migrations/0003_storefront.sql. */
+/**
+ * `public.shops` — see supabase/migrations/0003_storefront.sql.
+ *
+ * This is the OWNER's view of the row. The `anon` role can only select the
+ * subset granted by 0005_shop_public_columns.sql — notably NOT `user_id` — so
+ * anything reading with the anon key must select from `SHOP_HEADER_COLUMNS` /
+ * `SHOP_SITEMAP_COLUMNS` in `lib/shop-columns.ts`, never `*`.
+ */
 export type ShopRow = {
   id: string;
   user_id: string;

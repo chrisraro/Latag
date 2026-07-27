@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { formatPeso, itemTitle } from "../../../../lib/shop-format";
+import { formatPeso, itemTitle, versionedPhotoUrl } from "../../../../lib/shop-format";
 import { getShop, getShopItem } from "../../../../lib/shop-queries";
 import { BODY_FAMILY, DISPLAY_FAMILY, archivoFonts } from "../../og-fonts";
 
@@ -40,10 +40,19 @@ function clamp(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
 
-async function inlinePhoto(url: string | undefined): Promise<string | null> {
+/**
+ * The allowlist is checked against the RAW url — versioning must never be able
+ * to smuggle a value past it. The fetch then uses the versioned url so both the
+ * CDN and this route's own hour-long data-cache entry rotate when a seller
+ * re-shoots the photo; otherwise a re-shared link keeps previewing the old shot.
+ */
+async function inlinePhoto(
+  url: string | undefined,
+  updatedAt: string | undefined
+): Promise<string | null> {
   if (!url || !url.startsWith(ALLOWED_PHOTO_PREFIX)) return null;
   try {
-    const res = await fetch(url, { next: { revalidate: 3600 } });
+    const res = await fetch(versionedPhotoUrl(url, updatedAt), { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const type = res.headers.get("content-type") ?? "";
     if (!type.startsWith("image/")) return null;
@@ -63,7 +72,7 @@ export default async function Image({
   const { handle, item: code } = await params;
   const shop = await getShop(handle);
   const item = shop ? await getShopItem(shop.id, code) : null;
-  const photo = await inlinePhoto(item?.photo_urls?.[0]);
+  const photo = await inlinePhoto(item?.photo_urls?.[0], item?.updated_at);
 
   const title = item ? itemTitle(item) : "Latag";
   const price = item ? formatPeso(item.price) : "";

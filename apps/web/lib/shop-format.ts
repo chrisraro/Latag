@@ -15,8 +15,56 @@ export type ShopHeader = Pick<
 
 export type ShopItem = Pick<
   ShopItemRow,
-  "code" | "brand" | "name" | "department" | "category" | "condition" | "specs" | "price" | "status" | "photo_urls"
+  | "code"
+  | "brand"
+  | "name"
+  | "department"
+  | "category"
+  | "condition"
+  | "specs"
+  | "price"
+  | "status"
+  | "photo_urls"
+  /** Never rendered. It is the cache key for the photos — see `itemPhotoUrls`. */
+  | "updated_at"
 >;
+
+/**
+ * Photo objects are written to deterministic paths (`{user}/{item}/{n}.jpg`)
+ * with `upsert: true`, so re-shooting a photo replaces the bytes behind a URL
+ * that never changes. Both the Supabase CDN and Next's image optimizer would
+ * then keep serving the old shot for their full TTL, and the seller — who can
+ * see the new photo on their phone — has no way to tell.
+ *
+ * `shop_items.updated_at` moves on every republish (the `touch_updated_at`
+ * trigger fires on the upsert's UPDATE branch), which makes it the cheapest
+ * honest signal that the bytes may have changed. Folding it into the query
+ * string gives a URL that is stable while the item is, and new the moment it
+ * is not — so caching still works, it just stops lying.
+ *
+ * NOTE: `next.config.ts` must NOT set `search: ""` on the remote pattern.
+ * That value means "empty query string only" and would reject every URL below
+ * with a 400. Pinned by `tests/photo-url.test.ts`.
+ */
+export function photoVersion(updatedAt: string | null | undefined): string | null {
+  if (!updatedAt) return null;
+  const ms = Date.parse(updatedAt);
+  if (!Number.isFinite(ms)) return null;
+  return ms.toString(36);
+}
+
+export function versionedPhotoUrl(url: string, updatedAt: string | null | undefined): string {
+  const version = photoVersion(updatedAt);
+  if (!url || !version) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}v=${version}`;
+}
+
+/** Every photo on an item, cache-busted, in the seller's order. */
+export function itemPhotoUrls(
+  item: Pick<ShopItem, "photo_urls" | "updated_at">
+): string[] {
+  return (item.photo_urls ?? []).map((url) => versionedPhotoUrl(url, item.updated_at));
+}
 
 /** Buyer-facing department labels; the DB stores the lowercase key. */
 const DEPARTMENT_LABELS: Record<string, string> = {

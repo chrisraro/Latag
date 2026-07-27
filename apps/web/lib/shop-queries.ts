@@ -3,6 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 import { cache } from "react";
 import type { Database } from "./supabase/types";
 import type { ShopHeader, ShopItem } from "./shop-format";
+import {
+  SHOP_HEADER_COLUMNS,
+  SHOP_ITEM_COLUMNS,
+  SHOP_SITEMAP_COLUMNS,
+  columnList,
+} from "./shop-columns";
 
 /**
  * Read-side of the public storefront.
@@ -19,6 +25,12 @@ import type { ShopHeader, ShopItem } from "./shop-format";
  *
  * Nothing in this file can reach cost, profit, location or batch data: those
  * columns do not exist on `shop_items`.
+ *
+ * The column lists live in `shop-columns.ts` and are not decorative: after
+ * migration 0005 the `anon` role holds a COLUMN-level grant on `shops`, so a
+ * `select("*")` here would fail the request outright rather than quietly
+ * handing buyers the owner's `user_id`. Add a column there, in the migration,
+ * and only then here.
  */
 function publicSupabase() {
   return createClient<Database>(
@@ -30,10 +42,9 @@ function publicSupabase() {
 
 export type { ShopHeader, ShopItem };
 
-const SHOP_COLUMNS =
-  "id, handle, display_name, bio, contact_messenger, contact_instagram, contact_email";
-const ITEM_COLUMNS =
-  "code, brand, name, department, category, condition, specs, price, status, photo_urls";
+const SHOP_COLUMNS = columnList(SHOP_HEADER_COLUMNS);
+const ITEM_COLUMNS = columnList(SHOP_ITEM_COLUMNS);
+const SITEMAP_SHOP_COLUMNS = columnList(SHOP_SITEMAP_COLUMNS);
 
 /** Handles are citext and lowercase by construction; normalize so a shared link
  *  with stray casing or whitespace still resolves. */
@@ -111,7 +122,7 @@ export type SitemapEntry = { path: string; lastModified: Date };
 export async function listStorefrontUrls(): Promise<SitemapEntry[]> {
   try {
     const db = publicSupabase();
-    const { data: shops } = await db.from("shops").select("id, handle, updated_at");
+    const { data: shops } = await db.from("shops").select(SITEMAP_SHOP_COLUMNS);
     if (!shops || shops.length === 0) return [];
 
     const byId = new Map(shops.map((s) => [s.id, s.handle]));
