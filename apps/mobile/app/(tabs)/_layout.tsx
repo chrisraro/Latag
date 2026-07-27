@@ -7,7 +7,10 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "#000" } }}
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
-      <Tabs.Screen name="index" options={{ title: "Inventory" }} />
+      {/* `index` is Home (it re-exports `home.tsx`); `home` therefore exists as a
+          route too, but the bar's destination allowlist keeps it off the bar. */}
+      <Tabs.Screen name="index" options={{ title: "Home" }} />
+      <Tabs.Screen name="inventory" options={{ title: "Inventory" }} />
       <Tabs.Screen name="batches" options={{ title: "Batches" }} />
       <Tabs.Screen name="shop" options={{ title: "Shop" }} />
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />

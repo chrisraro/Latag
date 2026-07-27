@@ -29,7 +29,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FlashList } from "@shopify/flash-list";
 import { db } from "../db/client";
 import { sessions, items } from "../db/schema";
-import InventoryScreen from "../app/(tabs)/index";
+import InventoryScreen from "../app/(tabs)/inventory";
 
 let tree: ReactTestRenderer | null = null;
 
