@@ -74,3 +74,16 @@
 - [ ] First run (clear app data): Welcome → onboarding → lands on Inventory tab
 - [ ] Notification tap on a scheduled batch (app killed) still opens that batch; email sign-in link still returns to the app
 - [ ] Vocabulary: no screen says "session" anywhere in user-visible copy
+
+## Phase F2 — storefront (device + web)
+- [ ] Shop tab, Free account: Pro pitch shows, "Unlock with Pro" opens GoProSheet (no dead end)
+- [ ] Shop setup (Pro): handle availability shows Checking/Available/Taken; taking a used handle fails honestly; display name + bio + Messenger/IG/email save
+- [ ] Publish an item → within a minute it appears at latag.vercel.app/shop/{handle}; photos load; price shown, NO cost/profit anywhere on the page
+- [ ] Mark it sold in the app → drops off the shop (or shows SOLD if show_sold enabled)
+- [ ] Unpublish → gone from shop; republish → SAME LT- code as before
+- [ ] Airplane mode: publish → "changes pending"; reconnect → syncs; nothing blocks logging meanwhile
+- [ ] "Copy item link" from the app opens the right item page (code is case-insensitive in the URL)
+- [ ] Delete a batch with published items → its listings disappear from the shop
+- [ ] INQUIRY (real handsets, one Android + one iPhone): Messenger opens WITH the message pre-filled and un-sent · Instagram opens the DM with the message on the clipboard + toast · Email opens a pre-drafted mail
+- [ ] Desktop: Instagram button shows copyable text instead of dead-ending; shop link pasted into Messenger/FB shows the OG preview card
+- [ ] Privacy copy: no screen or page claims "never uploaded" without the publish caveat

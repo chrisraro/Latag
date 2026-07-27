@@ -74,7 +74,7 @@ export default async function AccountPage() {
         ) : (
           <>
             <div className="mt-3">
-              <Badge>Free — 20 item logs</Badge>
+              <Badge>Free — unlimited inventory</Badge>
             </div>
             {pricing ? (
               <p className="tnum mt-3 text-lg text-ink">Pro: ₱{pricing.price.toLocaleString("en-PH")} one-time</p>

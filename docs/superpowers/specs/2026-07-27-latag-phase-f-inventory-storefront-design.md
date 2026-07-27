@@ -52,7 +52,7 @@ Cost, profit, margins, supplier locations, batch data, and unsold stock stay loc
 
 `FREE_LOG_LIMIT` gating is removed from the save path; `entitlements.logsUsed` stays in the schema (no migration) but stops blocking. `GoProSheet` no longer triggers on item save — it moves to the publish action in F2. Copy updated wherever the 20-item cap is mentioned.
 
-## 3. F2 — Storefront
+## 3. F2 — Storefront (SHIPPED 2026-07-27)
 
 ### Supabase (migration `0003_storefront.sql`)
 
@@ -79,7 +79,7 @@ Cost, profit, margins, supplier locations, batch data, and unsold stock stay loc
 
 Free tier: 1GB ≈ 3,000–6,000 photos at current compression; 5GB/month egress. Mitigations: 4-photo cap per item, Vercel image optimization, lazy loading. Revisit when approaching limits.
 
-## 4. F3 — Inquiry routing
+## 4. F3 — Inquiry routing (SHIPPED 2026-07-27, inside F2)
 
 Seller configures three handles in Shop settings (`contact_messenger`, `contact_instagram`, `contact_email`); the item page renders a button per configured channel. **Researched and verified 2026-07-27** — prefill support differs per channel, and the design follows the evidence rather than assuming parity.
 
