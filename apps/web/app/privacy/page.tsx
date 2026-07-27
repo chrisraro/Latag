@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Privacy Policy" };
 
 export default function PrivacyPage() {
   return (
-    <Prose title="Privacy Policy" updated="July 13, 2026">
+    <Prose title="Privacy Policy" updated="July 27, 2026">
       <p>
         Latag is built so that we know as little about you as possible. This policy explains what little
         we collect, why, and what we never collect. The short version: nothing leaves your phone unless

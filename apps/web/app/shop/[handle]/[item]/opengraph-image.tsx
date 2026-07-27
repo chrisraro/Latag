@@ -27,12 +27,21 @@ const HAIRLINE = "#262626";
 
 const MAX_PHOTO_BYTES = 4_000_000;
 
+/**
+ * `photo_urls` is a seller-controlled column — RLS checks shop ownership, not
+ * column contents — so this Vercel function must never fetch it blind. Only
+ * URLs inside our own public storage bucket are allowed; anything else (an
+ * attacker aiming this route at an internal address) bails to the
+ * typographic layout instead of being fetched.
+ */
+const ALLOWED_PHOTO_PREFIX = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/shop-photos/`;
+
 function clamp(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
 
 async function inlinePhoto(url: string | undefined): Promise<string | null> {
-  if (!url) return null;
+  if (!url || !url.startsWith(ALLOWED_PHOTO_PREFIX)) return null;
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } });
     if (!res.ok) return null;

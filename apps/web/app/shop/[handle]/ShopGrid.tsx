@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { departmentLabel, formatPeso, itemTitle, type ShopItem } from "../../../lib/shop-format";
+import { departmentLabel, formatPeso, itemTitle, specEntries, type ShopItem } from "../../../lib/shop-format";
 
 /**
  * The stock grid. Filtering is client-side on purpose: the whole shop is already
@@ -19,8 +19,7 @@ import { departmentLabel, formatPeso, itemTitle, type ShopItem } from "../../../
 const ALL = "all";
 
 function sizeLine(item: ShopItem): string {
-  const parts = Object.entries(item.specs ?? {})
-    .filter(([, v]) => typeof v === "string" && v.trim().length > 0)
+  const parts = specEntries(item.specs)
     .slice(0, 2)
     .map(([k, v]) => `${k} ${v}`);
   return parts.join(" · ");

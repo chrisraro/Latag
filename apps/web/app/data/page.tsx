@@ -14,7 +14,7 @@ export default function DataPage() {
       <ul>
         <li>Inventory, sourcing batches, money math, and photos live in a local database and folder on your device.</li>
         <li>They are protected by your phone's built-in device encryption when you use a passcode or biometric lock.</li>
-        <li>The app makes zero network calls for inventory features — flip on airplane mode and everything still works. That's not a fallback; it's the design.</li>
+        <li>The app makes zero network calls for inventory logging — flip on airplane mode and every logging feature still works. That's not a fallback; it's the design. Publishing to your shop is the one inventory feature that needs a connection, and only when you choose to publish.</li>
         <li>Cost, profit, margins, supplier locations, and batch data never have a path off the device — there is nowhere on our servers for them to go, published or not.</li>
       </ul>
       <h2>What goes to the shop when you publish</h2>
