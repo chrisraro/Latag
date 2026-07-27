@@ -366,3 +366,87 @@ test("generateShopCode produces LT- codes with no ambiguous 0/O/1/I/L characters
   }
   expect(codes.size).toBeGreaterThan(400); // not a constant
 });
+
+// ------------------------------------------------- auto-sync on a published item (F2)
+
+/** A published item that the seller then edits, sells, un-sells or deletes. */
+function publishedItem(db: ReturnType<typeof makeTestDb>["db"]) {
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  markPublished(db, item.id, "LT-7K2Q9");
+  return item;
+}
+
+test("editing a published item queues an upsert so the shop follows the change", () => {
+  const { db } = makeTestDb();
+  const item = publishedItem(db);
+  updateItem(db, item.id, { targetSellPrice: 400 });
+  const rows = listPublishQueue(db);
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ itemId: item.id, op: "upsert", attempts: 0 });
+});
+
+test("editing an UNPUBLISHED item queues nothing — local stock never touches the network", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  updateItem(db, item.id, { targetSellPrice: 400 });
+  markSold(db, item.id, 380);
+  unmarkSold(db, item.id);
+  deleteItem(db, item.id);
+  expect(listPublishQueue(db)).toHaveLength(0);
+});
+
+test("marking a published item sold queues an upsert carrying the sold status", () => {
+  const { db } = makeTestDb();
+  const item = publishedItem(db);
+  markSold(db, item.id, 380);
+  const rows = listPublishQueue(db);
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ itemId: item.id, op: "upsert" });
+});
+
+test("undoing a sale on a published item queues an upsert that puts it back", () => {
+  const { db } = makeTestDb();
+  const item = publishedItem(db);
+  markSold(db, item.id, 380);
+  unmarkSold(db, item.id);
+  const rows = listPublishQueue(db);
+  expect(rows).toHaveLength(1); // last write wins — one row, not two
+  expect(rows[0]).toMatchObject({ itemId: item.id, op: "upsert" });
+});
+
+test("deleting a published item queues a delete that outlives the local row", () => {
+  const { db } = makeTestDb();
+  const item = publishedItem(db);
+  deleteItem(db, item.id);
+  expect(db.select().from(items).all()).toHaveLength(0);
+  const rows = listPublishQueue(db);
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ itemId: item.id, op: "delete" });
+});
+
+test("an edit queued before a delete collapses to the delete", () => {
+  const { db } = makeTestDb();
+  const item = publishedItem(db);
+  updateItem(db, item.id, { targetSellPrice: 400 });
+  deleteItem(db, item.id);
+  const rows = listPublishQueue(db);
+  expect(rows).toHaveLength(1);
+  expect(rows[0].op).toBe("delete");
+});
+
+test("deleting a batch removes its published items from the shop too", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "bulto", totalBaleCost: 1000 });
+  const listed = addItem(db, { sessionId: s.id, ...base }).item;
+  const local = addItem(db, { sessionId: s.id, ...base }).item;
+  markPublished(db, listed.id, "LT-7K2Q9");
+  deleteSession(db, s.id);
+  const rows = listPublishQueue(db);
+  expect(rows.map((r) => [r.itemId, r.op])).toEqual([[listed.id, "delete"]]);
+  expect(rows.some((r) => r.itemId === local.id)).toBe(false);
+});

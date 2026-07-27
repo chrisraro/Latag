@@ -14,6 +14,7 @@ import {
   normalizeContactHandle,
   normalizeHandle,
   saveMyShop,
+  shopItemUrl,
   shopUrl,
   shopUrlLabel,
   upsertShopItem,
@@ -592,6 +593,18 @@ describe("shop links", () => {
   test("both builders normalize whatever they are handed", () => {
     expect(shopUrl(" Naga Thrift ")).toBe("https://latag.vercel.app/shop/naga-thrift");
     expect(shopUrlLabel("Naga Thrift")).toBe("latag.vercel.app/shop/naga-thrift");
+  });
+
+  test("shopItemUrl addresses one listing by the code buyers can read aloud", () => {
+    expect(shopItemUrl("naga-thrift", "LT-7K2Q9")).toBe("https://latag.vercel.app/shop/naga-thrift/LT-7K2Q9");
+  });
+
+  test("shopItemUrl emits the code exactly as stored, whatever case it arrives in", () => {
+    expect(shopItemUrl(" Naga Thrift ", " lt-7k2q9 ")).toBe("https://latag.vercel.app/shop/naga-thrift/LT-7K2Q9");
+  });
+
+  test("shopItemUrl without a code degrades to the shop itself, never a broken link", () => {
+    expect(shopItemUrl("naga-thrift", null)).toBe("https://latag.vercel.app/shop/naga-thrift");
   });
 });
 
