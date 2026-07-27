@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
 import { COLORS } from "../lib/theme";
+import { NATIVE_UI_ENABLED } from "../lib/native-ui";
 import { scrollTabToTop } from "../lib/tab-scroll";
 import { Icon, type IconName } from "./Icon";
 import { FloatingTabBar, TAB_DESTINATIONS, TAB_BAR_CLEARANCE } from "./FloatingTabBar";
@@ -53,7 +54,15 @@ export function resolveJetpackUI(platform: string, loadModule: () => JetpackUI):
 
 // Computed once, at module load — Platform.OS never changes for a running
 // process, so there is no reason to re-resolve this on every render.
-const jetpackUI = resolveJetpackUI(Platform.OS, () => require("@expo/ui/jetpack-compose"));
+//
+// Gated on NATIVE_UI_ENABLED, which is currently false: this exact toolbar
+// crash-looped the owner's phone on 2026-07-27. The crash was inside Compose,
+// on the UI thread, where `NativeTabBarBoundary` below cannot see it — read
+// lib/native-ui.ts before changing this line. With the gate off the app uses
+// `FloatingTabBar`, which is what shipped and what carries the brand anyway.
+const jetpackUI = NATIVE_UI_ENABLED
+  ? resolveJetpackUI(Platform.OS, () => require("@expo/ui/jetpack-compose"))
+  : null;
 
 /** Anything that goes wrong *after* the module resolves — a bad prop, a
  *  native-side layout edge case — still must not white-screen the app. */
