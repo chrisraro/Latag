@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { inquiryMessage, inquirySubject, itemUrl } from "../../../../lib/inquiry";
-import { departmentLabel, formatPeso, itemTitle, type ShopItem } from "../../../../lib/shop-format";
+import { departmentLabel, formatPeso, itemTitle, specEntries, type ShopItem } from "../../../../lib/shop-format";
 import { getShop, getShopItem } from "../../../../lib/shop-queries";
 import { ShopFooter, ShopNav } from "../../StorefrontChrome";
 import { InquiryButtons } from "./InquiryButtons";
@@ -54,9 +54,7 @@ export default async function ItemPage({ params }: Props) {
 
   const { shop, item } = data;
   const title = itemTitle(item);
-  const specs = Object.entries(item.specs ?? {}).filter(
-    ([, v]) => typeof v === "string" && v.trim().length > 0
-  );
+  const specs = specEntries(item.specs);
   const url = itemUrl(shop.handle, item.code);
   const message = inquiryMessage({
     code: item.code,

@@ -15,7 +15,7 @@ import { usePathname } from "next/navigation";
  * the wrong chrome — this is a render-time branch, not a post-hydration one.
  */
 function isStorefront(pathname: string | null): boolean {
-  return pathname === "/shop" || (pathname?.startsWith("/shop/") ?? false);
+  return pathname?.startsWith("/shop/") ?? false;
 }
 
 export function SiteHeader() {

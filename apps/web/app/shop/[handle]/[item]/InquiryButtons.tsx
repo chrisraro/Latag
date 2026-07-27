@@ -105,7 +105,6 @@ export function InquiryButtons({ message, subject, itemUrl, messenger, instagram
           {messenger ? (
             <a
               href={messengerHref(messenger, message)}
-              data-message={message}
               onClick={copyMessage}
               target="_blank"
               rel="noopener noreferrer"
@@ -119,7 +118,6 @@ export function InquiryButtons({ message, subject, itemUrl, messenger, instagram
             <>
               <a
                 href={instagramHref(instagram)}
-                data-message={message}
                 onClick={copyMessage}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -129,7 +127,6 @@ export function InquiryButtons({ message, subject, itemUrl, messenger, instagram
               </a>
               <a
                 href={instagramWebHref(instagram)}
-                data-message={message}
                 onClick={copyMessage}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -143,7 +140,6 @@ export function InquiryButtons({ message, subject, itemUrl, messenger, instagram
           {email ? (
             <a
               href={mailtoHref(email, subject, message)}
-              data-message={message}
               onClick={copyMessage}
               className={SECONDARY}
             >

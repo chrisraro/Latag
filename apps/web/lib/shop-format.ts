@@ -1,4 +1,4 @@
-import type { ShopItemRow, ShopRow } from "./supabase/types";
+import type { ShopItemRow, ShopItemSpec, ShopRow } from "./supabase/types";
 
 /**
  * Storefront display helpers and the shapes the pages render.
@@ -40,4 +40,20 @@ export function formatPeso(amount: number): string {
 export function itemTitle(item: { brand: string; name: string | null }): string {
   const name = item.name?.trim();
   return name ? `${item.brand} ${name}` : item.brand;
+}
+
+/**
+ * Normalizes `shop_items.specs` into ordered [key, value] pairs for display.
+ *
+ * The column is an ordered array of `{ k, v }` pairs so a seller's chosen
+ * order (e.g. Waist before Inseam) survives to the storefront. Some rows may
+ * still carry the legacy jsonb-object shape from before that migration —
+ * those fall back to `Object.entries` (unordered) rather than crashing.
+ */
+export function specEntries(specs: ShopItemSpec[] | Record<string, string> | null | undefined): [string, string][] {
+  if (!specs) return [];
+  const pairs: [string, string][] = Array.isArray(specs)
+    ? specs.map((s) => [s.k, s.v] as [string, string])
+    : Object.entries(specs);
+  return pairs.filter(([, v]) => typeof v === "string" && v.trim().length > 0);
 }

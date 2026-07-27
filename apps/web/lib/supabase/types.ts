@@ -20,6 +20,9 @@ export type FeedbackType = "feedback" | "suggestion" | "feature_request";
 export type FeedbackStatus = "new" | "reviewed" | "done";
 export type ShopItemStatus = "available" | "sold";
 
+/** One ordered measurement pair, e.g. `{ k: "Waist", v: "32\"" }`. */
+export type ShopItemSpec = { k: string; v: string };
+
 /** `public.shops` — see supabase/migrations/0003_storefront.sql. */
 export type ShopRow = {
   id: string;
@@ -47,8 +50,14 @@ export type ShopItemRow = {
   department: string;
   category: string;
   condition: string;
-  /** Measurement label → formatted value, e.g. `{ "Pit-to-pit": "21\"" }`. */
-  specs: Record<string, string>;
+  /**
+   * Ordered measurement pairs, e.g. `[{ k: "Waist", v: "32\"" }, { k: "Inseam", v: "30\"" }]`.
+   * The array order is the seller's intended display order. Some rows may
+   * still carry the legacy jsonb-object shape (`{ "Waist": "32\"" }`) from
+   * before this column became an ordered array — readers should tolerate
+   * both (see `specEntries` in `lib/shop-format.ts`).
+   */
+  specs: ShopItemSpec[] | Record<string, string>;
   price: number;
   status: ShopItemStatus;
   photo_urls: string[];
