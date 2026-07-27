@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       </p>
       <h2>What never leaves your phone</h2>
       <p>
-        Your inventory — sessions, items, costs, profits, and every photo you take — is stored in a database
+        Your inventory — items, batches, costs, profits, and every photo you take — is stored in a database
         on your device. By default, none of it is uploaded, synced, or backed up to our servers. We cannot
         see it, sell it, or hand it to anyone, because we do not have it. This stays true permanently for
         anything you haven't published: unpublished items, costs, profit margins, supplier locations, and

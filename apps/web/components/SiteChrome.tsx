@@ -22,8 +22,10 @@ export function SiteHeader() {
   const pathname = usePathname();
   if (isStorefront(pathname)) return null;
 
+  // Wraps rather than overflows: logo + four nav targets do not fit on a 390px
+  // viewport at any sane gap, so the nav drops to its own line instead.
   return (
-    <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
+    <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-5 py-5 sm:px-6">
       <Link href="/" className="flex items-center gap-2.5">
         <svg viewBox="0 0 512 512" className="h-7 w-7" aria-hidden="true">
           <g transform="translate(256,256) rotate(-12)">
@@ -36,7 +38,7 @@ export function SiteHeader() {
         </svg>
         <span className="display-black text-xl uppercase tracking-wide text-acid">Latag</span>
       </Link>
-      <nav aria-label="Main" className="flex items-center gap-5 text-sm text-inkdim">
+      <nav aria-label="Main" className="flex items-center gap-4 text-sm text-inkdim sm:gap-5">
         <Link className="hover:text-ink focus-visible:text-ink" href="/pro">Pricing</Link>
         <Link className="hover:text-ink focus-visible:text-ink" href="/data">Data</Link>
         <Link className="hover:text-ink focus-visible:text-ink" href="/account">Account</Link>
@@ -56,7 +58,7 @@ export function SiteFooter() {
   if (isStorefront(pathname)) return null;
 
   return (
-    <footer className="mx-auto mt-24 max-w-5xl border-t border-hairline px-5 py-10 text-sm text-inkfaint">
+    <footer className="mx-auto mt-24 max-w-6xl border-t border-hairline px-5 py-10 text-sm text-inkfaint sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p>© {new Date().getFullYear()} Latag · Made for the ukay grind</p>
         <nav aria-label="Legal" className="flex gap-5">

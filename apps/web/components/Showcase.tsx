@@ -3,13 +3,19 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+/**
+ * Ordered as the pitch is ordered: inventory first (the home screen), then the
+ * storefront the buyer sees, then the seller's publish controls — and only then
+ * the logging and batch-math screens that support them.
+ */
 const SCREENS = [
+  { src: "/screens/inventory.png",          title: "Inventory",           caption: "Every piece across every batch — search, filter by department, sort by price." },
+  { src: "/screens/storefront.png",         title: "Your Shop Page",      caption: "What buyers see at latag.vercel.app/shop/yourname — photos, sizes, price, Message." },
+  { src: "/screens/shop-tab.png",           title: "Publish Controls",    caption: "Your link, your listing counts, and exactly which items are live." },
   { src: "/screens/console.png",            title: "Rapid Console",       caption: "Log a piece in 5 seconds — wheels, chips, zero typing." },
-  { src: "/screens/dashboard-bulto.png",    title: "Bulto Dashboard",     caption: "Capital recovery to break-even, live from your phone." },
-  { src: "/screens/dashboard-selector.png", title: "Selector Dashboard",  caption: "Projected and realized profit, piece by piece." },
-  { src: "/screens/sessions.png",           title: "Sessions",            caption: "Every sourcing run, headline number first." },
-  { src: "/screens/item-detail.png",        title: "Item Detail",         caption: "Photos, sizes, prices — mark sold in one swipe." },
-  { src: "/screens/ig-export.png",          title: "IG Drop Export",      caption: "The whole drop caption, ready to paste." },
+  { src: "/screens/item-detail.png",        title: "Item Detail",         caption: "Photos and measurements — publish it or mark it sold from here." },
+  { src: "/screens/dashboard-bulto.png",    title: "Bulto Batch",         caption: "Capital recovery to break-even, live from your phone." },
+  { src: "/screens/dashboard-selector.png", title: "Selector Batch",      caption: "Projected and realized profit, piece by piece." },
 ] as const;
 
 const COUNT = SCREENS.length;
