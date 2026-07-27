@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Prose } from "@/components/Prose";
 
 export const metadata: Metadata = { title: "Terms of Use" };
@@ -19,6 +20,14 @@ export default function TermsPage() {
         is lost, broken, or the app is uninstalled, your inventory cannot be recovered by us — we never had a
         copy. Your Pro license, however, is tied to your account and survives: sign in on a new device to
         restore it.
+      </p>
+      <h2>Publishing to your shop</h2>
+      <p>
+        Pro unlocks a public storefront. Publishing an item is your choice, made one item at a time, and you
+        are responsible for what you publish — the accuracy of prices, condition, descriptions, and photos,
+        and your right to sell what's listed. We can take down a listing or a shop that violates these terms
+        or the law; see our <Link href="/privacy" className="underline">Privacy Policy</Link> for exactly what
+        publishing uploads and how to remove it.
       </p>
       <h2>Purchases and refunds</h2>
       <p>

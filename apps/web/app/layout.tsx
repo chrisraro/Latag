@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://latag.vercel.app"),
   title: { default: "Latag — the ukay ops console", template: "%s · Latag" },
   description:
-    "Log a piece in 5 seconds, know your margins instantly, and drop to Instagram in one tap. 100% offline — built for ukay-ukay resellers.",
+    "Log a piece in 5 seconds, know your margins instantly, and drop to Instagram in one tap. Your stock, costs and margins never leave your phone unless you publish an item to your shop.",
   openGraph: {
     title: "Latag — the ukay ops console",
     description: "Log fast. Know your margins. Work offline.",

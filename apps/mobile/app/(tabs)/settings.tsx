@@ -197,7 +197,7 @@ export default function SettingsScreen() {
         <FieldLabel>Account</FieldLabel>
         <SettingsRow
           icon="EnvelopeSimple"
-          title={session ? (session.user.email ?? "Signed in") : "Sign in once — Latag runs 100% offline after"}
+          title={session ? (session.user.email ?? "Signed in") : "Sign in once — inventory stays offline after"}
           subtitle={session ? "Signed in" : "Activate Pro or restore it on a new phone"}
           onPress={session ? undefined : () => router.push("/auth/sign-in")}
           chevron={!session}
@@ -234,7 +234,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon="WifiSlash"
           title="Offline-first"
-          subtitle="Inventory, photos & math never leave this phone"
+          subtitle="Inventory, costs & math stay on this phone — only published items go online"
         />
 
         <SettingsRow

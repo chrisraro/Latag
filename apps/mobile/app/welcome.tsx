@@ -45,7 +45,7 @@ export default function WelcomeScreen() {
         </Text>
         <FeatRow icon="Target" label="Two buying modes — Selector & Bulto" />
         <FeatRow icon="Camera" label="5-second logging, zero typing" />
-        <FeatRow icon="WifiSlash" label="100% offline after activation" />
+        <FeatRow icon="WifiSlash" label="100% offline — unless you choose to publish" />
       </View>
 
       <View>
@@ -57,7 +57,7 @@ export default function WelcomeScreen() {
           style={{ fontFamily: FONT.text, lineHeight: 16, marginBottom: 8 }}
           className="mt-3 text-center text-[11.5px] text-inkfaint"
         >
-          {"Sign-in is only for Pro licensing.\nYour inventory never leaves this phone."}
+          {"Sign-in is only for Pro licensing.\nNothing leaves your phone unless you publish it."}
         </Text>
       </View>
     </View>

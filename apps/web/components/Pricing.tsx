@@ -10,7 +10,7 @@ export function Pricing({ detailed }: { detailed?: boolean }) {
           <CheckItem>20 item logs — yours forever, no timer</CheckItem>
           <CheckItem>Unlimited sessions, photos &amp; dashboards</CheckItem>
           <CheckItem>IG drop export</CheckItem>
-          <CheckItem>Works 100% offline</CheckItem>
+          <CheckItem>Works 100% offline — nothing leaves your phone unless you publish</CheckItem>
         </ul>
       </section>
       <section aria-labelledby="pro-plan" className="rounded-2xl border border-acid bg-surface1 p-6">
@@ -22,7 +22,7 @@ export function Pricing({ detailed }: { detailed?: boolean }) {
           <CheckItem>Unlimited item logs</CheckItem>
           <CheckItem>Everything in Free</CheckItem>
           <CheckItem>Pay once on the web — GCash, Maya &amp; cards at launch</CheckItem>
-          <CheckItem>Still 100% offline. Your inventory never touches our servers.</CheckItem>
+          <CheckItem>Still 100% offline. Your costs and margins never touch our servers.</CheckItem>
         </ul>
         {detailed ? (
           <p className="mt-5 rounded-xl border border-hairline bg-surface2 p-4 text-sm text-inkdim">

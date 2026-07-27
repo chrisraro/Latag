@@ -72,12 +72,13 @@ export default function Home() {
       </section>
 
       {/* OFFLINE / PRIVACY */}
-      <section aria-label="No signal. No servers. No problem." className="border-t border-hairline">
+      <section aria-label="No signal. Nothing shared — until you publish." className="border-t border-hairline">
         <div className="mx-auto max-w-5xl px-5 py-20">
-          <SectionTitle>No signal. No servers. No problem.</SectionTitle>
+          <SectionTitle>No signal. Nothing shared — until you publish.</SectionTitle>
           <p className="mt-4 max-w-[60ch] text-inkdim">
             Warehouses and basements kill cell signal — Latag doesn't care. Your inventory, photos, and money math
-            live in a database on your phone. Nothing is uploaded. We couldn't read your stock list if we wanted to.
+            live in a database on your phone and never leave it, unless you publish an item to your shop — and even
+            then, only the buyer-facing details go up. We couldn't read your cost or profit numbers if we wanted to.
           </p>
           <div className="mt-6"><CtaButton href="/data" secondary>Read the data promise</CtaButton></div>
         </div>
