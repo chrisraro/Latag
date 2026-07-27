@@ -3,13 +3,19 @@ import { supabase } from "../lib/supabase";
 import {
   MAX_ITEM_PHOTOS,
   SHOP_PHOTOS_BUCKET,
+  SHOP_URL_PREFIX,
+  cacheShop,
+  cachedShop,
   checkHandleAvailable,
   decodeBase64,
   deleteShopItem,
   getMyShop,
   isValidHandle,
+  normalizeContactHandle,
   normalizeHandle,
   saveMyShop,
+  shopUrl,
+  shopUrlLabel,
   upsertShopItem,
   uploadItemPhotos,
   type ShopItemUpsert,
@@ -566,5 +572,73 @@ describe("deleteShopItem", () => {
     });
     const res = await deleteShopItem("item-uuid-1");
     expect(res.ok).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Shop links
+// ---------------------------------------------------------------------------
+
+describe("shop links", () => {
+  test("shopUrl is the tappable https link buyers receive", () => {
+    expect(shopUrl("naga-thrift")).toBe("https://latag.vercel.app/shop/naga-thrift");
+  });
+
+  test("shopUrlLabel drops the scheme so the UI reads like the printed address", () => {
+    expect(shopUrlLabel("naga-thrift")).toBe("latag.vercel.app/shop/naga-thrift");
+    expect(SHOP_URL_PREFIX).toBe("latag.vercel.app/shop/");
+  });
+
+  test("both builders normalize whatever they are handed", () => {
+    expect(shopUrl(" Naga Thrift ")).toBe("https://latag.vercel.app/shop/naga-thrift");
+    expect(shopUrlLabel("Naga Thrift")).toBe("latag.vercel.app/shop/naga-thrift");
+  });
+});
+
+describe("normalizeContactHandle", () => {
+  test("strips the @ sellers habitually type", () => {
+    expect(normalizeContactHandle("@juan.ukay")).toBe("juan.ukay");
+  });
+
+  test("strips a pasted profile URL down to the username", () => {
+    expect(normalizeContactHandle("https://www.instagram.com/juan.ukay/")).toBe("juan.ukay");
+    expect(normalizeContactHandle("m.me/juan.ukay")).toBe("juan.ukay");
+    expect(normalizeContactHandle("https://facebook.com/juan.ukay")).toBe("juan.ukay");
+  });
+
+  test("leaves a plain username and blank input alone", () => {
+    expect(normalizeContactHandle("juan.ukay")).toBe("juan.ukay");
+    expect(normalizeContactHandle("   ")).toBe("");
+    expect(normalizeContactHandle(null as unknown as string)).toBe("");
+  });
+});
+
+describe("profile cache", () => {
+  const profile: ShopProfile = {
+    handle: "naga-thrift",
+    displayName: "Naga Thrift",
+    bio: "Curated finds",
+    contactMessenger: "juan",
+    contactInstagram: null,
+    contactEmail: null,
+    showSold: false,
+  };
+
+  test("round-trips the last known profile so the Shop tab works offline", async () => {
+    await cacheShop(profile);
+    await expect(cachedShop()).resolves.toEqual(profile);
+  });
+
+  test("caching null clears it (the seller has no shop)", async () => {
+    await cacheShop(profile);
+    await cacheShop(null);
+    await expect(cachedShop()).resolves.toBeNull();
+  });
+
+  test("never throws on unreadable storage", async () => {
+    const AsyncStorage = require("@react-native-async-storage/async-storage");
+    const spy = jest.spyOn(AsyncStorage, "getItem").mockRejectedValueOnce(new Error("disk"));
+    await expect(cachedShop()).resolves.toBeNull();
+    spy.mockRestore();
   });
 });
