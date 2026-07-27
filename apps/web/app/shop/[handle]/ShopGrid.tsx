@@ -3,7 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { departmentLabel, formatPeso, itemTitle, specEntries, type ShopItem } from "../../../lib/shop-format";
+import {
+  departmentLabel,
+  formatPeso,
+  itemPhotoUrls,
+  itemTitle,
+  specEntries,
+  type ShopItem,
+} from "../../../lib/shop-format";
 
 /**
  * The stock grid. Filtering is client-side on purpose: the whole shop is already
@@ -26,7 +33,9 @@ function sizeLine(item: ShopItem): string {
 }
 
 function PhotoFrame({ item, featured }: { item: ShopItem; featured: boolean }) {
-  const src = item.photo_urls?.[0];
+  // Versioned, so a re-shot photo shows the new bytes instead of whatever the
+  // CDN cached against the item's unchanging object path.
+  const src = itemPhotoUrls(item)[0];
   return (
     <div
       className={`relative overflow-hidden bg-surface2 ${

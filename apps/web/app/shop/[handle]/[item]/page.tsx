@@ -2,7 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { inquiryMessage, inquirySubject, itemUrl } from "../../../../lib/inquiry";
-import { departmentLabel, formatPeso, itemTitle, specEntries, type ShopItem } from "../../../../lib/shop-format";
+import {
+  departmentLabel,
+  formatPeso,
+  itemPhotoUrls,
+  itemTitle,
+  specEntries,
+  type ShopItem,
+} from "../../../../lib/shop-format";
 import { getShop, getShopItem } from "../../../../lib/shop-queries";
 import { ShopFooter, ShopNav } from "../../StorefrontChrome";
 import { InquiryButtons } from "./InquiryButtons";
@@ -55,6 +62,8 @@ export default async function ItemPage({ params }: Props) {
   const { shop, item } = data;
   const title = itemTitle(item);
   const specs = specEntries(item.specs);
+  // Versioned against the row's updated_at — see `versionedPhotoUrl`.
+  const photos = itemPhotoUrls(item);
   const url = itemUrl(shop.handle, item.code);
   const message = inquiryMessage({
     code: item.code,
@@ -76,8 +85,8 @@ export default async function ItemPage({ params }: Props) {
             className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 md:mx-0 md:block md:overflow-visible md:px-0"
             aria-label={`Photos of ${title}`}
           >
-            {item.photo_urls.length > 0 ? (
-              item.photo_urls.map((src, index) => (
+            {photos.length > 0 ? (
+              photos.map((src, index) => (
                 <div
                   key={src}
                   className="relative aspect-[4/5] w-[86%] shrink-0 snap-center overflow-hidden rounded-2xl border border-hairline bg-surface2 md:mb-4 md:w-full"
