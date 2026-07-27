@@ -91,6 +91,7 @@ const PROFILE: ShopProfile = {
   contactInstagram: "tita.ukay",
   contactEmail: "tita@example.com",
   showSold: true,
+  isPublished: true,
 };
 
 const PROFILE_ROW = {
@@ -101,6 +102,7 @@ const PROFILE_ROW = {
   contact_instagram: "tita.ukay",
   contact_email: "tita@example.com",
   show_sold: true,
+  is_published: true,
 };
 
 const ITEM: ShopItemUpsert = {
@@ -238,6 +240,7 @@ describe("getMyShop", () => {
           contact_instagram: null,
           contact_email: null,
           show_sold: false,
+          is_published: false,
         },
         error: null,
       }),
@@ -253,6 +256,7 @@ describe("getMyShop", () => {
         contactInstagram: null,
         contactEmail: null,
         showSold: false,
+        isPublished: false,
       },
     });
   });
@@ -293,6 +297,7 @@ describe("saveMyShop", () => {
       contact_instagram: "tita.ukay",
       contact_email: "tita@example.com",
       show_sold: true,
+      is_published: true,
     });
   });
 
@@ -329,6 +334,21 @@ describe("saveMyShop", () => {
     });
     const res = await saveMyShop(PROFILE);
     expect(res.ok).toBe(false);
+  });
+
+  test("both visibility switches travel to the columns RLS actually reads", async () => {
+    const builder = chain({ data: { ...PROFILE_ROW, show_sold: false, is_published: false }, error: null });
+    mockedSupabase.from.mockReturnValue(builder);
+
+    await saveMyShop({ ...PROFILE, showSold: false, isPublished: false });
+
+    expect(builder.upsert.mock.calls[0][0]).toMatchObject({ show_sold: false, is_published: false });
+  });
+
+  test("a shop read back with is_published false is reported as offline, not silently live", async () => {
+    mockedSupabase.from.mockReturnValue(chain({ data: { ...PROFILE_ROW, is_published: false }, error: null }));
+    const res = await getMyShop();
+    expect(res).toMatchObject({ ok: true, data: { isPublished: false } });
   });
 });
 
@@ -672,6 +692,7 @@ describe("profile cache", () => {
     contactInstagram: null,
     contactEmail: null,
     showSold: false,
+    isPublished: true,
   };
 
   test("round-trips the last known profile so the Shop tab works offline", async () => {
@@ -683,6 +704,15 @@ describe("profile cache", () => {
     await cacheShop(profile);
     await cacheShop(null);
     await expect(cachedShop()).resolves.toBeNull();
+  });
+
+  test("a cache written before the visibility switches existed reads as a live shop", async () => {
+    const AsyncStorage = require("@react-native-async-storage/async-storage");
+    await AsyncStorage.setItem(
+      "latag.shop.profile",
+      JSON.stringify({ handle: "naga-thrift", displayName: "Naga Thrift" }),
+    );
+    await expect(cachedShop()).resolves.toMatchObject({ showSold: false, isPublished: true });
   });
 
   test("never throws on unreadable storage", async () => {

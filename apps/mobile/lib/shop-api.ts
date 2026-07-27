@@ -29,6 +29,10 @@ export type ShopProfile = {
   contactInstagram: string | null;
   contactEmail: string | null;
   showSold: boolean;
+  /** The whole page's on/off switch. `shops.is_published` is what the public
+   *  RLS policy reads, so false makes the shop 404 for every buyer while
+   *  leaving each item's own published state untouched. */
+  isPublished: boolean;
 };
 
 export type ShopFailReason = "auth" | "taken" | "network" | "error";
@@ -204,6 +208,8 @@ export async function cachedShop(): Promise<ShopProfile | null> {
       contactInstagram: p.contactInstagram ?? null,
       contactEmail: p.contactEmail ?? null,
       showSold: p.showSold === true,
+      // Caches written before this switch existed describe a live shop.
+      isPublished: p.isPublished !== false,
     };
   } catch {
     return null;
@@ -237,7 +243,7 @@ export async function checkHandleAvailable(h: string): Promise<ShopResult<boolea
 // Shop profile
 // ---------------------------------------------------------------------------
 
-const SHOP_COLUMNS = "handle,display_name,bio,contact_messenger,contact_instagram,contact_email,show_sold";
+const SHOP_COLUMNS = "handle,display_name,bio,contact_messenger,contact_instagram,contact_email,show_sold,is_published";
 
 type ShopRow = {
   handle: string;
@@ -247,6 +253,7 @@ type ShopRow = {
   contact_instagram: string | null;
   contact_email: string | null;
   show_sold: boolean;
+  is_published: boolean;
 };
 
 function toProfile(row: ShopRow): ShopProfile {
@@ -258,6 +265,8 @@ function toProfile(row: ShopRow): ShopProfile {
     contactInstagram: row.contact_instagram ?? null,
     contactEmail: row.contact_email ?? null,
     showSold: row.show_sold === true,
+    // The column is `not null default true`; only an explicit false is off.
+    isPublished: row.is_published !== false,
   };
 }
 
@@ -307,6 +316,7 @@ export async function saveMyShop(p: ShopProfile): Promise<ShopResult<ShopProfile
           contact_instagram: blankToNull(p.contactInstagram),
           contact_email: blankToNull(p.contactEmail),
           show_sold: p.showSold === true,
+          is_published: p.isPublished !== false,
         },
         { onConflict: "user_id" },
       )

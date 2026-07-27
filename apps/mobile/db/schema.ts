@@ -47,6 +47,11 @@ export const items = sqliteTable("items", {
   // buyers quote; it is minted once and never changes for the life of the item.
   publishedAt: integer("published_at", { mode: "timestamp" }),
   shopCode: text("shop_code"),
+  // Which photo set was last successfully uploaded to storage, as JSON
+  // {"k":<ordered local URIs>,"u":[public urls]} — see lib/shop-sync. Null means
+  // "nothing up there", so the next publish uploads. Never read as truth about
+  // the item itself; it exists only to keep a price edit off mobile data.
+  photoSync: text("photo_sync"),
 });
 
 /**

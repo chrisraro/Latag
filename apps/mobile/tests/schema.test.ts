@@ -183,6 +183,8 @@ test("migration rebuild preserves pre-existing item rows (zero data loss)", () =
   // publish queue table exists and accepts a row.
   expect(row.published_at).toBeNull();
   expect(row.shop_code).toBeNull();
+  // The photo-upload marker starts empty, so the first publish of a legacy row uploads.
+  expect(row.photo_sync).toBeNull();
   sqlite.prepare(
     "INSERT INTO publish_queue (id, item_id, op, created_at) VALUES ('q1', 'i1', 'upsert', 1700000200)"
   ).run();

@@ -135,6 +135,48 @@ export function toShopItemUpsert(item: Item, photoUrls: string[]): ShopItemUpser
 }
 
 // ---------------------------------------------------------------------------
+// Photo upload marker
+// ---------------------------------------------------------------------------
+
+/**
+ * A seller editing a price on mobile data must not re-send four full JPEGs.
+ * `items.photoSync` remembers the photo set that last reached storage, so an
+ * upsert whose photos are unchanged skips the upload and still publishes the
+ * row. The marker is written only after an upload actually succeeds, and
+ * cleared whenever those objects stop being ours (a delete wipes the folder;
+ * signing out changes whose folder it is).
+ */
+export type PhotoSync = { key: string; urls: string[] };
+
+/**
+ * Identity of a photo set. Order, content and count all matter — each is a
+ * reason the uploaded photos would be wrong. Serialised rather than joined on
+ * a separator so a URI that happens to contain that separator cannot
+ * impersonate two photos and skip an upload that was needed.
+ */
+export function photoSetKey(localUris: string[]): string {
+  return JSON.stringify(localUris ?? []);
+}
+
+/** Reads the marker defensively: anything unparseable means "upload again",
+ *  which is only ever slower, never wrong. */
+export function readPhotoSync(raw: string | null | undefined): PhotoSync | null {
+  if (!raw) return null;
+  try {
+    const p = JSON.parse(raw) as { k?: unknown; u?: unknown };
+    if (typeof p?.k !== "string" || !Array.isArray(p.u)) return null;
+    if (!p.u.every((u) => typeof u === "string")) return null;
+    return { key: p.k, urls: p.u as string[] };
+  } catch {
+    return null;
+  }
+}
+
+export function writePhotoSync(s: PhotoSync): string {
+  return JSON.stringify({ k: s.key, u: s.urls });
+}
+
+// ---------------------------------------------------------------------------
 // Real deps
 // ---------------------------------------------------------------------------
 
@@ -145,6 +187,27 @@ function orderedLocalUris(db: AnyDb, itemId: string): string[] {
   return [...rows]
     .sort((a, b) => (SLOT_ORDER[a.type] ?? 9) - (SLOT_ORDER[b.type] ?? 9))
     .map((p) => p.localUri);
+}
+
+function setPhotoSync(db: AnyDb, itemId: string, value: string | null): void {
+  try {
+    db.update(items).set({ photoSync: value }).where(eq(items.id, itemId)).run();
+  } catch {
+    // A marker that fails to write only costs a redundant upload next time.
+  }
+}
+
+/**
+ * Forgets every recorded upload. The URLs are scoped to one account's storage
+ * folder, so after a sign-out they may no longer be ours to reuse — the next
+ * publish must upload afresh rather than point buyers at someone else's bytes.
+ */
+export function forgetUploadedPhotos(db: AnyDb): void {
+  try {
+    db.update(items).set({ photoSync: null }).run();
+  } catch {
+    // Same contract as the rest of this module: nothing here may throw.
+  }
 }
 
 export function makeSyncDeps(db: AnyDb): DrainDeps {
@@ -158,13 +221,37 @@ export function makeSyncDeps(db: AnyDb): DrainDeps {
       // forever would poison the queue — treat it as satisfied.
       if (!item || !item.publishedAt || !item.shopCode) return { ok: true, data: null };
 
-      const uploaded = await uploadItemPhotos(item.id, orderedLocalUris(db, item.id));
-      if (!uploaded.ok) return uploaded;
-      return upsertShopItem(toShopItemUpsert(item, uploaded.data));
+      // Photos are the expensive part of a publish — up to four full JPEGs over
+      // a market's mobile data. A price or status edit changes none of them, so
+      // an unchanged set reuses the URLs already recorded and uploads nothing.
+      const uris = orderedLocalUris(db, item.id);
+      const key = photoSetKey(uris);
+      const known = readPhotoSync(item.photoSync);
+
+      let photoUrls: string[];
+      if (known && known.key === key) {
+        photoUrls = known.urls;
+      } else {
+        const uploaded = await uploadItemPhotos(item.id, uris);
+        if (!uploaded.ok) return uploaded;
+        photoUrls = uploaded.data;
+        // Recorded before the row upsert: the bytes are already up there, so a
+        // failed upsert must not buy a second upload on its retry.
+        setPhotoSync(db, item.id, writePhotoSync({ key, urls: photoUrls }));
+      }
+
+      return upsertShopItem(toShopItemUpsert(item, photoUrls));
     },
 
     // item_local_id is the local item id, which survives the local row's deletion.
-    remove: (r) => deleteShopItem(r.itemId),
+    remove: async (r) => {
+      const res = await deleteShopItem(r.itemId);
+      // deleteShopItem also empties the item's storage folder, so the recorded
+      // URLs now point at nothing. Forgetting them is what makes a later
+      // re-publish upload again instead of listing broken images.
+      if (res.ok) setPhotoSync(db, r.itemId, null);
+      return res;
+    },
 
     done: (id) => { db.delete(publishQueue).where(eq(publishQueue.id, id)).run(); },
 

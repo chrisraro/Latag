@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Text, TextInput, ScrollView } from "react-native";
+import { View, Text, TextInput, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -38,6 +38,48 @@ function contactOrNull(v: string): string | null {
   return blankToNull(normalizeContactHandle(v));
 }
 
+/**
+ * A labelled switch row. The pill geometry (46x28, acid when on) matches the
+ * Publish switch on app/item/[id] so the two read as the same control — that
+ * one carries an icon and a gating hint, which is why it keeps its own markup.
+ */
+function ToggleRow({
+  label,
+  helper,
+  value,
+  onToggle,
+}: {
+  label: string;
+  helper: string;
+  value: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: value }}
+      onPress={onToggle}
+      className="mb-2 flex-row items-center gap-3 rounded-card border border-hairline bg-surface1 px-3 py-3.5"
+    >
+      <View className="min-w-0 flex-1">
+        <Text style={{ fontFamily: FONT.semibold, lineHeight: 20 }} className="text-[14.5px] text-ink">
+          {label}
+        </Text>
+        <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-0.5 text-[12px] text-inkfaint">
+          {helper}
+        </Text>
+      </View>
+      <View className={`h-7 w-[46px] flex-none justify-center rounded-full border ${value ? "border-acid bg-acid" : "border-hairline bg-surface2"}`}>
+        <View
+          style={{ marginHorizontal: 3 }}
+          className={`h-5 w-5 rounded-full ${value ? "self-end bg-acidink" : "self-start bg-inkfaint"}`}
+        />
+      </View>
+    </Pressable>
+  );
+}
+
 export default function ShopSetupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -50,7 +92,10 @@ export default function ShopSetupScreen() {
   const [messenger, setMessenger] = useState("");
   const [instagram, setInstagram] = useState("");
   const [email, setEmail] = useState("");
-  const [showSold, setShowSold] = useState(false); // preserved across edits; no F2 control yet
+  const [showSold, setShowSold] = useState(false);
+  // A new shop is live the moment it is saved — that is the point of setting one
+  // up. `shops.is_published` defaults to true for the same reason.
+  const [isPublished, setIsPublished] = useState(true);
   const [ready, setReady] = useState(false);
   const [handleState, setHandleState] = useState<HandleState>("idle");
   const [takenOnSave, setTakenOnSave] = useState(false);
@@ -72,6 +117,7 @@ export default function ShopSetupScreen() {
         setInstagram(p.contactInstagram ?? "");
         setEmail(p.contactEmail ?? "");
         setShowSold(p.showSold);
+        setIsPublished(p.isPublished);
         savedHandle.current = p.handle;
       }
       setReady(true);
@@ -115,6 +161,7 @@ export default function ShopSetupScreen() {
       contactInstagram: contactOrNull(instagram),
       contactEmail: contactOrNull(email),
       showSold,
+      isPublished,
     });
     setSaving(false);
 
@@ -210,6 +257,20 @@ export default function ShopSetupScreen() {
         <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 16 }} className={`${helperCls} text-right`}>
           {bio.length}/{BIO_MAX}
         </Text>
+
+        <FieldLabel>Visibility</FieldLabel>
+        <ToggleRow
+          label="Shop is live"
+          helper="Turning this off hides your whole page. Your items stay published — they come back the moment you switch it on."
+          value={isPublished}
+          onToggle={() => setIsPublished((v) => !v)}
+        />
+        <ToggleRow
+          label="Show sold items"
+          helper="Sold pieces stay visible with a SOLD badge — good social proof."
+          value={showSold}
+          onToggle={() => setShowSold((v) => !v)}
+        />
 
         <FieldLabel>Contacts</FieldLabel>
         <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="mb-3 text-[12.5px] text-inkdim">

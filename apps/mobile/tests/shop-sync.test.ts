@@ -1,16 +1,20 @@
+import { eq } from "drizzle-orm";
 import { makeTestDb } from "./helpers/testDb";
 import { addItem, addPhoto, createSession, enqueuePublish, listPublishQueue, markPublished } from "../lib/repo";
 import { deleteShopItem, uploadItemPhotos, upsertShopItem } from "../lib/shop-api";
 import {
   MAX_ATTEMPTS,
   drainQueue,
+  forgetUploadedPhotos,
   kickSync,
   pendingLabel,
+  photoSetKey,
+  readPhotoSync,
   syncPublishQueue,
   toShopItemUpsert,
   type DrainDeps,
 } from "../lib/shop-sync";
-import type { PublishQueueRow } from "../db/schema";
+import { items, photos, type PublishQueueRow } from "../db/schema";
 
 jest.mock("../lib/shop-api", () => ({
   uploadItemPhotos: jest.fn(),
@@ -228,6 +232,178 @@ test("syncPublishQueue swallows everything and reports zeroes when the queue can
   const broken = { select: () => { throw new Error("db gone"); } };
   await expect(syncPublishQueue(broken as any)).resolves.toEqual({
     processed: 0, succeeded: 0, failed: 0, gaveUp: 0,
+  });
+});
+
+// ------------------------------------------- redundant photo uploads (F2 perf)
+
+describe("photoSetKey", () => {
+  test("identifies a photo set by its ordered local URIs", () => {
+    expect(photoSetKey(["file:///a.jpg", "file:///b.jpg"])).toBe(photoSetKey(["file:///a.jpg", "file:///b.jpg"]));
+  });
+
+  test("order, content and count all change the key", () => {
+    const base = photoSetKey(["file:///a.jpg", "file:///b.jpg"]);
+    expect(photoSetKey(["file:///b.jpg", "file:///a.jpg"])).not.toBe(base);
+    expect(photoSetKey(["file:///a.jpg", "file:///c.jpg"])).not.toBe(base);
+    expect(photoSetKey(["file:///a.jpg"])).not.toBe(base);
+    expect(photoSetKey([])).not.toBe(base);
+  });
+
+  test("a URI carrying the separator itself cannot masquerade as two photos", () => {
+    expect(photoSetKey(["file:///a.jpg\u0000file:///b.jpg"])).not.toBe(photoSetKey(["file:///a.jpg", "file:///b.jpg"]));
+  });
+});
+
+describe("readPhotoSync", () => {
+  test("null, junk and wrong-shaped markers all read as 'nothing uploaded yet'", () => {
+    expect(readPhotoSync(null)).toBeNull();
+    expect(readPhotoSync("")).toBeNull();
+    expect(readPhotoSync("{not json")).toBeNull();
+    expect(readPhotoSync('{"k":"x"}')).toBeNull();
+    expect(readPhotoSync('{"u":["https://cdn.test/0.jpg"]}')).toBeNull();
+    expect(readPhotoSync('{"k":"x","u":"nope"}')).toBeNull();
+  });
+});
+
+describe("photo re-upload guard", () => {
+  /** A published item with two photos, already synced once. */
+  async function publishedAndSynced() {
+    const { db } = makeTestDb();
+    const s = createSession(db, { name: "Run", type: "selector" });
+    const { item } = addItem(db, { sessionId: s.id, ...baseItem });
+    addPhoto(db, { itemId: item.id, localUri: "file:///m/front.jpg", type: "front" });
+    addPhoto(db, { itemId: item.id, localUri: "file:///m/tag.jpg", type: "tag" });
+    markPublished(db, item.id, "LT-7K2Q9");
+    enqueuePublish(db, item.id, "upsert");
+    mockedUpload.mockResolvedValue(ok(["https://cdn.test/0.jpg", "https://cdn.test/1.jpg"]));
+
+    await syncPublishQueue(db);
+    expect(mockedUpload).toHaveBeenCalledTimes(1);
+    mockedUpload.mockClear();
+    mockedUpsert.mockClear();
+    return { db, itemId: item.id };
+  }
+
+  const itemRow = (db: any, id: string) => db.select().from(items).where(eq(items.id, id)).all()[0];
+  const lastPayload = () => mockedUpsert.mock.calls[mockedUpsert.mock.calls.length - 1][0];
+
+  test("the first publish records exactly what it uploaded", async () => {
+    const { db, itemId } = await publishedAndSynced();
+    expect(readPhotoSync(itemRow(db, itemId).photoSync)).toEqual({
+      key: photoSetKey(["file:///m/front.jpg", "file:///m/tag.jpg"]),
+      urls: ["https://cdn.test/0.jpg", "https://cdn.test/1.jpg"],
+    });
+  });
+
+  test("a price-only edit re-upserts the row and uploads nothing", async () => {
+    const { db, itemId } = await publishedAndSynced();
+
+    db.update(items).set({ targetSellPrice: 900 }).where(eq(items.id, itemId)).run();
+    enqueuePublish(db, itemId, "upsert");
+
+    expect((await syncPublishQueue(db)).succeeded).toBe(1);
+    expect(mockedUpload).not.toHaveBeenCalled();
+    expect(lastPayload().price).toBe(900);
+    expect(lastPayload().photoUrls).toEqual(["https://cdn.test/0.jpg", "https://cdn.test/1.jpg"]);
+  });
+
+  test("marking an item sold uploads nothing either — only the status moved", async () => {
+    const { db, itemId } = await publishedAndSynced();
+
+    db.update(items).set({ status: "sold", soldPrice: 800, soldAt: new Date() }).where(eq(items.id, itemId)).run();
+    enqueuePublish(db, itemId, "upsert");
+
+    await syncPublishQueue(db);
+    expect(mockedUpload).not.toHaveBeenCalled();
+    expect(lastPayload().status).toBe("sold");
+  });
+
+  test("swapping a photo re-uploads the whole set and re-records it", async () => {
+    const { db, itemId } = await publishedAndSynced();
+
+    db.update(photos).set({ localUri: "file:///m/front-2.jpg" })
+      .where(eq(photos.localUri, "file:///m/front.jpg")).run();
+    enqueuePublish(db, itemId, "upsert");
+    mockedUpload.mockResolvedValue(ok(["https://cdn.test/0.jpg", "https://cdn.test/1.jpg"]));
+
+    await syncPublishQueue(db);
+
+    expect(mockedUpload).toHaveBeenCalledWith(itemId, ["file:///m/front-2.jpg", "file:///m/tag.jpg"]);
+    expect(readPhotoSync(itemRow(db, itemId).photoSync)?.key)
+      .toBe(photoSetKey(["file:///m/front-2.jpg", "file:///m/tag.jpg"]));
+  });
+
+  test("adding a photo re-uploads", async () => {
+    const { db, itemId } = await publishedAndSynced();
+    addPhoto(db, { itemId, localUri: "file:///m/flaw.jpg", type: "flaw" });
+    enqueuePublish(db, itemId, "upsert");
+
+    await syncPublishQueue(db);
+
+    expect(mockedUpload).toHaveBeenCalledWith(itemId, [
+      "file:///m/front.jpg", "file:///m/tag.jpg", "file:///m/flaw.jpg",
+    ]);
+  });
+
+  test("a failed upload records nothing, so the retry still uploads", async () => {
+    const { db } = makeTestDb();
+    const s = createSession(db, { name: "Run", type: "selector" });
+    const { item } = addItem(db, { sessionId: s.id, ...baseItem });
+    addPhoto(db, { itemId: item.id, localUri: "file:///m/front.jpg", type: "front" });
+    markPublished(db, item.id, "LT-7K2Q9");
+    enqueuePublish(db, item.id, "upsert");
+    mockedUpload.mockResolvedValue(bad("network", "offline"));
+
+    expect((await syncPublishQueue(db)).failed).toBe(1);
+    expect(itemRow(db, item.id).photoSync).toBeNull();
+
+    mockedUpload.mockResolvedValue(ok(["https://cdn.test/0.jpg"]));
+    await syncPublishQueue(db);
+    expect(mockedUpload).toHaveBeenCalledTimes(2);
+  });
+
+  test("a failed upsert keeps the marker, so the retry skips the re-upload", async () => {
+    const { db, itemId } = await publishedAndSynced();
+
+    db.update(items).set({ targetSellPrice: 900 }).where(eq(items.id, itemId)).run();
+    enqueuePublish(db, itemId, "upsert");
+    mockedUpsert.mockResolvedValue(bad("network", "offline"));
+    await syncPublishQueue(db);
+
+    mockedUpsert.mockResolvedValue(ok(null));
+    await syncPublishQueue(db);
+
+    expect(mockedUpload).not.toHaveBeenCalled();
+    expect(listPublishQueue(db)).toHaveLength(0);
+  });
+
+  test("removing the listing forgets the uploaded set — deleteShopItem wipes the folder, so a re-publish must upload again", async () => {
+    const { db, itemId } = await publishedAndSynced();
+
+    enqueuePublish(db, itemId, "delete");
+    await syncPublishQueue(db);
+    expect(itemRow(db, itemId).photoSync).toBeNull();
+
+    enqueuePublish(db, itemId, "upsert");
+    await syncPublishQueue(db);
+    expect(mockedUpload).toHaveBeenCalledTimes(1);
+  });
+
+  test("forgetUploadedPhotos clears every marker — signing out changes whose storage folder these URLs live in", async () => {
+    const { db, itemId } = await publishedAndSynced();
+    expect(itemRow(db, itemId).photoSync).not.toBeNull();
+
+    forgetUploadedPhotos(db);
+
+    expect(itemRow(db, itemId).photoSync).toBeNull();
+    enqueuePublish(db, itemId, "upsert");
+    await syncPublishQueue(db);
+    expect(mockedUpload).toHaveBeenCalledTimes(1);
+  });
+
+  test("forgetUploadedPhotos never throws on a broken db", () => {
+    expect(() => forgetUploadedPhotos({ update: () => { throw new Error("db gone"); } } as any)).not.toThrow();
   });
 });
 

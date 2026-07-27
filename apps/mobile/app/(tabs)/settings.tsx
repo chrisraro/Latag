@@ -14,6 +14,7 @@ import { ensureEntitlements } from "../../lib/entitlements";
 import { getMediaUsage } from "../../lib/storage-usage";
 import { showSuccess, showError } from "../../lib/toast";
 import { runUpdateCheck, versionLabel } from "../../lib/updates";
+import { forgetUploadedPhotos } from "../../lib/shop-sync";
 import { FONT, COLORS } from "../../lib/theme";
 import { FieldLabel } from "../../components/ui";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
@@ -179,6 +180,9 @@ export default function SettingsScreen() {
       showError("Couldn't sign out — check your connection and try again");
       return;
     }
+    // The recorded photo uploads live in the signed-out account's storage
+    // folder; whoever signs in next must upload their own copies.
+    forgetUploadedPhotos(db);
     showSuccess("Signed out — your data and Pro stay on this phone");
   };
 
