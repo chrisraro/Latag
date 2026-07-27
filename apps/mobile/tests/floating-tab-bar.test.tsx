@@ -17,10 +17,19 @@ jest.mock("expo-glass-effect", () => {
   return { GlassView: View, isLiquidGlassAvailable: () => false };
 });
 
+import { Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { FloatingTabBar } from "../components/FloatingTabBar";
+import { registerTabScroll } from "../lib/tab-scroll";
 
 beforeEach(() => { jest.clearAllMocks(); });
+
+/** Runs `fn` as if the bundle were running on `os`. */
+function onPlatform(os: "ios" | "android", fn: () => void) {
+  const original = Platform.OS;
+  (Platform as { OS: string }).OS = os;
+  try { fn(); } finally { (Platform as { OS: string }).OS = original; }
+}
 
 const NAMES = ["index", "batches", "shop", "settings"] as const;
 const TITLES: Record<string, string> = {
@@ -60,13 +69,28 @@ function tabByLabel(t: ReactTestRenderer, label: string) {
   return hit!;
 }
 
-test("renders one accessible button per route, labelled by its title", () => {
+test("renders one accessible control per route, labelled by its title", () => {
   const { props } = makeProps();
   const t = render(props);
   expect(tabs(t).map((n) => n.props.accessibilityLabel)).toEqual([
     "Inventory", "Batches", "Shop", "Settings",
   ]);
-  expect(tabs(t).every((n) => n.props.accessibilityRole === "button")).toBe(true);
+});
+
+// React Navigation ships Platform.select({ ios: "button", default: "tab" }) —
+// TalkBack needs role=tab to announce "tab 3 of 4", VoiceOver reads the bar.
+test("Android announces each control as a tab", () => {
+  onPlatform("android", () => {
+    const t = render(makeProps().props);
+    expect(tabs(t).every((n) => n.props.accessibilityRole === "tab")).toBe(true);
+  });
+});
+
+test("iOS keeps the button role", () => {
+  onPlatform("ios", () => {
+    const t = render(makeProps().props);
+    expect(tabs(t).every((n) => n.props.accessibilityRole === "button")).toBe(true);
+  });
 });
 
 test("only the focused route is marked selected", () => {
@@ -93,7 +117,19 @@ test("a prevented tabPress does not navigate or buzz", () => {
   expect(Haptics.selectionAsync).not.toHaveBeenCalled();
 });
 
-test("pressing the already-focused tab does not navigate or buzz", () => {
+test("re-tapping the active tab scrolls its list to the top instead of navigating", () => {
+  const scroll = jest.fn();
+  const unregister = registerTabScroll("index", scroll);
+  const { props, navigate } = makeProps({ index: 0 });
+  const t = render(props);
+  act(() => { tabByLabel(t, "Inventory").props.onPress(); });
+  expect(scroll).toHaveBeenCalledTimes(1);
+  expect(navigate).not.toHaveBeenCalled();
+  expect(Haptics.selectionAsync).toHaveBeenCalled(); // the tap did something — say so
+  unregister();
+});
+
+test("re-tapping an active tab with nothing to scroll stays silent", () => {
   const { props, navigate } = makeProps({ index: 0 });
   const t = render(props);
   act(() => { tabByLabel(t, "Inventory").props.onPress(); });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +18,7 @@ import { forgetUploadedPhotos } from "../../lib/shop-sync";
 import { FONT, COLORS } from "../../lib/theme";
 import { FieldLabel } from "../../components/ui";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
+import { useTabScrollToTop } from "../../lib/tab-scroll";
 import { AppHead } from "../../components/AppHead";
 import { Icon, type IconName } from "../../components/Icon";
 
@@ -94,6 +95,12 @@ export default function SettingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [usage, setUsage] = useState({ count: 0, bytes: 0, label: "0 B" });
+  const scrollRef = useRef<ScrollView>(null);
+  useTabScrollToTop("settings", useCallback(() => {
+    if (!scrollRef.current) return false;
+    scrollRef.current.scrollTo({ y: 0, animated: true });
+    return true;
+  }, []));
   const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
   const ent = entRows?.[0];
 
@@ -197,7 +204,7 @@ export default function SettingsScreen() {
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <AppHead title="Settings" />
 
-      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} className="flex-1">
         <FieldLabel>Account</FieldLabel>
         <SettingsRow
           icon="EnvelopeSimple"

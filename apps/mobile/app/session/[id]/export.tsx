@@ -151,7 +151,7 @@ export default function ExportScreen() {
         </Text>
         <View className="mb-2 flex-row gap-2">
           <SecondaryButton label="Copy caption" icon="ClipboardText" onPress={copy} />
-          <SecondaryButton label="Save all images" icon="Download" onPress={saveAllImages} />
+          <SecondaryButton label="Save all images" icon="Download" busy={mediaBusy} onPress={saveAllImages} />
         </View>
       </View>
     </View>

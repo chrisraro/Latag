@@ -50,8 +50,16 @@ describe("reminderBodyFor", () => {
   test("offset 60 -> hours", () => {
     expect(reminderBodyFor(60)).toBe("Bale opens in 1h");
   });
-  test("offset 1440 -> countdown-style hours", () => {
-    expect(reminderBodyFor(1440)).toBe("Bale opens in 24h");
+  // The "1 day before" preset must read the way the chip does — nobody calls
+  // tomorrow "24h".
+  test("offset 1440 -> days, not 24h", () => {
+    expect(reminderBodyFor(1440)).toBe("Bale opens in 1 day");
+  });
+  test("whole multiples of a day pluralise", () => {
+    expect(reminderBodyFor(2880)).toBe("Bale opens in 2 days");
+  });
+  test("a non-whole day falls back to the shared countdown format", () => {
+    expect(reminderBodyFor(1500)).toBe("Bale opens in 25h");
   });
 });
 

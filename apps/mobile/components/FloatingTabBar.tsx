@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
 import { FONT, COLORS } from "../lib/theme";
+import { scrollTabToTop } from "../lib/tab-scroll";
 import { Icon, type IconName } from "./Icon";
 
 /** Route name → icon. Keep in sync with `app/(tabs)/_layout.tsx`. */
@@ -49,7 +50,13 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 
     const onPress = () => {
       const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-      if (focused || event.defaultPrevented) return;
+      if (event.defaultPrevented) return;
+      if (focused) {
+        // Standard behaviour: re-tapping the active tab returns its list to the
+        // top. Buzz only if a list was actually there to scroll.
+        if (scrollTabToTop(route.name)) Haptics.selectionAsync();
+        return;
+      }
       Haptics.selectionAsync();
       navigation.navigate(route.name, route.params);
     };
@@ -59,7 +66,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         key={route.key}
         onPress={onPress}
         onLongPress={() => { navigation.emit({ type: "tabLongPress", target: route.key }); }}
-        accessibilityRole="button"
+        // Matches React Navigation's Platform.select({ ios: "button", default:
+        // "tab" }): TalkBack needs role=tab to announce "tab 3 of 4", while
+        // VoiceOver reads the bar itself and prefers plain buttons.
+        accessibilityRole={Platform.OS === "ios" ? "button" : "tab"}
         accessibilityLabel={label}
         accessibilityState={{ selected: focused }}
         style={{ flex: 1, alignItems: "center", justifyContent: "center" }}

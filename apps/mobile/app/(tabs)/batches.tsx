@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, FlatList } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, View, Text, Pressable, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -16,6 +16,7 @@ import { cancelReminders } from "../../lib/notifications";
 import { showSuccess } from "../../lib/toast";
 import { Badge, Chip, Money, PrimaryButton } from "../../components/ui";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
+import { useTabScrollToTop } from "../../lib/tab-scroll";
 import { AppHead } from "../../components/AppHead";
 import { Icon } from "../../components/Icon";
 
@@ -44,6 +45,14 @@ export default function SessionsScreen() {
   // "in 45m" cards stay honest without any data change.
   const [now, setNow] = useState(() => new Date());
   const startGuard = useRef(false); // double-tap guard for Start now
+  // Only one of the two lists is mounted at a time, so they share one ref. The
+  // element type differs between them, hence the loose generic.
+  const listRef = useRef<FlatList<any>>(null);
+  useTabScrollToTop("batches", useCallback(() => {
+    if (!listRef.current) return false; // empty state: no list is mounted
+    listRef.current.scrollToOffset({ offset: 0, animated: true });
+    return true;
+  }, []));
   const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(isNull(sessions.scheduledAt)).orderBy(desc(sessions.createdAt)));
   const { data: scheduledRows } = useLiveQuery(db.select().from(sessions).where(isNotNull(sessions.scheduledAt)));
   const { data: itemRows } = useLiveQuery(db.select().from(items));
@@ -53,6 +62,16 @@ export default function SessionsScreen() {
     if (!hasScheduled) return;
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
+  }, [hasScheduled]);
+
+  // The interval above is suspended while the app is backgrounded, so a resumed
+  // screen would keep rendering the countdown it minted before the phone slept.
+  useEffect(() => {
+    if (!hasScheduled) return;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") setNow(new Date());
+    });
+    return () => sub.remove();
   }, [hasScheduled]);
 
   // Start-now double-tap guard releases once the live query reflects the
@@ -146,6 +165,7 @@ export default function SessionsScreen() {
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             data={list}
             keyExtractor={({ s }) => s.id}
             renderItem={({ item: { s, count, soldCount, pct, money, note, negative } }) => (
@@ -184,6 +204,7 @@ export default function SessionsScreen() {
         </View>
       ) : (
         <FlatList
+          ref={listRef}
           data={scheduled}
           keyExtractor={(s) => s.id}
           renderItem={({ item: s }) => {

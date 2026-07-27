@@ -12,16 +12,17 @@ import {
 } from "@maplibre/maplibre-react-native";
 import type { NativeSyntheticEvent } from "react-native";
 import { FONT, COLORS } from "../lib/theme";
-import { searchPlaces, type Place } from "../lib/geocode";
+import { resolvePin, searchPlaces, type PickedLocation, type Place } from "../lib/geocode";
 import { showError } from "../lib/toast";
 import { Icon } from "./Icon";
 import { PrimaryButton, SecondaryButton } from "./ui";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-/** Metro Manila — sane default viewport when nothing is pinned yet. */
+/** Metro Manila — sane default viewport when nothing is pinned yet. NEVER
+ *  persisted as a pin: see `pinnedRef` and lib/geocode's resolvePin. */
 const DEFAULT_CENTER: [number, number] = [120.9842, 14.5995];
 
-export type PickedLocation = { name: string; lat: number; lng: number };
+export type { PickedLocation };
 
 /** Collapsed field row → full-height map modal. Drag-to-pin via a fixed center
  *  marker (the map moves under it); Nominatim search + locate-me are sugar on
@@ -76,8 +77,13 @@ function PickerModal({
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
 
-  const initialCenter: [number, number] = value ? [value.lng, value.lat] : DEFAULT_CENTER;
+  const hasPin = value?.lat != null && value?.lng != null;
+  const initialCenter: [number, number] = hasPin ? [value!.lng!, value!.lat!] : DEFAULT_CENTER;
   const centerRef = useRef<[number, number]>(initialCenter);
+  // Has the camera ever been placed deliberately? An already-pinned value counts;
+  // otherwise only a drag, a search hit, or locate-me does. While false, the
+  // centre is just the default viewport and must not be saved as a pin.
+  const pinnedRef = useRef(hasPin);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Place[]>([]);
@@ -101,6 +107,7 @@ function PickerModal({
 
   const flyTo = (lng: number, lat: number) => {
     centerRef.current = [lng, lat];
+    pinnedRef.current = true; // a search hit or locate-me IS a deliberate placement
     cameraRef.current?.flyTo({ center: [lng, lat], zoom: 15, duration: 600 });
   };
 
@@ -129,17 +136,22 @@ function PickerModal({
 
   const confirm = async () => {
     let center = centerRef.current;
-    try {
-      const live = await mapRef.current?.getCenter();
-      if (live) center = live;
-    } catch {
-      // native view gone or map never loaded — last tracked center is still honest
+    if (pinnedRef.current) {
+      try {
+        const live = await mapRef.current?.getCenter();
+        if (live) center = live;
+      } catch {
+        // native view gone or map never loaded — last tracked center is still honest
+      }
     }
-    onDone({ name: name.trim() || "Pinned location", lat: center[1], lng: center[0] });
+    onDone(resolvePin(name, pinnedRef.current, center));
   };
 
   const onRegionDidChange = (e: NativeSyntheticEvent<ViewStateChangeEvent>) => {
     centerRef.current = e.nativeEvent.center;
+    // userInteraction separates a real drag from layout/animation settle events,
+    // which fire even when the seller never touched the map.
+    if (e.nativeEvent.userInteraction) pinnedRef.current = true;
   };
 
   return (
@@ -156,7 +168,7 @@ function PickerModal({
             touchPitch={false}
             onRegionDidChange={onRegionDidChange}
           >
-            <Camera ref={cameraRef} initialViewState={{ center: initialCenter, zoom: value ? 15 : 11 }} />
+            <Camera ref={cameraRef} initialViewState={{ center: initialCenter, zoom: hasPin ? 15 : 11 }} />
           </MapLibreMap>
 
           {/* Fixed center pin — the map drags underneath it. Tip lands on center. */}
@@ -245,7 +257,7 @@ function PickerModal({
             <PrimaryButton label="Use this location" onPress={confirm} />
             {value ? (
               <View className="mb-1 flex-row">
-                <SecondaryButton label="Remove pin" onPress={() => onDone(null)} />
+                <SecondaryButton label={hasPin ? "Remove pin" : "Remove location"} onPress={() => onDone(null)} />
               </View>
             ) : null}
           </View>

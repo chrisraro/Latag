@@ -2,7 +2,7 @@ import { eq, and, asc } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { sessions, items, photos, publishQueue, type Session, type Item, type Photo, type PublishQueueRow } from "../db/schema";
 import { specFieldsFor, type Department, type SpecKey } from "./catalog";
-import { ensureEntitlements, logsRemaining as remainingLogs } from "./entitlements";
+import { readLogsRemaining as remainingLogs } from "./entitlements";
 // No cycle: shop-sync imports only db/schema, lib/catalog and lib/shop-api —
 // never lib/repo — so this stays a plain static import.
 import { kickSync } from "./shop-sync";
@@ -136,11 +136,12 @@ function trimmedName(name: string | null | undefined): string | null {
 }
 
 /** Logging is uncapped since F1 — `logsRemaining` is reported, never enforced.
- *  The entitlements row (and its logs_used column) is left untouched here;
- *  `consumeLog` stays in lib/entitlements for the Pro gates F2 introduces. */
+ *  The entitlements row is neither written nor created here (the launch effect
+ *  in app/_layout owns that); `consumeLog` stays in lib/entitlements for the
+ *  Pro gates F2 introduces. */
 export function addItem(db: AnyDb, input: AddItemInput): { item: Item; logsRemaining: number } {
   return db.transaction((tx: AnyDb) => {
-    const logsRemaining = remainingLogs(ensureEntitlements(tx));
+    const logsRemaining = remainingLogs(tx);
     const row = {
       id: newId(), sessionId: input.sessionId, brand: input.brand, name: trimmedName(input.name),
       department: input.department, category: input.category,

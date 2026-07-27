@@ -8,6 +8,28 @@ const TIMEOUT_MS = 6_000;
 
 export type Place = { name: string; lat: number; lng: number };
 
+/** What the location picker hands back. Coordinates are nullable because a
+ *  named spot without a pin is a real, honest answer (sessions.lat/lng allow
+ *  NULL) — see resolvePin. */
+export type PickedLocation = { name: string; lat: number | null; lng: number | null };
+
+/** Resolves the picker's "Use this location" tap.
+ *
+ *  `pinned` means the camera was actually placed — dragged, searched, or
+ *  located. Without that, the map is still sitting on its default viewport,
+ *  and persisting those coordinates would invent a location the seller never
+ *  chose. So: a typed name alone keeps the name and drops the coordinates,
+ *  and an untouched picker with no name pins nothing at all. */
+export function resolvePin(
+  name: string,
+  pinned: boolean,
+  center: [number, number],
+): PickedLocation | null {
+  const trimmed = name.trim();
+  if (!pinned) return trimmed ? { name: trimmed, lat: null, lng: null } : null;
+  return { name: trimmed || "Pinned location", lat: center[1], lng: center[0] };
+}
+
 /** /search?q=…&format=json&limit=5&countrycodes=ph — manual encoding (Hermes URLSearchParams is partial). */
 export function buildSearchUrl(q: string): string {
   return `${SEARCH_BASE}?q=${encodeURIComponent(q)}&format=json&limit=5&countrycodes=ph`;

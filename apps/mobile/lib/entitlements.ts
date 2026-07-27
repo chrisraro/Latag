@@ -19,6 +19,14 @@ export function logsRemaining(e: Entitlements): number {
   return e.pro ? Infinity : Math.max(0, FREE_LOG_LIMIT - e.logsUsed);
 }
 
+/** Read-only counterpart of ensureEntitlements for callers that only want the
+ *  number: no row yet means nothing has been spent, which is exactly what a
+ *  freshly-inserted row would say. Keeps INSERTs out of hot paths. */
+export function readLogsRemaining(db: AnyDb): number {
+  const e = db.select().from(entitlements).where(eq(entitlements.id, 1)).all()[0];
+  return e ? logsRemaining(e) : FREE_LOG_LIMIT;
+}
+
 export function consumeLog(db: AnyDb): number {
   const e = ensureEntitlements(db);
   if (e.pro) return Infinity;

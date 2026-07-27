@@ -30,6 +30,7 @@ jest.mock("../lib/notifications", () => ({ cancelReminders: jest.fn(async () => 
 jest.mock("../lib/toast", () => ({ showError: jest.fn(), showSuccess: jest.fn() }));
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState, type AppStateStatus } from "react-native";
 import { db } from "../db/client";
 import { sessions, items } from "../db/schema";
 import { startScheduledSession } from "../lib/repo";
@@ -179,4 +180,32 @@ test("live session card gains a pinned-location line when locationName is set", 
   insertSession({ locationName: "Ukay Center", lat: 13.6, lng: 123.2 });
   const t = await render();
   expect(texts(t)).toContain("Ukay Center");
+});
+
+test("countdowns refresh the moment the app returns to the foreground", async () => {
+  // The 30s interval is suspended while backgrounded, so a resumed screen would
+  // otherwise show a countdown minted before the phone went to sleep.
+  const resume: ((state: AppStateStatus) => void)[] = [];
+  const spy = jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((type, listener) => {
+      if (type === "change") resume.push(listener as (state: AppStateStatus) => void);
+      return { remove: jest.fn() } as never;
+    });
+  jest.useFakeTimers();
+  try {
+    jest.setSystemTime(new Date("2026-07-27T10:00:00+08:00"));
+    insertSession({ id: "sch1", name: "Baguio Weekend", scheduledAt: new Date(Date.now() + 30 * MIN + 5000), reminderOffsets: "[30]" });
+    const t = await render();
+    press(t, "Scheduled");
+    expect(texts(t)).toContain("in 30m");
+    expect(resume.length).toBeGreaterThan(0);
+
+    jest.setSystemTime(new Date("2026-07-27T10:15:00+08:00")); // backgrounded: no interval ticks
+    act(() => { resume.forEach((h) => h("active")); });
+    expect(texts(t)).toContain("in 15m");
+  } finally {
+    jest.useRealTimers();
+    spy.mockRestore();
+  }
 });

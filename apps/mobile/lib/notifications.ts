@@ -40,6 +40,12 @@ export async function ensureAlarmChannel(): Promise<void> {
 /** Notification body copy for a reminder firing `offsetMinutes` before the batch. */
 export function reminderBodyFor(offsetMinutes: number): string {
   if (offsetMinutes === 0) return "Bale opens now — start your batch";
+  // formatCountdown only switches to days past 48h, which renders the "1 day
+  // before" preset as "in 24h". Nobody calls tomorrow that, so whole days say days.
+  if (offsetMinutes % 1440 === 0) {
+    const days = offsetMinutes / 1440;
+    return `Bale opens in ${days} ${days === 1 ? "day" : "days"}`;
+  }
   return `Bale opens ${formatCountdown(new Date(offsetMinutes * MIN_MS), new Date(0))}`;
 }
 
