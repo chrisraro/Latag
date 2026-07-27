@@ -109,10 +109,11 @@ test("defaults to Sessions tab: live sessions only, Scheduled seg carries a coun
   const all = texts(t);
   expect(all).toContain("Naga Run");
   expect(all).not.toContain("Baguio Weekend"); // scheduled stays off the live tab
-  expect(all).toContain("Batches");
+  expect(all).toContain("Batches"); // AppHead title
+  expect(all).toContain("Active"); // segmented control's left segment
   expect(all).toContain("Scheduled");
   expect(all).toContain("1"); // scheduled count badge
-  expect(pressableByText(t, "Batches").props.accessibilityState).toEqual({ selected: true });
+  expect(pressableByText(t, "Active").props.accessibilityState).toEqual({ selected: true });
 });
 
 test("Scheduled tab: soonest-first cards with countdown, stamp, pin line, reminder summary", async () => {

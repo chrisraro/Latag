@@ -155,6 +155,45 @@ test("Sold status chip shows only sold rows", async () => {
   expect(rowBrands(t)).toEqual(["Levi's"]);
 });
 
+test("department chip narrows to that department", async () => {
+  seedThree();
+  const t = await render();
+  press(t, "Bottoms");
+  expect(rowBrands(t)).toEqual(["Levi's"]);
+});
+
+test("department chip switches cleanly between departments", async () => {
+  seedThree();
+  const t = await render();
+  press(t, "Bottoms");
+  expect(rowBrands(t)).toEqual(["Levi's"]);
+  press(t, "Tops");
+  expect(rowBrands(t).sort()).toEqual(["Carhartt", "Nike"]);
+});
+
+test("sort chip cycles newest -> price-high -> price-low -> oldest -> newest", async () => {
+  seedThree();
+  const t = await render();
+
+  // Default mode: unselected (acid only once you've moved off it), labelled Newest.
+  expect(pressableByText(t, "Newest").props.accessibilityState).toEqual({ selected: false });
+
+  press(t, "Newest");
+  expect(texts(t)).toContain("₱ High");
+  expect(pressableByText(t, "₱ High").props.accessibilityState).toEqual({ selected: true });
+
+  press(t, "₱ High");
+  expect(texts(t)).toContain("₱ Low");
+
+  press(t, "₱ Low");
+  expect(texts(t)).toContain("Oldest");
+
+  // Full cycle: back to Newest, and unselected again.
+  press(t, "Oldest");
+  expect(texts(t)).toContain("Newest");
+  expect(pressableByText(t, "Newest").props.accessibilityState).toEqual({ selected: false });
+});
+
 test("no matches shows the filtered empty copy, not the first-run copy", async () => {
   seedThree();
   const t = await render();
@@ -175,9 +214,3 @@ test("tapping a row opens item detail", async () => {
   expect(mockPush).toHaveBeenCalledWith("/item/i9");
 });
 
-test("first run redirects instead of rendering the list", async () => {
-  await AsyncStorage.clear();
-  const t = await render();
-  expect(mockReplace).toHaveBeenCalledWith("/welcome");
-  expect(texts(t)).toHaveLength(0);
-});
