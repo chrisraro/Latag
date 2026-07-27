@@ -201,5 +201,13 @@ let inFlight: Promise<DrainSummary> | null = null;
  */
 export function kickSync(db: AnyDb): void {
   if (inFlight) return;
-  inFlight = syncPublishQueue(db).finally(() => { inFlight = null; });
+  // Deferred onto a microtask, NOT started inline. repo.ts enqueues from
+  // inside db.transaction(...), and drainQueue reads the queue synchronously
+  // before its first await — so an inline start would read rows from within
+  // the caller's still-open transaction and could act on a row that a
+  // rollback then erases. The microtask runs once the synchronous stack
+  // (including the commit) has unwound.
+  inFlight = Promise.resolve()
+    .then(() => syncPublishQueue(db))
+    .finally(() => { inFlight = null; });
 }

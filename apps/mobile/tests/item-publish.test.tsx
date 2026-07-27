@@ -37,6 +37,10 @@ jest.mock("../lib/albums", () => ({ savePhotosToAlbum: jest.fn(async () => ({ ok
 jest.mock("../lib/ig-share", () => ({ shareToInstagram: jest.fn(async () => ({ step: "saved-opened" })) }));
 // The network seam only. The pure link builders keep their real shape — the
 // screen renders their output verbatim, so faking them would test nothing.
+// The upload/upsert/delete trio MUST be mocked here, not omitted: the publish
+// toggle calls kickSync, whose drain reaches straight into these. Leaving them
+// undefined made the drain throw, get swallowed as a failed attempt, and the
+// tests pass while never exercising the sync the toggle exists to trigger.
 jest.mock("../lib/shop-api", () => ({
   shopUrl: (h: string) => `https://latag.vercel.app/shop/${h}`,
   shopItemUrl: (h: string, c: string | null) =>
@@ -44,18 +48,27 @@ jest.mock("../lib/shop-api", () => ({
   getMyShop: jest.fn(),
   cachedShop: jest.fn(async () => null),
   cacheShop: jest.fn(async () => {}),
+  uploadItemPhotos: jest.fn(async () => ({ ok: true, data: [] as string[] })),
+  upsertShopItem: jest.fn(async () => ({ ok: true, data: null })),
+  deleteShopItem: jest.fn(async () => ({ ok: true, data: null })),
 }));
 
 import * as Clipboard from "expo-clipboard";
 import { eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { entitlements, items, photos, publishQueue, sessions, type Item } from "../db/schema";
-import { cachedShop, getMyShop, type ShopProfile } from "../lib/shop-api";
+import { cachedShop, getMyShop, upsertShopItem, deleteShopItem, type ShopProfile } from "../lib/shop-api";
 import { showSuccess } from "../lib/toast";
+import { markSold } from "../lib/repo";
 import ItemDetail from "../app/item/[id]/index";
 
 const mockedGetMyShop = getMyShop as jest.MockedFunction<typeof getMyShop>;
 const mockedCachedShop = cachedShop as jest.MockedFunction<typeof cachedShop>;
+const mockedUpsert = upsertShopItem as jest.MockedFunction<typeof upsertShopItem>;
+const mockedDeleteShopItem = deleteShopItem as jest.MockedFunction<typeof deleteShopItem>;
+
+/** kickSync defers onto a microtask; let it run and settle. */
+const flushSync = async (): Promise<void> => { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); };
 
 const PROFILE: ShopProfile = {
   handle: "naga-thrift",
@@ -80,6 +93,10 @@ beforeEach(() => {
   mockParams = { id: "i1" };
   mockedGetMyShop.mockResolvedValue({ ok: true, data: null });
   mockedCachedShop.mockResolvedValue(null);
+  // clearAllMocks wipes calls but KEEPS implementations, so a test that stubs
+  // a network failure would leak it into every test after it. Re-arm here.
+  mockedUpsert.mockResolvedValue({ ok: true, data: null });
+  mockedDeleteShopItem.mockResolvedValue({ ok: true, data: null });
 });
 
 afterEach(() => {
@@ -185,9 +202,10 @@ describe("Publish toggle — Pro with a shop", () => {
     const row = item();
     expect(row.publishedAt).toBeInstanceOf(Date);
     expect(row.shopCode).toMatch(/^LT-[A-Z2-9]{5}$/);
-    const queue = db.select().from(publishQueue).all();
-    expect(queue).toHaveLength(1);
-    expect(queue[0]).toMatchObject({ itemId: "i1", op: "upsert" });
+    // The row is enqueued AND drained immediately (C1) — a row still sitting
+    // here would mean the shop stays stale until the app is backgrounded.
+    expect(mockedUpsert).toHaveBeenCalledTimes(1);
+    expect(db.select().from(publishQueue).all()).toHaveLength(0);
     expect(showSuccess).toHaveBeenCalledWith("Publishing — your shop updates shortly");
   });
 
@@ -208,9 +226,9 @@ describe("Publish toggle — Pro with a shop", () => {
     const row = item();
     expect(row.publishedAt).toBeNull();
     expect(row.shopCode).toBe("LT-7K2Q9");
-    const queue = db.select().from(publishQueue).all();
-    expect(queue).toHaveLength(1);
-    expect(queue[0]).toMatchObject({ itemId: "i1", op: "delete" });
+    // "Removed from shop" must be true when it is shown, not eventually true.
+    expect(mockedDeleteShopItem).toHaveBeenCalledWith("i1");
+    expect(db.select().from(publishQueue).all()).toHaveLength(0);
     expect(showSuccess).toHaveBeenCalledWith("Removed from shop");
   });
 
@@ -232,10 +250,13 @@ describe("Publish toggle — Pro with a shop", () => {
   test("an offline seller can still unpublish — the toggle answers to the item, not the network", async () => {
     setup({ pro: true, shop: false, item: { shopCode: "LT-7K2Q9", publishedAt: new Date("2026-07-02T00:00:00Z") } });
     mockedGetMyShop.mockResolvedValue({ ok: false, reason: "network", message: "offline" });
+    mockedDeleteShopItem.mockResolvedValue({ ok: false, reason: "network", message: "offline" });
     const t = await render();
     await press(t, "Published to shop");
+    await flushSync();
     expect(item().publishedAt).toBeNull();
-    expect(db.select().from(publishQueue).all()[0]).toMatchObject({ op: "delete" });
+    // Offline: the removal survives in the queue so a later drain still runs it.
+    expect(db.select().from(publishQueue).all()[0]).toMatchObject({ op: "delete", attempts: 1 });
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
@@ -247,5 +268,33 @@ describe("Publish toggle — Pro with a shop", () => {
     await press(t, "Published to shop");
     expect(item().publishedAt).toBeInstanceOf(Date);
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+  test("publishing actually syncs: the queue drains and the listing is pushed (C1)", async () => {
+    setup({ pro: true, shop: true });
+    const t = await render();
+    await press(t, "Published to shop");
+    await flushSync();
+    expect(mockedUpsert).toHaveBeenCalledTimes(1);
+    expect(mockedUpsert.mock.calls[0][0]).toMatchObject({ itemLocalId: "i1", status: "available", price: 850 });
+    // Drained rows leave the queue; a lingering row means the shop is stale.
+    expect(db.select().from(publishQueue).all()).toHaveLength(0);
+  });
+
+  test("unpublishing actually removes the live listing, not just the local flag (C1)", async () => {
+    setup({ pro: true, shop: true, item: { shopCode: "LT-7K2Q9", publishedAt: new Date("2026-07-02T00:00:00Z") } });
+    const t = await render();
+    await press(t, "Published to shop");
+    await flushSync();
+    expect(mockedDeleteShopItem).toHaveBeenCalledWith("i1");
+    expect(db.select().from(publishQueue).all()).toHaveLength(0);
+  });
+
+  test("a published item marked sold pushes status sold rather than vanishing silently", async () => {
+    setup({ pro: true, shop: true, item: { shopCode: "LT-7K2Q9", publishedAt: new Date("2026-07-02T00:00:00Z") } });
+    markSold(db, "i1", 700);
+    await flushSync();
+    expect(mockedUpsert).toHaveBeenCalled();
+    expect(mockedUpsert.mock.calls.at(-1)![0]).toMatchObject({ itemLocalId: "i1", status: "sold" });
+    expect(db.select().from(publishQueue).all()).toHaveLength(0);
   });
 });
