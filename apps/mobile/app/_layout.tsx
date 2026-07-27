@@ -8,6 +8,7 @@ import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState } from "react-native";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { db } from "../db/client";
@@ -18,6 +19,7 @@ import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
 import { decideStartRoute, setWelcomed } from "../lib/first-run";
 import { runUpdateCheck } from "../lib/updates";
+import { syncPublishQueue } from "../lib/shop-sync";
 import { ensureAlarmChannel, notifResponsePath } from "../lib/notifications";
 import { showError } from "../lib/toast";
 import { AppToast } from "../components/AppToast";
@@ -126,6 +128,19 @@ export default function RootLayout() {
       routeNotif(Notifications.getLastNotificationResponse());
     }
     const sub = Notifications.addNotificationResponseReceivedListener(routeNotif);
+    return () => sub.remove();
+  }, [migrated]);
+
+  // Storefront outbox: drain once on launch and again whenever the app comes
+  // back to the foreground (the usual moment connectivity has returned).
+  // Fire-and-forget by design — syncPublishQueue never throws, and a failed
+  // drain just leaves the rows queued for the next pass.
+  useEffect(() => {
+    if (!migrated) return;
+    void syncPublishQueue(db);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void syncPublishQueue(db);
+    });
     return () => sub.remove();
   }, [migrated]);
 
