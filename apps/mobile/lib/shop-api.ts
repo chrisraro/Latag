@@ -156,6 +156,19 @@ export function shopUrlLabel(handle: string): string {
   return `${SHOP_URL_PREFIX}${normalizeHandle(handle)}`;
 }
 
+/**
+ * One listing's own page. The last segment is the item's `code` verbatim
+ * (`LT-XXXXX`, uppercase as stored on `shop_items.code`) so the same six
+ * characters work as a URL, as a spoken reference, and as the inquiry fallback.
+ * A code-less item has no page yet — the link degrades to the shop rather than
+ * to a 404.
+ */
+export function shopItemUrl(handle: string, code: string | null | undefined): string {
+  const base = shopUrl(handle);
+  const segment = (code ?? "").trim().toUpperCase();
+  return segment ? `${base}/${segment}` : base;
+}
+
 // ---------------------------------------------------------------------------
 // Last-known profile
 // ---------------------------------------------------------------------------

@@ -70,6 +70,9 @@ export function deleteSession(db: AnyDb, id: string): { photoUris: string[]; rem
       const uris = tx.select().from(photos).where(eq(photos.itemId, item.id)).all().map((p: Photo) => p.localUri);
       photoUris.push(...uris);
       tx.delete(photos).where(eq(photos.itemId, item.id)).run();
+      // Deleting a batch deletes its items, so anything it had listed has to
+      // come off the shop too — otherwise the storefront outlives the stock.
+      queueRemovalInTx(tx, item);
     }
     tx.delete(items).where(eq(items.sessionId, id)).run();
     tx.delete(sessions).where(eq(sessions.id, id)).run();
@@ -172,7 +175,9 @@ export function updateItem(db: AnyDb, id: string, patch: Partial<Omit<AddItemInp
   }
   if ("name" in patch) set.name = trimmedName(patch.name);
   db.update(items).set(set).where(eq(items.id, id)).run();
-  return db.select().from(items).where(eq(items.id, id)).all()[0];
+  const updated = db.select().from(items).where(eq(items.id, id)).all()[0] as Item;
+  syncIfPublished(db, updated, "upsert");
+  return updated;
 }
 
 export function addPhoto(db: AnyDb, input: { itemId: string; localUri: string; type: "front" | "back" | "tag" | "flaw" }): Photo {
@@ -199,19 +204,30 @@ export function replacePhoto(db: AnyDb, input: { itemId: string; localUri: strin
 
 export function markSold(db: AnyDb, id: string, soldPrice: number): Item {
   db.update(items).set({ status: "sold", soldPrice, soldAt: new Date() }).where(eq(items.id, id)).run();
-  return db.select().from(items).where(eq(items.id, id)).all()[0];
+  const sold = db.select().from(items).where(eq(items.id, id)).all()[0] as Item;
+  // The listing follows the sale: it flips to SOLD, or leaves the shop entirely
+  // when the seller keeps show_sold off. Either way the buyer stops being told
+  // something is available when it isn't.
+  syncIfPublished(db, sold, "upsert");
+  return sold;
 }
 
 export function unmarkSold(db: AnyDb, id: string): Item {
   db.update(items).set({ status: "available", soldPrice: null, soldAt: null }).where(eq(items.id, id)).run();
-  return db.select().from(items).where(eq(items.id, id)).all()[0];
+  const available = db.select().from(items).where(eq(items.id, id)).all()[0] as Item;
+  syncIfPublished(db, available, "upsert");
+  return available;
 }
 
 export function deleteItem(db: AnyDb, id: string): { photoUris: string[] } {
   return db.transaction((tx: AnyDb) => {
+    const item = tx.select().from(items).where(eq(items.id, id)).all()[0] as Item | undefined;
     const uris = tx.select().from(photos).where(eq(photos.itemId, id)).all().map((p: Photo) => p.localUri);
     tx.delete(photos).where(eq(photos.itemId, id)).run();
     tx.delete(items).where(eq(items.id, id)).run();
+    // Queued before the row is gone but drained long after: the queue carries
+    // the item's local id, which is all deleteShopItem needs.
+    queueRemovalInTx(tx, item);
     return { photoUris: uris };
   });
 }
@@ -256,12 +272,39 @@ function nextEnqueueTime(): Date {
  * operation that reflects reality. Attempts and the last error reset with it.
  */
 export function enqueuePublish(db: AnyDb, itemId: string, op: "upsert" | "delete"): PublishQueueRow {
-  return db.transaction((tx: AnyDb) => {
-    tx.delete(publishQueue).where(eq(publishQueue.itemId, itemId)).run();
-    const row = { id: newId(), itemId, op, attempts: 0, lastError: null, createdAt: nextEnqueueTime() };
-    tx.insert(publishQueue).values(row).run();
-    return tx.select().from(publishQueue).where(eq(publishQueue.id, row.id)).all()[0];
-  });
+  return db.transaction((tx: AnyDb) => writeQueueRow(tx, itemId, op));
+}
+
+/** The queue write itself, run on whatever handle the caller holds: a fresh
+ *  transaction from `enqueuePublish`, or an already-open `tx` when the caller
+ *  is mid-transaction (deleteItem/deleteSession) — drizzle cannot nest one. */
+function writeQueueRow(exec: AnyDb, itemId: string, op: "upsert" | "delete"): PublishQueueRow {
+  exec.delete(publishQueue).where(eq(publishQueue.itemId, itemId)).run();
+  const row = { id: newId(), itemId, op, attempts: 0, lastError: null, createdAt: nextEnqueueTime() };
+  exec.insert(publishQueue).values(row).run();
+  return exec.select().from(publishQueue).where(eq(publishQueue.id, row.id)).all()[0];
+}
+
+/**
+ * AUTO-SYNC (spec §3). A published item is two things at once — a local row and
+ * a public listing — so every mutation has to reach the storefront or the shop
+ * starts lying about price, size or availability. Unpublished items are purely
+ * local and must never enqueue anything: an item the seller never opted in for
+ * has no path to the network at all.
+ *
+ * `item` is the row as it stands after the write; `publishedAt` on it is the
+ * single opt-in flag.
+ */
+function syncIfPublished(db: AnyDb, item: Item | undefined, op: "upsert" | "delete"): void {
+  if (!item?.publishedAt) return;
+  enqueuePublish(db, item.id, op);
+}
+
+/** Same rule for deletions, except the caller is already inside a transaction
+ *  (and holds the row it is about to destroy), so the queue write joins it. */
+function queueRemovalInTx(tx: AnyDb, item: Item | undefined): void {
+  if (!item?.publishedAt) return;
+  writeQueueRow(tx, item.id, "delete");
 }
 
 /** Removes a drained row. Called only after the network op succeeded. */

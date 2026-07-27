@@ -1,23 +1,26 @@
-import { useState } from "react";
-import { View, Text, Alert, ScrollView, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, Alert, Pressable, ScrollView, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import { Image } from "expo-image";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq } from "drizzle-orm";
 import { db } from "../../../db/client";
-import { items, photos, sessions } from "../../../db/schema";
-import { unmarkSold, deleteItem } from "../../../lib/repo";
+import { entitlements, items, photos, sessions } from "../../../db/schema";
+import { unmarkSold, deleteItem, enqueuePublish, generateShopCode, markPublished, markUnpublished } from "../../../lib/repo";
 import { deleteFiles } from "../../../lib/media";
 import { savePhotosToAlbum } from "../../../lib/albums";
 import { shareToInstagram } from "../../../lib/ig-share";
 import { formatCaption } from "../../../lib/caption";
+import { cacheShop, cachedShop, getMyShop, shopItemUrl } from "../../../lib/shop-api";
 import { showSuccess, showError } from "../../../lib/toast";
-import { FONT } from "../../../lib/theme";
+import { FONT, COLORS } from "../../../lib/theme";
 import { formatPeso } from "../../../lib/format";
 import { DEPARTMENTS, specRowsFor, type CatalogItem } from "../../../lib/catalog";
 import { Badge, PrimaryButton, SecondaryButton } from "../../../components/ui";
 import { AppHead } from "../../../components/AppHead";
+import { Icon } from "../../../components/Icon";
 
 export default function ItemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,9 +31,29 @@ export default function ItemDetail() {
   const item = itemRows?.[0];
   const sessionId = item?.sessionId ?? "";
   const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(eq(sessions.id, sessionId)), [sessionId]);
+  const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
   const [carouselW, setCarouselW] = useState(0);
   const [activeIdx, setActiveIdx] = useState(0);
   const [savingPhotos, setSavingPhotos] = useState(false); // double-tap guard
+  const [shopHandle, setShopHandle] = useState<string | null>(null);
+  const pro = entRows?.[0]?.pro === true;
+
+  // Publishing needs a shop to publish into. The cached handle answers first so
+  // the toggle is usable in a market with no signal; the live read corrects it.
+  useEffect(() => {
+    if (!pro) return;
+    let alive = true;
+    void (async () => {
+      const cached = await cachedShop();
+      if (alive && cached) setShopHandle(cached.handle);
+      const res = await getMyShop();
+      if (!alive || !res.ok) return;
+      setShopHandle(res.data?.handle ?? null);
+      void cacheShop(res.data);
+    })();
+    return () => { alive = false; };
+  }, [pro]);
+
   if (!item) return null;
   const sessionName = sessionRows?.[0]?.name ?? null;
   const pics = photoRows ?? [];
@@ -75,6 +98,41 @@ export default function ItemDetail() {
       else showError("Couldn't save photos — try again");
     } finally {
       setSavingPhotos(false);
+    }
+  };
+
+  const published = item.publishedAt != null;
+  // A shop is required to publish INTO one; taking something down only ever
+  // needs the item itself, so an offline or lapsed seller is never trapped
+  // with stock live on a page they can no longer control.
+  const canPublish = pro && shopHandle != null;
+  const canToggle = published || canPublish;
+
+  const togglePublish = () => {
+    if (!canToggle) {
+      router.navigate("/shop");
+      return;
+    }
+    if (published) {
+      markUnpublished(db, id);
+      enqueuePublish(db, id, "delete");
+      showSuccess("Removed from shop");
+      return;
+    }
+    // Codes are permanent: a republished item keeps the one buyers already have
+    // from a screenshot or a message thread.
+    markPublished(db, id, item.shopCode ?? generateShopCode());
+    enqueuePublish(db, id, "upsert");
+    showSuccess("Publishing — your shop updates shortly");
+  };
+
+  const copyItemLink = async () => {
+    const url = shopItemUrl(shopHandle ?? "", item.shopCode);
+    try {
+      await Clipboard.setStringAsync(url);
+      showSuccess("Item link copied");
+    } catch {
+      showError(`Couldn't copy — the link is ${url}`);
     }
   };
 
@@ -166,6 +224,45 @@ export default function ItemDetail() {
           <SecondaryButton label="Save photos" icon="Download" onPress={savePhotos} />
           <SecondaryButton label="Share to IG" icon="InstagramLogo" onPress={shareIG} />
         </View>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityLabel="Published to shop"
+          accessibilityState={{ checked: published }}
+          accessibilityHint={canToggle ? undefined : "Opens the Shop tab to set up your shop"}
+          onPress={togglePublish}
+          className="mb-2 flex-row items-center gap-3 rounded-card border border-hairline bg-surface1 px-3 py-3.5"
+        >
+          <Icon name="Storefront" size={19} color={published ? COLORS.acid : COLORS.inkFaint} />
+          <View className="min-w-0 flex-1">
+            <Text style={{ fontFamily: FONT.semibold, lineHeight: 20 }} className={`text-[14.5px] ${canToggle ? "text-ink" : "text-inkdim"}`}>
+              Published to shop
+            </Text>
+            {!canToggle ? (
+              <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-0.5 text-[12px] text-inkfaint">
+                Set up your shop to publish
+              </Text>
+            ) : published && item.shopCode ? (
+              <Text
+                style={{ fontFamily: FONT.medium, fontVariant: ["tabular-nums"], lineHeight: 17 }}
+                className="mt-0.5 text-[12px] text-inkfaint"
+              >
+                {item.shopCode}
+              </Text>
+            ) : null}
+          </View>
+          {/* 46x28 pill, acid when on — the mockup's switch. */}
+          <View className={`h-7 w-[46px] flex-none justify-center rounded-full border ${published ? "border-acid bg-acid" : "border-hairline bg-surface2"}`}>
+            <View
+              style={{ marginHorizontal: 3 }}
+              className={`h-5 w-5 rounded-full ${published ? "self-end bg-acidink" : "self-start bg-inkfaint"}`}
+            />
+          </View>
+        </Pressable>
+        {published && shopHandle ? (
+          <View className="mb-2 flex-row">
+            <SecondaryButton label="Copy item link" icon="ClipboardText" onPress={() => void copyItemLink()} />
+          </View>
+        ) : null}
       </View>
     </View>
   );
