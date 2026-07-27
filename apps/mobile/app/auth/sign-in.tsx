@@ -155,7 +155,7 @@ export default function SignInScreen() {
       {step === "email" ? (
         <>
           <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="mb-[18px] mt-1 text-[13.5px] text-inkdim">
-            We'll email you a sign-in link — no password needed.
+            We'll email you a 6-digit code — no password needed.
           </Text>
           <FieldLabel>Email</FieldLabel>
           <TextInput
@@ -173,7 +173,7 @@ export default function SignInScreen() {
             <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mb-2 text-[12.5px] text-danger">{errorMsg}</Text>
           ) : null}
           <View style={{ flex: 1 }} />
-          <PrimaryButton label="Send link + code" onPress={() => void sendEmail()} disabled={sending || !email.trim()} />
+          <PrimaryButton label="Send code" onPress={() => void sendEmail()} disabled={sending || !email.trim()} />
         </>
       ) : (
         <>

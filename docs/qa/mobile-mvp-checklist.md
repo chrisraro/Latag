@@ -27,7 +27,7 @@
 - [ ] Revoke Pro in web /admin → phone: Settings → Refresh license (online, signed in) → returns to Free with remaining logs resumed
 - [ ] Go Pro sheet (21st save attempt): "Already Pro? Sign in" opens sign-in
 - [ ] Deep link with a stale/used email link → app opens, no crash, no sign-in (silent no-op)
-- [ ] Cross-device case: open the email link on a COMPUTER instead → phone code becomes invalid → Resend from the phone recovers (known PKCE same-device limitation until custom SMTP ships codes)
+- [ ] Cross-device: read the code on ANY device (laptop, another phone) and type it on the handset → works (custom SMTP ships the code since 2026-07-27). Tapping the emailed LINK still only works on the handset itself, and doing so elsewhere invalidates the pending code → Resend recovers
 
 ## Phase D — OTA, welcome, parity (device)
 - [ ] FRESH install (clear data): Welcome screen shows — logo mark, LATAG wordmark, 3 feature rows with icons
