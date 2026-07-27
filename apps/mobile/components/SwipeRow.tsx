@@ -3,6 +3,7 @@ import { Pressable, Text, View, type StyleProp, type ViewStyle } from "react-nat
 import * as Haptics from "expo-haptics";
 import { COLORS, FONT } from "../lib/theme";
 import { SWIPE_ACTION_WIDTH, type SwipeAction } from "../lib/swipe-actions";
+import { NATIVE_ANIMATION_ENABLED } from "../lib/native-ui";
 import { Icon } from "./Icon";
 
 /**
@@ -64,7 +65,15 @@ type SwipeableProps = {
 
 // Resolved once at module load: the native side does not appear halfway through
 // a session, so re-resolving per render would only cost frames.
-const Swipeable = resolveSwipeable(() => require("react-native-gesture-handler/ReanimatedSwipeable"));
+//
+// Gated on NATIVE_ANIMATION_ENABLED, currently false. `ReanimatedSwipeable` is
+// gesture-handler's reanimated-backed variant, so it runs worklets — the same
+// runtime, and the same never-yet-executed-on-device risk, as lib/motion.ts.
+// With the gate off every row renders through the plain fallback below; each
+// action a swipe would have offered is still reachable from the item screen.
+const Swipeable = NATIVE_ANIMATION_ENABLED
+  ? resolveSwipeable(() => require("react-native-gesture-handler/ReanimatedSwipeable"))
+  : null;
 
 /**
  * Anything that goes wrong *after* the module resolves — a gesture-handler
