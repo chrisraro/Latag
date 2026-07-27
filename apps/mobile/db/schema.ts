@@ -17,7 +17,7 @@ export const sessions = sqliteTable("sessions", {
 
 export const items = sqliteTable("items", {
   id: text("id").primaryKey(),
-  sessionId: text("session_id").references(() => sessions.id).notNull(),
+  sessionId: text("session_id").references(() => sessions.id),
   brand: text("brand").notNull(),
   name: text("name"),
   department: text("department").notNull().default("tops"),

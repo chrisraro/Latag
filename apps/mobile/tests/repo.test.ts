@@ -289,6 +289,40 @@ test("deleteSession cascades items + photos, returns photo uris and notif ids", 
   expect(db.select().from(items).all()).toHaveLength(0);
   expect(db.select().from(photos).all()).toHaveLength(0);
 });
+
+// ------------------------------------------------------------ G2 T1: optional batch link
+
+test("addItem with sessionId: null saves and reads back null", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const { item } = addItem(db, { sessionId: null, ...base });
+  expect(item.sessionId).toBeNull();
+  const reread = db.select().from(items).where(eq(items.id, item.id)).all()[0];
+  expect(reread.sessionId).toBeNull();
+});
+
+test("updateItem can clear sessionId to null", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  const updated = updateItem(db, item.id, { sessionId: null });
+  expect(updated.sessionId).toBeNull();
+});
+
+test("deleteSession never touches null-session items", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const loose = addItem(db, { sessionId: null, ...base }).item;
+  addPhoto(db, { itemId: loose.id, localUri: "file:///m/loose.jpg", type: "front" });
+  deleteSession(db, s.id);
+  const rows = db.select().from(items).where(eq(items.id, loose.id)).all();
+  expect(rows).toHaveLength(1);
+  expect(rows[0].sessionId).toBeNull();
+  expect(db.select().from(photos).where(eq(photos.itemId, loose.id)).all()).toHaveLength(1);
+});
+
 test("replacePhoto on a type with no existing row behaves like addPhoto", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);
