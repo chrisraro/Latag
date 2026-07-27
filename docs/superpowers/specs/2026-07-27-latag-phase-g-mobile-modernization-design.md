@@ -1,6 +1,6 @@
 # Latag Phase G — Mobile Modernization
 
-**Date:** 2026-07-27 · **Status:** Approved · **Depends on:** Phases A–F shipped (v1.1.0 binary, OTA pipeline live)
+**Date:** 2026-07-27 · **Status:** G1 + G2 shipped; G3 partly shipped (pull-to-refresh) and partly gated off pending a native build — see §5 · **Depends on:** Phases A–F shipped (v1.1.0 binary, OTA pipeline live)
 
 ## 1. Goal
 
@@ -42,7 +42,7 @@ Sections, top to bottom:
 
 Every card deep-links to the tab that owns it. All figures come from existing local queries; no new schema.
 
-## 4. G2 — Solo items
+## 4. G2 — Solo items (SHIPPED 2026-07-28)
 
 `items.sessionId` becomes **nullable**. An item with no batch is a first-class citizen: item detail shows "No batch" where the batch name would be, and Inventory gains a **Loose items** filter.
 
@@ -50,7 +50,9 @@ Every card deep-links to the tab that owns it. All figures come from existing lo
 
 The quick-add composer is the existing Rapid Console opened without a `sessionId`. Selector/Bulto math is unaffected: it aggregates per batch, and loose items simply belong to no batch. Publishing, selling, editing and export all work unchanged.
 
-## 5. G3 — Native components, gestures, motion
+**Shipped as specced.** Migration `0005_futuristic_iron_patriot.sql` was read line by line before it ran; the zero-loss proof in `tests/schema.test.ts` seeds a fully-populated item plus `photos` and `publish_queue` children and asserts every field round-trips. The composer lives at `/item/new` and the tab bar's FAB routes there, so no batch is ever invented. Note for the record: the owner's local inventory was cleared during the 2026-07-27 crash recovery, so the migration's real-data path has not yet been exercised on a device carrying pre-0005 rows — the QA checklist carries that line forward for the first device that does.
+
+## 5. G3 — Native components, gestures, motion (BUILT AND TESTED, GATED OFF — pending a native build)
 
 **Native where it wins:** `BottomSheet` (item composer, filter sheet), `SegmentedButton` / `SingleChoiceSegmentedButtonRow` (status + sort), `SearchBar` (inventory search), `Switch` (shop toggles, settings), `DatePicker` (batch scheduling), `Snackbar` (undo affordances), `Chip` (department filters) — each rendered inside `Host`, each themed to the design tokens.
 
@@ -61,6 +63,23 @@ The quick-add composer is the existing Rapid Console opened without a `sessionId
 **Pull-to-refresh** on all four tabs: re-reads local queries and, when the shop is set up, drains the publish queue — the honest "refresh" for an offline-first app.
 
 **Motion** (react-native-reanimated, installed): list entrance stagger, FAB→composer transition, shared-element item open, tab-switch cross-fade. All respect `prefers-reduced-motion`; none block input.
+
+### Status 2026-07-28 — what actually ships
+
+**Pull-to-refresh SHIPPED** on all four tabs. It uses RN core's `RefreshControl` and the pure `useRefresh` hook — no Compose, no worklets — so it was never in scope for the gate below.
+
+**Everything else in §5 is written, unit-tested, and switched off.** `apps/mobile/lib/native-ui.ts` exports two flags, both `false`, and `tests/native-ui-gate.test.ts` fails the build if either flips on `master`:
+
+- `NATIVE_UI_ENABLED` gates every `@expo/ui` Compose view — the native floating toolbar (`NativeTabBar`) and the segmented status/sort controls (`components/native/Segmented.tsx`). Fallbacks: `FloatingTabBar` and the `Chip` row, both of which shipped before and carry the Warehouse Console tokens that stock Material cannot.
+- `NATIVE_ANIMATION_ENABLED` gates everything that would run a Reanimated worklet — `SwipeRow` and `lib/motion.ts`. Rows render at rest and swipe rows are ordinary rows.
+
+**Why.** On 2026-07-27 an OTA shipped `HorizontalFloatingToolbar` as the tab bar and crash-looped the owner's device. The component had a capability check *and* a React error boundary; both were useless, because a crash inside Compose is a native exception on the Android UI thread and never becomes a JS exception. `checkAutomatically` is `NEVER`, so the app only fetches an update from our own JS — which the crash killed before the download finished. **An OTA that crashes on launch is very nearly unrecallable by the device it is crashing.** Our guards only ever protected against a native view that was MISSING, never one that was BROKEN, and "broken" is not something JS can detect. The same reasoning covers Reanimated: no JS on `master` had ever created a shared value on that binary, and the entrance animations wrap Home's recent strip — the boot screen.
+
+**The rule this establishes: no Compose view and no worklet ships over the air, ever.** They go out in a native build, verified against `adb logcat *:E` on a real device, where a bad one is caught before release and the store rollout can be halted. Consequence for feature parity: every action a swipe would have offered is still reachable from the item screen, so nothing is unreachable — only less pleasant. The two undo toasts ("Sold — tap to undo", "Publishing — tap to undo") are raised only by the swipe handlers and are therefore dormant until swipe ships.
+
+**Native `SearchBar` REJECTED on the merits, not deferred.** `components/native/SearchField.tsx` documents the reading of the installed @expo/ui 57.0.4: `SearchBarProps` is `{ onSearch, modifiers, children }` with no colour props at all (Material draws its own container, query text and placeholder over whatever the `background` modifier paints), and neither `SearchBar` nor `DockedSearchBar` accepts a `value` — so live "type and the list narrows" would degrade to "type, press enter, wait", and neither the clear button nor a programmatic reset could empty the field. The custom field stays. This one does not come back with the native build.
+
+**Deferred from §5 as specced, never built:** `BottomSheet` for the composer/filter sheet, native `DatePicker` for batch scheduling, native `Snackbar`, native `Chip` for department filters, swipe-to-dismiss on sheets, and the shared-element item open. Batch swipe shipped as add-item / delete-batch rather than the specced archive (there is no archive concept in the data model). These wait for the same native build.
 
 ## 6. Cross-cutting
 
