@@ -9,12 +9,13 @@ import { Icon, type IconName } from "./Icon";
 
 /**
  * The bar's destinations, in order. This is an allowlist, not a mirror of the
- * navigator: `(tabs)` also holds `home.tsx`, which `index` re-exports, and a
- * route file must never become a destination just by existing. Anything not
- * listed here is reachable by route but not by the bar. (`settings` leaves in
- * G1 Task 4, when the gear moves into every screen's header.)
+ * navigator: `(tabs)` also holds `home.tsx` (which `index` re-exports) and
+ * `settings.tsx`, and a route file must never become a destination just by
+ * existing. Anything not listed here is reachable by route but not by the bar —
+ * Settings is now opened by the gear in every screen's `AppHead`, and by its
+ * `/settings` deep link.
  */
-export const TAB_DESTINATIONS = ["index", "inventory", "batches", "shop", "settings"] as const;
+export const TAB_DESTINATIONS = ["index", "inventory", "batches", "shop"] as const;
 
 /** Route name → icon. Keep in sync with `app/(tabs)/_layout.tsx`. */
 const TAB_ICONS: Record<string, IconName> = {
@@ -22,7 +23,6 @@ const TAB_ICONS: Record<string, IconName> = {
   inventory: "Package",
   batches: "Stack",
   shop: "Storefront",
-  settings: "GearSix",
 };
 
 /** Bar geometry — screens pad their own content by `BAR_CLEARANCE` + insets.bottom. */

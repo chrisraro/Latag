@@ -122,6 +122,7 @@ export default function SessionsScreen() {
       <AppHead
         title="Batches"
         right={list.length > 0 ? <Badge label={`${list.length} ${list.length === 1 ? "BATCH" : "BATCHES"}`} /> : null}
+        onSettings={() => router.push("/settings")}
       />
       <View className="mb-3 mt-1 flex-row gap-1 rounded-full border border-hairline bg-surface2 p-1">
         <Pressable

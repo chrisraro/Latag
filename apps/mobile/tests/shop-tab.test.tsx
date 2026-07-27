@@ -154,6 +154,13 @@ async function press(t: ReactTestRenderer, label: string) {
   await act(async () => { target.props.onPress(); });
 }
 
+/** The single control carrying an exact a11y label (header icon buttons). */
+async function pressLabelled(t: ReactTestRenderer, label: string) {
+  const hits = t.root.findAll((n) => typeof n.props?.onPress === "function" && n.props?.accessibilityLabel === label);
+  expect(hits).toHaveLength(1);
+  await act(async () => { hits[0].props.onPress(); });
+}
+
 function field(t: ReactTestRenderer, label: string) {
   const hits = t.root.findAll((n) => n.props?.accessibilityLabel === label && typeof n.props?.onChangeText === "function");
   expect(hits.length).toBeGreaterThan(0);
@@ -196,6 +203,15 @@ describe("Shop tab — free user", () => {
     expect(texts(t)).not.toContain("This one needs Latag Pro");
     await press(t, "Unlock with Pro");
     expect(texts(t)).toContain("This one needs Latag Pro");
+  });
+
+  // The gated state renders its own header — the gear must be there too, or a
+  // free seller has no way into Settings from this tab.
+  test("even the Pro-gated state carries the Settings gear", async () => {
+    setPro(false);
+    const t = await render(ShopScreen);
+    await pressLabelled(t, "Settings");
+    expect(mockPush).toHaveBeenCalledWith("/settings");
   });
 });
 
@@ -255,6 +271,16 @@ describe("Shop tab — Pro, shop exists", () => {
   test("caches the profile it just loaded so the next launch works offline", async () => {
     await render(ShopScreen);
     expect(cacheShop).toHaveBeenCalledWith(PROFILE);
+  });
+
+  // Settings left the tab bar in G1 — the header gear is now the only way in
+  // besides a deep link, from every tab and from every one of Shop's states.
+  test("the header gear opens Settings and the published count survives beside it", async () => {
+    insertItem({ id: "i1", brand: "Carhartt", publishedAt: new Date("2026-07-02T00:00:00Z"), shopCode: "LT-7K2Q9" });
+    const t = await render(ShopScreen);
+    expect(texts(t)).toContain("1"); // the count badge, still in the right slot
+    await pressLabelled(t, "Settings");
+    expect(mockPush).toHaveBeenCalledWith("/settings");
   });
 
   test("Copy link copies the https URL and says so", async () => {

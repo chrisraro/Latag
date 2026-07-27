@@ -181,20 +181,7 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top + 8 }}>
       <View className="px-5">
-        <AppHead
-          title="Latag"
-          right={
-            <Pressable
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-              onPress={() => router.push("/settings")}
-              className="h-10 w-10 flex-none items-center justify-center rounded-full bg-surface2"
-            >
-              <Icon name="GearSix" size={16} color={COLORS.inkDim} />
-            </Pressable>
-          }
-        />
+        <AppHead title="Latag" onSettings={() => router.push("/settings")} />
       </View>
 
       <ScrollView
