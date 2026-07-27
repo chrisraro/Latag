@@ -1,5 +1,6 @@
 import { createElement, useRef, type ComponentType, type ReactNode } from "react";
 import { Animated, Easing as RNEasing, View, type StyleProp, type ViewStyle } from "react-native";
+import { NATIVE_ANIMATION_ENABLED } from "./native-ui";
 
 /**
  * The app's motion vocabulary — one place that owns how long anything takes.
@@ -162,7 +163,16 @@ export function resolveReanimated(load: () => unknown): MotionLib | null {
 
 // Resolved once at module load: the native side does not appear halfway through
 // a session, so re-resolving per render would only cost frames.
-const REANIMATED = resolveReanimated(() => require("react-native-reanimated"));
+//
+// Gated on NATIVE_ANIMATION_ENABLED, currently false. `resolveReanimated`
+// above catches a module that is missing or half-linked; it cannot catch a
+// worklet runtime that fails on the UI thread, and this OTA would be the first
+// code ever to run one on the owner's phone. Read lib/native-ui.ts before
+// changing this line. With the gate off every branch below takes the
+// no-library path: rows render at rest, which is exactly what shipped before.
+const REANIMATED = NATIVE_ANIMATION_ENABLED
+  ? resolveReanimated(() => require("react-native-reanimated"))
+  : null;
 
 /**
  * Whether the OS asked for reduced motion. `false` wherever Reanimated is
@@ -204,9 +214,15 @@ export function MotionView({
   children,
 }: MotionViewProps & { lib: MotionLib | null; reduced: boolean }) {
   const entering = enteringFor(lib, index, reduced);
-  // No library, past the first screenful, or reduced motion: a plain view, with
-  // the row already where it belongs. Never a shorter fade.
-  if (!lib || entering === undefined) return createElement(View, { style }, children);
+  // No library: a plain view, with the row already where it belongs. Never a
+  // shorter fade.
+  if (!lib) return createElement(View, { style }, children);
+  // Past the first screenful (or reduced motion) `entering` is undefined, which
+  // Animated.View treats as "no layout animation" — but the ELEMENT TYPE stays
+  // `lib.default.View` either way. Switching type on `index` would remount the
+  // subtree whenever a recycled FlashList cell crossed STAGGER_LIMIT: scrolling
+  // a 60-item inventory down past row 20 and back would reload each row's
+  // image and reset its swipe state, mid-scroll.
   return createElement(lib.default.View, { style, entering }, children);
 }
 

@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "fs";
 import { join } from "path";
-import { NATIVE_UI_ENABLED } from "../lib/native-ui";
+import { NATIVE_ANIMATION_ENABLED, NATIVE_UI_ENABLED } from "../lib/native-ui";
 
 /**
  * The 2026-07-27 crash-loop regression.
@@ -63,6 +63,21 @@ describe("@expo/ui may never be reached unguarded", () => {
 
     const ungated = reaching.filter((f) => !read(f).includes("NATIVE_UI_ENABLED"));
     expect(ungated.map((f) => f.replace(MOBILE_ROOT, ""))).toEqual([]);
+  });
+
+  test("every file that requires reanimated consults the animation switch", () => {
+    // Reanimated's worklet runtime is the same hazard as Compose: it fails on
+    // the UI thread, where nothing in JS can catch it. `master` ships no JS
+    // importing it, so anything here would be its first run on the device.
+    const reaching = SOURCE_FILES.filter((f) => /require\(\s*["']react-native-reanimated|require\(\s*["']react-native-gesture-handler\/ReanimatedSwipeable/.test(read(f)));
+    expect(reaching.length).toBeGreaterThan(0);
+
+    const ungated = reaching.filter((f) => !read(f).includes("NATIVE_ANIMATION_ENABLED"));
+    expect(ungated.map((f) => f.replace(MOBILE_ROOT, ""))).toEqual([]);
+  });
+
+  test("the animation switch is off until a native build proves the runtime", () => {
+    expect(NATIVE_ANIMATION_ENABLED).toBe(false);
   });
 
   test("the kill switch is off, so no Compose view can ship over the air", () => {

@@ -8,7 +8,7 @@ import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AppState } from "react-native";
+import { AppState, Text, View } from "react-native";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { db } from "../db/client";
@@ -39,7 +39,7 @@ Notifications.setNotificationHandler({
 });
 
 export default function RootLayout() {
-  const { success: migrated } = useMigrations(db, migrations);
+  const { success: migrated, error: migrationError } = useMigrations(db, migrations);
   const reduced = useReducedMotion();
   const [fontsLoaded] = useFonts({
     Archivo: require("../assets/fonts/Archivo-Regular.ttf"),
@@ -70,8 +70,8 @@ export default function RootLayout() {
     if (migrated) { ensureEntitlements(db); sweepOrphans(db).catch(() => {}); }
   }, [migrated]);
   useEffect(() => {
-    if (migrated && fontsLoaded && startRoute !== undefined) SplashScreen.hideAsync();
-  }, [migrated, fontsLoaded, startRoute]);
+    if ((migrated || migrationError) && fontsLoaded && startRoute !== undefined) SplashScreen.hideAsync();
+  }, [migrated, migrationError, fontsLoaded, startRoute]);
 
   useEffect(() => {
     if (startRoute && !redirected.current) {
@@ -149,14 +149,46 @@ export default function RootLayout() {
   // OTA: fully silent — download in the background on launch; expo-updates
   // runs the downloaded bundle automatically on the NEXT cold start.
   // Owner decision 2026-07-15: no restart prompt (was prompt-to-restart).
+  //
+  // DELIBERATELY NOT gated on `migrated`, and deliberately the first effect
+  // that runs. This is the app's only remote repair path: `checkAutomatically`
+  // is "NEVER", so nothing fetches an update except this call. On 2026-07-27 a
+  // bad bundle crashed before reaching the equivalent line and the phone could
+  // not pull its own fix — recovery needed a republished update and several
+  // launches. A failed migration would stick the render at `null` forever;
+  // gating this on that success would make the failure permanent. Running it
+  // unconditionally means a broken build can always be replaced remotely.
   useEffect(() => {
-    if (!migrated) return;
     void runUpdateCheck({
       isDev: __DEV__,
       check: () => Updates.checkForUpdateAsync(),
       fetch: () => Updates.fetchUpdateAsync(),
     });
-  }, [migrated]);
+  }, []);
+
+  // A migration that throws used to render `null` forever: no splash dismissal,
+  // no screen, no explanation, and (before the update check was ungated above)
+  // no way for a fix to arrive. Migration 0005 rebuilds the whole `items`
+  // table on a phone holding real stock, so this branch is not hypothetical.
+  // Deliberately plain RN with literal styles — no NativeWind, no loaded
+  // fonts, no theme import — because whatever just failed, this must render.
+  if (migrationError) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#000", padding: 24, justifyContent: "center" }}>
+        <Text style={{ color: "#F2F2F2", fontSize: 18, fontWeight: "700", marginBottom: 12 }}>
+          Latag could not open your database
+        </Text>
+        <Text style={{ color: "#ADADAD", fontSize: 14, lineHeight: 20 }}>
+          Your items are still on this phone — nothing has been deleted. Do not uninstall the app or
+          clear its storage, as that would erase them. Keep the app installed and open it again
+          later; an update that fixes this will download on its own.
+        </Text>
+        <Text style={{ color: "#8A8A8A", fontSize: 12, lineHeight: 17, marginTop: 16 }}>
+          {String(migrationError.message ?? migrationError)}
+        </Text>
+      </View>
+    );
+  }
 
   if (!migrated || !fontsLoaded || startRoute === undefined) return null;
 

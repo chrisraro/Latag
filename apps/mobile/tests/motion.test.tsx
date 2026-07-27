@@ -183,15 +183,19 @@ test("MotionView animates the first rows and leaves the rest alone", () => {
   expect(animated.root.findByType(mod.default.View).props.entering).toBeTruthy();
 
   const late = render(<MotionView lib={mod} index={STAGGER_LIMIT + 4} reduced={false}><Text>b</Text></MotionView>);
-  // Past the first screenful the row is a plain view — no animated wrapper at all.
-  expect(late.root.findAllByType(mod.default.View)).toHaveLength(0);
+  // Past the first screenful the row carries NO entrance. The wrapper itself
+  // stays — the element type must not depend on `index`, or a recycled
+  // FlashList cell crossing STAGGER_LIMIT would remount its whole subtree
+  // (image reload, swipe state reset) in the middle of a scroll.
+  expect(late.root.findByType(mod.default.View).props.entering).toBeUndefined();
   expect(late.root.findByType(Text).props.children).toBe("b");
 });
 
 test("reduced motion renders the row at rest, never a faster fade", () => {
   const { mod } = fakeReanimated();
   const t = render(<MotionView lib={mod} index={0} reduced><Text>c</Text></MotionView>);
-  expect(t.root.findAllByType(mod.default.View)).toHaveLength(0);
+  // At rest means no entrance at all — not a shorter one.
+  expect(t.root.findByType(mod.default.View).props.entering).toBeUndefined();
   expect(t.root.findByType(Text).props.children).toBe("c");
 });
 
