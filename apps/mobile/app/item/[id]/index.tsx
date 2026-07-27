@@ -151,10 +151,10 @@ export default function ItemDetail() {
     setActiveIdx(Math.round(e.nativeEvent.contentOffset.x / carouselW));
   };
 
-  const Row = ({ k, v, acid }: { k: string; v: string; acid?: boolean }) => (
+  const Row = ({ k, v, acid, faint }: { k: string; v: string; acid?: boolean; faint?: boolean }) => (
     <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-3 py-3.5">
       <Text style={{ fontFamily: FONT.text, lineHeight: 21 }} className="text-[15px] text-inkfaint">{k}</Text>
-      <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className={`min-w-0 shrink text-right text-[15px] ${acid ? "text-acid" : "text-ink"}`}>{v}</Text>
+      <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className={`min-w-0 shrink text-right text-[15px] ${acid ? "text-acid" : faint ? "text-inkfaint" : "text-ink"}`}>{v}</Text>
     </View>
   );
 
@@ -208,6 +208,9 @@ export default function ItemDetail() {
           <Row k="Category" v={`${deptLabel} · ${item.category}`} />
           <Row k="Condition" v={item.condition} />
           {specRowsFor(item as CatalogItem).map((r) => <Row key={r.k} k={r.k} v={r.v} />)}
+          {/* Loose items (G2) belong to no batch — stated plainly, and not as a
+              link, because there is nothing to navigate to. */}
+          <Row k="Batch" v={sessionName ?? "No batch"} faint={sessionName == null} />
           {item.individualCost > 0 ? <Row k="Cost" v={formatPeso(item.individualCost)} /> : null}
           <View className="flex-row items-baseline justify-between gap-4 border-b border-hairline px-3 py-3.5">
             <Text style={{ fontFamily: FONT.text, lineHeight: 21 }} className="text-[15px] text-inkfaint">Price</Text>
@@ -227,7 +230,13 @@ export default function ItemDetail() {
           ? <PrimaryButton label="Undo sold" onPress={() => unmarkSold(db, id)} />
           : <PrimaryButton label="Mark Sold" onPress={() => router.push(`/item/${id}/sold`)} />}
         <View className="mb-2 flex-row gap-2">
-          <SecondaryButton label="Edit" icon="PencilSimple" onPress={() => router.push(`/session/${item.sessionId}/add?item=${id}`)} />
+          {/* A loose item edits in the batch-less console; there is no batch
+              route to send it to. */}
+          <SecondaryButton
+            label="Edit"
+            icon="PencilSimple"
+            onPress={() => router.push((item.sessionId ? `/session/${item.sessionId}/add?item=${id}` : `/item/new?item=${id}`) as Parameters<typeof router.push>[0])}
+          />
           <SecondaryButton label="Delete" icon="Trash" danger onPress={confirmDelete} />
         </View>
         <View className="mb-2 flex-row gap-2">

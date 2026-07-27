@@ -89,9 +89,11 @@ export function NativeTabBarView({
   onQuickAdd,
   ...tabBarProps
 }: NativeTabBarProps & { jetpackUI: JetpackUI | null }) {
-  if (!ui) return <FloatingTabBar {...tabBarProps} />;
+  // The fallback carries quick-add too — on iOS (and any Android where the
+  // native view is missing) this bar is the only bar there is.
+  if (!ui) return <FloatingTabBar {...tabBarProps} onQuickAdd={onQuickAdd} />;
   return (
-    <NativeTabBarBoundary fallback={<FloatingTabBar {...tabBarProps} />}>
+    <NativeTabBarBoundary fallback={<FloatingTabBar {...tabBarProps} onQuickAdd={onQuickAdd} />}>
       <NativeToolbar {...tabBarProps} onQuickAdd={onQuickAdd} ui={ui} />
     </NativeTabBarBoundary>
   );

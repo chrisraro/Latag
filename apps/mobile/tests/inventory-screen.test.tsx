@@ -171,6 +171,19 @@ test("department chip switches cleanly between departments", async () => {
   expect(rowBrands(t).sort()).toEqual(["Carhartt", "Nike"]);
 });
 
+test("Loose items chip shows only items with no batch, and clears back to all", async () => {
+  seedThree();
+  insertItem({ id: "i4", brand: "Uniqlo", sessionId: null });
+  const t = await render();
+  expect(rowBrands(t)).toHaveLength(4);
+  press(t, "Loose items");
+  expect(rowBrands(t)).toEqual(["Uniqlo"]);
+  expect(pressableByText(t, "Loose items").props.accessibilityState).toEqual({ selected: true });
+  expect(texts(t)).toContain("Showing 1 of 4 · ₱850 in this view");
+  press(t, "Loose items");
+  expect(rowBrands(t)).toHaveLength(4);
+});
+
 test("sort chip cycles newest -> price-high -> price-low -> oldest -> newest", async () => {
   seedThree();
   const t = await render();
@@ -202,9 +215,11 @@ test("no matches shows the filtered empty copy, not the first-run copy", async (
   expect(texts(t)).toContain("No items match these filters.");
 });
 
-test("an empty inventory shows the start-a-batch copy", async () => {
+// Items no longer need a batch (G2), so the first-run copy must not send the
+// user off to create one before they can log anything.
+test("an empty inventory points at the add button, not at batches", async () => {
   const t = await render();
-  expect(texts(t)).toContain("No items yet — start a batch to log your first piece.");
+  expect(texts(t)).toContain("No items yet — tap + to log your first piece.");
 });
 
 test("tapping a row opens item detail", async () => {

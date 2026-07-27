@@ -299,3 +299,29 @@ describe("Publish toggle — Pro with a shop", () => {
     expect(db.select().from(publishQueue).all()).toHaveLength(0);
   });
 });
+
+describe("The batch line", () => {
+  test("an item logged inside a batch names it", async () => {
+    setup({ pro: false, shop: false });
+    const t = await render();
+    expect(texts(t)).toContain("Batch");
+    expect(texts(t)).toContain("Naga Run");
+  });
+
+  test("a loose item says No batch and edits through the batch-less composer", async () => {
+    setup({ pro: false, shop: false, item: { sessionId: null } });
+    const t = await render();
+    expect(texts(t)).toContain("No batch");
+    // No navigation affordance: the batch line is a plain row either way.
+    expect(() => pressableByText(t, "No batch")).toThrow();
+    await press(t, "Edit");
+    expect(mockPush).toHaveBeenCalledWith("/item/new?item=i1");
+  });
+
+  test("a batched item still edits inside its batch", async () => {
+    setup({ pro: false, shop: false });
+    const t = await render();
+    await press(t, "Edit");
+    expect(mockPush).toHaveBeenCalledWith("/session/s1/add?item=i1");
+  });
+});
