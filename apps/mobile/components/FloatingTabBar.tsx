@@ -48,9 +48,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     const tint = focused ? COLORS.acid : COLORS.inkFaint;
 
     const onPress = () => {
-      Haptics.selectionAsync();
       const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-      if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+      if (focused || event.defaultPrevented) return;
+      Haptics.selectionAsync();
+      navigation.navigate(route.name, route.params);
     };
 
     return (

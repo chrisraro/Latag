@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { desc, isNull, isNotNull } from "drizzle-orm";
 import * as Haptics from "expo-haptics";
@@ -11,13 +10,13 @@ import { sessions, items, type Session } from "../../db/schema";
 import { FONT, COLORS } from "../../lib/theme";
 import { formatPct } from "../../lib/format";
 import { selectorProjected, selectorRealized, bultoRealizedPct } from "../../lib/math";
-import { decideStartRoute } from "../../lib/first-run";
 import { formatCountdown, formatScheduleStamp, scheduleSortKey, parseOffsets } from "../../lib/schedule";
 import { startScheduledSession } from "../../lib/repo";
 import { cancelReminders } from "../../lib/notifications";
 import { showSuccess } from "../../lib/toast";
 import { Badge, Chip, Money, PrimaryButton } from "../../components/ui";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
+import { AppHead } from "../../components/AppHead";
 import { Icon } from "../../components/Icon";
 
 type Tab = "batches" | "scheduled";
@@ -40,7 +39,6 @@ function PinLine({ name }: { name: string }) {
 export default function SessionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [checked, setChecked] = useState(false);
   const [tab, setTab] = useState<Tab>("batches");
   // Countdown clock: re-render every 30s while anything is scheduled so
   // "in 45m" cards stay honest without any data change.
@@ -49,27 +47,6 @@ export default function SessionsScreen() {
   const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(isNull(sessions.scheduledAt)).orderBy(desc(sessions.createdAt)));
   const { data: scheduledRows } = useLiveQuery(db.select().from(sessions).where(isNotNull(sessions.scheduledAt)));
   const { data: itemRows } = useLiveQuery(db.select().from(items));
-
-  // First-run gate: redirect once if welcome/onboarding is still pending,
-  // otherwise render normally. Rendering null until this resolves avoids
-  // flashing the batch list before the redirect lands (splash is already
-  // up at mount).
-  useEffect(() => {
-    let cancelled = false;
-    AsyncStorage.multiGet(["latag.welcomed", "latag.onboarded"]).then((pairs) => {
-      if (cancelled) return;
-      const flags = Object.fromEntries(pairs);
-      const route = decideStartRoute(flags["latag.welcomed"] !== null, flags["latag.onboarded"] !== null);
-      if (route) {
-        router.replace(route);
-      } else {
-        setChecked(true);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
 
   const hasScheduled = (scheduledRows?.length ?? 0) > 0;
   useEffect(() => {
@@ -83,8 +60,6 @@ export default function SessionsScreen() {
   useEffect(() => {
     startGuard.current = false;
   }, [scheduledRows]);
-
-  if (!checked) return null;
 
   const list = (sessionRows ?? []).map((s) => {
     const its = (itemRows ?? []).filter((i) => i.sessionId === s.id);
@@ -125,23 +100,20 @@ export default function SessionsScreen() {
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-      <View className="flex-row items-center gap-3 pb-2.5 pt-3">
-        <Text style={{ fontFamily: FONT.displayBlack }} className="flex-1 text-[26px] uppercase text-acid">Latag</Text>
-        {list.length > 0 ? <Badge label={`${list.length} BATCHES`} /> : null}
-        <Pressable hitSlop={8} onPress={() => router.push("/settings")} accessibilityRole="button" accessibilityLabel="Settings" className="h-10 w-10 items-center justify-center rounded-full bg-surface2">
-          <Icon name="GearSix" size={18} color={COLORS.inkDim} />
-        </Pressable>
-      </View>
+      <AppHead
+        title="Batches"
+        right={list.length > 0 ? <Badge label={`${list.length} ${list.length === 1 ? "BATCH" : "BATCHES"}`} /> : null}
+      />
       <View className="mb-3 mt-1 flex-row gap-1 rounded-full border border-hairline bg-surface2 p-1">
         <Pressable
           hitSlop={4}
           onPress={() => switchTab("batches")}
           accessibilityRole="button"
-          accessibilityLabel="Batches"
+          accessibilityLabel="Active"
           accessibilityState={{ selected: tab === "batches" }}
           className={`h-11 flex-1 flex-row items-center justify-center gap-1.5 rounded-full px-3.5 ${tab === "batches" ? "bg-acid" : ""}`}
         >
-          <Text style={{ fontFamily: FONT.display, letterSpacing: 0.39 }} className={`text-[13px] uppercase ${tab === "batches" ? "text-acidink" : "text-inkdim"}`}>Batches</Text>
+          <Text style={{ fontFamily: FONT.display, letterSpacing: 0.39 }} className={`text-[13px] uppercase ${tab === "batches" ? "text-acidink" : "text-inkdim"}`}>Active</Text>
         </Pressable>
         <Pressable
           hitSlop={4}

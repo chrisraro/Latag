@@ -191,7 +191,7 @@ export default function SettingsScreen() {
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-      <AppHead title="Settings" onBack={() => router.back()} />
+      <AppHead title="Settings" />
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
         <FieldLabel>Account</FieldLabel>

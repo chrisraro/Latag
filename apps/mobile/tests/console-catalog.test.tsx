@@ -31,7 +31,6 @@ jest.mock("../lib/repo", () => ({
 jest.mock("../lib/media", () => ({ deleteFiles: jest.fn(async () => {}) }));
 jest.mock("../lib/toast", () => ({ showError: jest.fn(), showSuccess: jest.fn() }));
 jest.mock("../components/PhotoSlot", () => ({ PhotoSlot: () => null }));
-jest.mock("../components/GoProSheet", () => ({ GoProSheet: () => null }));
 jest.mock("../components/BrandPickerSheet", () => ({ BrandPickerSheet: () => null }));
 
 import { db } from "../db/client";

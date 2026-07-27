@@ -1,5 +1,5 @@
 import "../global.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -16,7 +16,7 @@ import { ensureEntitlements } from "../lib/entitlements";
 import { sweepOrphans } from "../lib/media";
 import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
-import { setWelcomed } from "../lib/first-run";
+import { decideStartRoute, setWelcomed } from "../lib/first-run";
 import { runUpdateCheck } from "../lib/updates";
 import { ensureAlarmChannel, notifResponsePath } from "../lib/notifications";
 import { showError } from "../lib/toast";
@@ -49,10 +49,32 @@ export default function RootLayout() {
   const lastHandledUrl = useRef<string | null>(null);
   const handled = useRef(false); // cold-start launch response — replay at most once
 
+  // First-run gate, hoisted above the tab navigator (was duplicated inside
+  // both (tabs)/index.tsx and (tabs)/batches.tsx, which let the floating tab
+  // bar flash before the redirect landed on a fresh install). undefined =
+  // still reading AsyncStorage; null = fully initialized, stay put.
+  const [startRoute, setStartRoute] = useState<string | null | undefined>(undefined);
+  const redirected = useRef(false);
+
+  useEffect(() => {
+    AsyncStorage.multiGet(["latag.welcomed", "latag.onboarded"])
+      .then((pairs) => setStartRoute(decideStartRoute(pairs[0][1] === "1", pairs[1][1] === "1")))
+      .catch(() => setStartRoute(null)); // never leave the app permanently blank
+  }, []);
+
   useEffect(() => {
     if (migrated) { ensureEntitlements(db); sweepOrphans(db).catch(() => {}); }
   }, [migrated]);
-  useEffect(() => { if (migrated && fontsLoaded) SplashScreen.hideAsync(); }, [migrated, fontsLoaded]);
+  useEffect(() => {
+    if (migrated && fontsLoaded && startRoute !== undefined) SplashScreen.hideAsync();
+  }, [migrated, fontsLoaded, startRoute]);
+
+  useEffect(() => {
+    if (startRoute && !redirected.current) {
+      redirected.current = true;
+      router.replace(startRoute as Parameters<typeof router.replace>[0]);
+    }
+  }, [startRoute]);
 
   // Deep-link completion (email sign-in link -> latag://auth/callback?code=...).
   // Must never crash offline/no-op use: every failure mode below is swallowed.
@@ -119,7 +141,7 @@ export default function RootLayout() {
     });
   }, [migrated]);
 
-  if (!migrated || !fontsLoaded) return null;
+  if (!migrated || !fontsLoaded || startRoute === undefined) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000" }}>

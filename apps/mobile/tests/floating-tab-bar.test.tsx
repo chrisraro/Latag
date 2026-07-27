@@ -20,6 +20,8 @@ jest.mock("expo-glass-effect", () => {
 import * as Haptics from "expo-haptics";
 import { FloatingTabBar } from "../components/FloatingTabBar";
 
+beforeEach(() => { jest.clearAllMocks(); });
+
 const NAMES = ["index", "batches", "shop", "settings"] as const;
 const TITLES: Record<string, string> = {
   index: "Inventory", batches: "Batches", shop: "Shop", settings: "Settings",
@@ -82,19 +84,21 @@ test("pressing an unfocused tab emits tabPress and navigates", () => {
   expect(Haptics.selectionAsync).toHaveBeenCalled();
 });
 
-test("a prevented tabPress does not navigate", () => {
+test("a prevented tabPress does not navigate or buzz", () => {
   const { props, emit, navigate } = makeProps({ index: 0, prevent: true });
   const t = render(props);
   act(() => { tabByLabel(t, "Shop").props.onPress(); });
   expect(emit).toHaveBeenCalled();
   expect(navigate).not.toHaveBeenCalled();
+  expect(Haptics.selectionAsync).not.toHaveBeenCalled();
 });
 
-test("pressing the already-focused tab does not navigate", () => {
+test("pressing the already-focused tab does not navigate or buzz", () => {
   const { props, navigate } = makeProps({ index: 0 });
   const t = render(props);
   act(() => { tabByLabel(t, "Inventory").props.onPress(); });
   expect(navigate).not.toHaveBeenCalled();
+  expect(Haptics.selectionAsync).not.toHaveBeenCalled();
 });
 
 test("long press emits tabLongPress for that route", () => {

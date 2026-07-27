@@ -1,15 +1,13 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { desc } from "drizzle-orm";
 import { db } from "../../db/client";
 import { items, photos, type Item } from "../../db/schema";
-import { decideStartRoute } from "../../lib/first-run";
 import { FONT, COLORS } from "../../lib/theme";
 import { formatPeso } from "../../lib/format";
 import { DEPARTMENTS, captionSpecLine, type CatalogItem } from "../../lib/catalog";
@@ -34,51 +32,38 @@ const SORT_LABEL: Record<InvSort, string> = { newest: "Newest", "price-high": "�
 export default function InventoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [checked, setChecked] = useState(false);
   const [filter, setFilter] = useState<InvFilter>(DEFAULT_FILTER);
-
-  // First-run gate: redirect once if welcome/onboarding is still pending,
-  // otherwise render normally. Rendering null until this resolves avoids
-  // flashing the inventory list before the redirect lands (splash is already
-  // up at mount).
-  useEffect(() => {
-    let cancelled = false;
-    AsyncStorage.multiGet(["latag.welcomed", "latag.onboarded"]).then((pairs) => {
-      if (cancelled) return;
-      const flags = Object.fromEntries(pairs);
-      const route = decideStartRoute(flags["latag.welcomed"] !== null, flags["latag.onboarded"] !== null);
-      if (route) {
-        router.replace(route);
-      } else {
-        setChecked(true);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
 
   const { data: itemRows } = useLiveQuery(db.select().from(items).orderBy(desc(items.createdAt)), []);
   const { data: photoRows } = useLiveQuery(db.select().from(photos), []);
 
-  if (!checked) return null;
-
   const all = itemRows ?? [];
-  const visible = filterItems(all, filter);
-  const totals = inventoryTotals(visible);
-  const thumbOf = (itemId: string) => (photoRows ?? []).find((p) => p.itemId === itemId && p.type === "front")?.localUri ?? null;
+  const filterActive =
+    filter.query !== DEFAULT_FILTER.query ||
+    filter.department !== DEFAULT_FILTER.department ||
+    filter.status !== DEFAULT_FILTER.status ||
+    filter.sort !== DEFAULT_FILTER.sort;
+  const visible = useMemo(() => filterItems(all, filter), [itemRows, filter]);
+  const totals = useMemo(() => inventoryTotals(visible), [visible]);
+  const thumbs = useMemo(
+    () => new Map((photoRows ?? []).filter((p) => p.type === "front").map((p) => [p.itemId, p.localUri])),
+    [photoRows],
+  );
+  const thumbOf = (itemId: string) => thumbs.get(itemId) ?? null;
   const cycleSort = () => setFilter((f) => ({ ...f, sort: SORT_CYCLE[(SORT_CYCLE.indexOf(f.sort) + 1) % SORT_CYCLE.length] }));
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-      <AppHead title="Inventory" right={<Badge label={String(totals.count)} />} />
+      <AppHead title="Inventory" right={<Badge label={String(all.length)} />} />
 
       <Text
         style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }}
         className="mb-3 text-[12px] text-inkfaint"
         numberOfLines={1}
       >
-        {`${totals.count} items · ${totals.available} available · ${formatPeso(totals.stockValue)} stock value`}
+        {filterActive
+          ? `Showing ${visible.length} of ${all.length} · ${formatPeso(totals.stockValue)} in this view`
+          : `${totals.count} ${totals.count === 1 ? "item" : "items"} · ${totals.available} available · ${formatPeso(totals.stockValue)} stock value`}
       </Text>
 
       <View className="mb-2.5 h-[52px] flex-row items-center gap-2.5 rounded-[14px] border border-hairline bg-surface2 px-4">
