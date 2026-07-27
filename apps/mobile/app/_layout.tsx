@@ -22,6 +22,7 @@ import { runUpdateCheck } from "../lib/updates";
 import { syncPublishQueue } from "../lib/shop-sync";
 import { ensureAlarmChannel, notifResponsePath } from "../lib/notifications";
 import { showError } from "../lib/toast";
+import { composerAnimation, durationFor, useReducedMotion } from "../lib/motion";
 import { AppToast } from "../components/AppToast";
 
 SplashScreen.preventAutoHideAsync();
@@ -39,6 +40,7 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   const { success: migrated } = useMigrations(db, migrations);
+  const reduced = useReducedMotion();
   const [fontsLoaded] = useFonts({
     Archivo: require("../assets/fonts/Archivo-Regular.ttf"),
     "Archivo-Medium": require("../assets/fonts/Archivo-Medium.ttf"),
@@ -163,6 +165,16 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#000" } }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* The other half of the FAB → composer transition: the quick-add button
+            sits at the bottom of the screen, so the composer it summons rises
+            from there. Not a modal — the Rapid Console is a full screen you can
+            navigate onward from — so the motion is what tells you where it came
+            from. Reduced motion makes it a cut, and either way the composer is
+            interactive the moment it mounts. */}
+        <Stack.Screen
+          name="item/new/index"
+          options={{ animation: composerAnimation(reduced), animationDuration: durationFor("screen", reduced) }}
+        />
         <Stack.Screen name="session/new" options={{ presentation: "modal" }} />
         <Stack.Screen name="session/edit" options={{ presentation: "modal" }} />
         <Stack.Screen name="session/[id]/camera" options={{ presentation: "fullScreenModal" }} />

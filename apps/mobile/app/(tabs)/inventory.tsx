@@ -25,6 +25,7 @@ import { SearchField } from "../../components/native/SearchField";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
 import { REFRESH_TINT, settle, useRefresh } from "../../lib/refresh";
+import { EnterView } from "../../lib/motion";
 
 const STATUS_OPTIONS: SegmentedOption<InvStatus>[] = [
   { value: "all", label: "All" },
@@ -227,37 +228,42 @@ export default function InventoryScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...REFRESH_TINT} />}
-        renderItem={({ item }: { item: Item }) => {
+        renderItem={({ item, index }: { item: Item; index: number }) => {
           const uri = thumbOf(item.id);
           const spec = captionSpecLine(item as CatalogItem);
           return (
-            // Drag the row for the sold toggle and the storefront; tapping it
-            // still opens the item, where every one of those lives permanently.
-            <SwipeRow actions={swipeBindings(item)}>
-              <Pressable onPress={() => router.push(`/item/${item.id}`)} className="flex-row items-center gap-3 border-b border-hairline px-3 py-3.5">
-                <View className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}>
-                  {uri ? <Image source={{ uri }} recyclingKey={uri} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
-                       : <Text style={{ fontFamily: FONT.bold }} className="text-[20px] text-inkfaint">{item.brand[0]}</Text>}
-                </View>
-                <View className="min-w-0 flex-1">
-                  <View className="flex-row items-center gap-2">
-                    <Text style={{ fontFamily: FONT.semibold }} className={`min-w-0 shrink text-[17px] ${item.status === "sold" ? "text-inkdim" : "text-ink"}`} numberOfLines={1}>
-                      {item.brand}
-                      {item.name ? <Text className="text-inkdim"> · {item.name}</Text> : null}
-                    </Text>
-                    {item.status === "sold" ? <Badge label="SOLD" tone="sold" /> : null}
+            // Only the first screenful is staggered (see lib/motion): a 500-item
+            // inventory must not animate for twelve seconds, and everything below
+            // the fold is rendered at rest.
+            <EnterView index={index}>
+              {/* Drag the row for the sold toggle and the storefront; tapping it
+                  still opens the item, where every one of those lives permanently. */}
+              <SwipeRow actions={swipeBindings(item)}>
+                <Pressable onPress={() => router.push(`/item/${item.id}`)} className="flex-row items-center gap-3 border-b border-hairline px-3 py-3.5">
+                  <View className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}>
+                    {uri ? <Image source={{ uri }} recyclingKey={uri} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
+                         : <Text style={{ fontFamily: FONT.bold }} className="text-[20px] text-inkfaint">{item.brand[0]}</Text>}
                   </View>
-                  <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint" numberOfLines={1}>
-                    {item.category} · {item.condition}{spec ? ` · ${spec}` : ""}
-                  </Text>
-                </View>
-                <View className="ml-1 items-end">
-                  <Money value={item.soldPrice ?? item.targetSellPrice} size="row" />
-                  {item.status === "sold" && item.soldPrice !== item.targetSellPrice
-                    ? <Text style={{ fontFamily: FONT.medium, fontVariant: ["tabular-nums"], lineHeight: 15 }} className="mt-0.5 text-[11px] text-inkfaint">listed {formatPeso(item.targetSellPrice)}</Text> : null}
-                </View>
-              </Pressable>
-            </SwipeRow>
+                  <View className="min-w-0 flex-1">
+                    <View className="flex-row items-center gap-2">
+                      <Text style={{ fontFamily: FONT.semibold }} className={`min-w-0 shrink text-[17px] ${item.status === "sold" ? "text-inkdim" : "text-ink"}`} numberOfLines={1}>
+                        {item.brand}
+                        {item.name ? <Text className="text-inkdim"> · {item.name}</Text> : null}
+                      </Text>
+                      {item.status === "sold" ? <Badge label="SOLD" tone="sold" /> : null}
+                    </View>
+                    <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint" numberOfLines={1}>
+                      {item.category} · {item.condition}{spec ? ` · ${spec}` : ""}
+                    </Text>
+                  </View>
+                  <View className="ml-1 items-end">
+                    <Money value={item.soldPrice ?? item.targetSellPrice} size="row" />
+                    {item.status === "sold" && item.soldPrice !== item.targetSellPrice
+                      ? <Text style={{ fontFamily: FONT.medium, fontVariant: ["tabular-nums"], lineHeight: 15 }} className="mt-0.5 text-[11px] text-inkfaint">listed {formatPeso(item.targetSellPrice)}</Text> : null}
+                  </View>
+                </Pressable>
+              </SwipeRow>
+            </EnterView>
           );
         }}
         ListEmptyComponent={

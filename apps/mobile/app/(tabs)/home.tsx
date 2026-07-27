@@ -25,6 +25,7 @@ import { GoProSheet } from "../../components/GoProSheet";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
 import { REFRESH_TINT, settle, useRefresh } from "../../lib/refresh";
+import { EnterView } from "../../lib/motion";
 
 /**
  * Home — the business snapshot you open every morning, not a feed.
@@ -339,22 +340,25 @@ export default function HomeScreen() {
               style={{ flexGrow: 0 }}
               contentContainerStyle={{ gap: 10, paddingRight: 4 }}
             >
-              {recent.map((item: Item) => {
+              {/* `recentItems` caps this at 8, which is the stagger's cap too —
+                  the whole strip arrives inside a third of a second. */}
+              {recent.map((item: Item, index: number) => {
                 const uri = thumbs.get(item.id) ?? null;
                 return (
-                  <Pressable
-                    key={item.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={item.brand}
-                    onPress={() => router.push(`/item/${item.id}`)}
-                    className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}
-                  >
-                    {uri ? (
-                      <Image source={{ uri }} recyclingKey={uri} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
-                    ) : (
-                      <Text style={{ fontFamily: FONT.bold }} className="text-[20px] text-inkfaint">{item.brand[0]}</Text>
-                    )}
-                  </Pressable>
+                  <EnterView key={item.id} index={index}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={item.brand}
+                      onPress={() => router.push(`/item/${item.id}`)}
+                      className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}
+                    >
+                      {uri ? (
+                        <Image source={{ uri }} recyclingKey={uri} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
+                      ) : (
+                        <Text style={{ fontFamily: FONT.bold }} className="text-[20px] text-inkfaint">{item.brand[0]}</Text>
+                      )}
+                    </Pressable>
+                  </EnterView>
                 );
               })}
             </ScrollView>
