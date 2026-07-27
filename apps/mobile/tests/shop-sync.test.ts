@@ -4,6 +4,7 @@ import { deleteShopItem, uploadItemPhotos, upsertShopItem } from "../lib/shop-ap
 import {
   MAX_ATTEMPTS,
   drainQueue,
+  kickSync,
   pendingLabel,
   syncPublishQueue,
   toShopItemUpsert,
@@ -135,13 +136,34 @@ test("toShopItemUpsert carries buyer fields only — no cost, profit, location, 
   expect(payload.price).toBe(850);
   expect(payload.status).toBe("available");
   expect(payload.photoUrls).toEqual(["https://cdn.test/0.jpg"]);
-  expect(payload.specs).toEqual({ "Pit-to-pit": '21.5"', Length: '27"' });
+  expect(payload.specs).toEqual([{ k: "Pit-to-pit", v: '21.5"' }, { k: "Length", v: '27"' }]);
 
   const keys = Object.keys(payload);
   for (const banned of ["individualCost", "cost", "profit", "location", "locationName", "sessionId", "lat", "lng", "soldPrice"]) {
     expect(keys).not.toContain(banned);
   }
   expect(JSON.stringify(payload)).not.toContain("120");
+});
+
+// -------------------------------------------------------- M1: ordered specs
+
+test("toShopItemUpsert emits specs as an ORDERED ARRAY, not a jsonb object — Postgres would otherwise scramble jsonb keys by length-then-bytes and render bottoms as 'Rise · Waist' instead of 'Waist · Inseam'", () => {
+  const { db } = makeTestDb();
+  const s = createSession(db, { name: "Divisoria run", type: "selector" });
+  const { item } = addItem(db, {
+    sessionId: s.id, brand: "Levi's", department: "bottoms", category: "Jeans",
+    waistInches: 32, inseamInches: 30, riseInches: 11, condition: "9/10", targetSellPrice: 900,
+  });
+  const published = markPublished(db, item.id, "LT-9F3K2");
+
+  const payload = toShopItemUpsert(published, []);
+
+  expect(Array.isArray(payload.specs)).toBe(true);
+  expect(payload.specs).toEqual([
+    { k: "Waist", v: '32"' },
+    { k: "Inseam", v: '30"' },
+    { k: "Rise", v: '11"' },
+  ]);
 });
 
 // ------------------------------------------------------------ syncPublishQueue
@@ -207,4 +229,41 @@ test("syncPublishQueue swallows everything and reports zeroes when the queue can
   await expect(syncPublishQueue(broken as any)).resolves.toEqual({
     processed: 0, succeeded: 0, failed: 0, gaveUp: 0,
   });
+});
+
+// ------------------------------------------------------------------ kickSync
+
+/** Lets any pending microtasks (and the odd real macrotask) settle before asserting. */
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+test("kickSync never throws and returns immediately even against a broken db", async () => {
+  const broken = { select: () => { throw new Error("db gone"); } };
+  expect(() => kickSync(broken as any)).not.toThrow();
+  await flush(); // let the swallowed failure clear the module-level inFlight guard
+});
+
+test("kickSync overlap guard collapses rapid calls into a single in-flight drain (C1)", async () => {
+  const { db } = makeTestDb();
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...baseItem });
+  markPublished(db, item.id, "LT-7K2Q9");
+  enqueuePublish(db, item.id, "upsert");
+
+  let release: (() => void) | undefined;
+  mockedUpsert.mockImplementation(() => new Promise((resolve) => { release = () => resolve(ok(null)); }));
+
+  kickSync(db);
+  kickSync(db); // fired while the first drain is still in flight — must be a no-op
+  await flush();
+  expect(mockedUpsert).toHaveBeenCalledTimes(1);
+
+  release?.();
+  await flush();
+  expect(listPublishQueue(db)).toHaveLength(0); // the one real drain ran to completion
+
+  // Now that inFlight has cleared, a fresh kickSync must be able to fire again.
+  enqueuePublish(db, item.id, "upsert");
+  kickSync(db);
+  await flush();
+  expect(mockedUpsert).toHaveBeenCalledTimes(2);
 });

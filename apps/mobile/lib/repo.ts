@@ -3,6 +3,9 @@ import * as Crypto from "expo-crypto";
 import { sessions, items, photos, publishQueue, type Session, type Item, type Photo, type PublishQueueRow } from "../db/schema";
 import { specFieldsFor, type Department, type SpecKey } from "./catalog";
 import { ensureEntitlements, logsRemaining as remainingLogs } from "./entitlements";
+// No cycle: shop-sync imports only db/schema, lib/catalog and lib/shop-api —
+// never lib/repo — so this stays a plain static import.
+import { kickSync } from "./shop-sync";
 
 type AnyDb = any;
 const newId = () => Crypto.randomUUID();
@@ -72,7 +75,7 @@ export function deleteSession(db: AnyDb, id: string): { photoUris: string[]; rem
       tx.delete(photos).where(eq(photos.itemId, item.id)).run();
       // Deleting a batch deletes its items, so anything it had listed has to
       // come off the shop too — otherwise the storefront outlives the stock.
-      queueRemovalInTx(tx, item);
+      queueRemovalInTx(tx, item, db);
     }
     tx.delete(items).where(eq(items.sessionId, id)).run();
     tx.delete(sessions).where(eq(sessions.id, id)).run();
@@ -180,9 +183,16 @@ export function updateItem(db: AnyDb, id: string, patch: Partial<Omit<AddItemInp
   return updated;
 }
 
+/**
+ * AUTO-SYNC (spec §3, review I1): a re-shoot changes what a published listing
+ * shows buyers, so it enqueues exactly like any other edit — otherwise the old
+ * photo stays public until some unrelated change happens to touch the queue.
+ */
 export function addPhoto(db: AnyDb, input: { itemId: string; localUri: string; type: "front" | "back" | "tag" | "flaw" }): Photo {
   const row = { id: newId(), ...input };
   db.insert(photos).values(row).run();
+  const item = db.select().from(items).where(eq(items.id, input.itemId)).all()[0] as Item | undefined;
+  syncIfPublished(db, item, "upsert");
   return db.select().from(photos).where(eq(photos.id, row.id)).all()[0];
 }
 
@@ -190,6 +200,9 @@ export function addPhoto(db: AnyDb, input: { itemId: string; localUri: string; t
  * Replaces all existing photo rows for (itemId, type) with a single new row, transactionally.
  * Used by edit-mode re-shoots so a re-captured slot never leaves duplicate photo rows behind —
  * callers must delete the returned replacedUris (the old files) via deleteFiles.
+ *
+ * AUTO-SYNC (review I1): the item is looked up inside this same transaction so
+ * a re-shoot on a published item enqueues an upsert exactly like addPhoto does.
  */
 export function replacePhoto(db: AnyDb, input: { itemId: string; localUri: string; type: "front" | "back" | "tag" | "flaw" }): { photo: Photo; replacedUris: string[] } {
   return db.transaction((tx: AnyDb) => {
@@ -198,6 +211,8 @@ export function replacePhoto(db: AnyDb, input: { itemId: string; localUri: strin
     tx.delete(photos).where(and(eq(photos.itemId, input.itemId), eq(photos.type, input.type))).run();
     const row = { id: newId(), ...input };
     tx.insert(photos).values(row).run();
+    const item = tx.select().from(items).where(eq(items.id, input.itemId)).all()[0] as Item | undefined;
+    queueUpsertInTx(tx, item, db);
     return { photo: tx.select().from(photos).where(eq(photos.id, row.id)).all()[0], replacedUris };
   });
 }
@@ -227,7 +242,7 @@ export function deleteItem(db: AnyDb, id: string): { photoUris: string[] } {
     tx.delete(items).where(eq(items.id, id)).run();
     // Queued before the row is gone but drained long after: the queue carries
     // the item's local id, which is all deleteShopItem needs.
-    queueRemovalInTx(tx, item);
+    queueRemovalInTx(tx, item, db);
     return { photoUris: uris };
   });
 }
@@ -238,23 +253,46 @@ export function deleteItem(db: AnyDb, id: string): { photoUris: string[] } {
  *  off a photo without ever getting it wrong. */
 const SHOP_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const SHOP_CODE_LENGTH = 5;
+/** Re-rolls this many times before giving up on a 5-char code (M2). */
+const SHOP_CODE_MAX_ATTEMPTS = 10;
 
-/**
- * Mints a buyer-facing item code, `LT-` + 5 unambiguous characters.
- * Rejection sampling keeps every character equally likely (a plain byte % 31
- * would over-weight the first eight letters of the alphabet).
- */
-export function generateShopCode(): string {
+/** Rejection sampling keeps every character equally likely (a plain byte % 31
+ *  would over-weight the first eight letters of the alphabet). */
+function randomCode(length: number): string {
   const limit = Math.floor(256 / SHOP_CODE_ALPHABET.length) * SHOP_CODE_ALPHABET.length;
   let code = "";
-  while (code.length < SHOP_CODE_LENGTH) {
-    for (const byte of Crypto.getRandomBytes(SHOP_CODE_LENGTH)) {
+  while (code.length < length) {
+    for (const byte of Crypto.getRandomBytes(length)) {
       if (byte >= limit) continue;
       code += SHOP_CODE_ALPHABET[byte % SHOP_CODE_ALPHABET.length];
-      if (code.length === SHOP_CODE_LENGTH) break;
+      if (code.length === length) break;
     }
   }
-  return `LT-${code}`;
+  return code;
+}
+
+function shopCodeTaken(db: AnyDb, code: string): boolean {
+  return db.select().from(items).where(eq(items.shopCode, code)).all().length > 0;
+}
+
+/**
+ * Mints a buyer-facing item code, `LT-` + 5 unambiguous characters, checked
+ * against the LOCAL items table (M2): without this, a colliding code hits
+ * `shop_items_shop_id_code_key` on the network, the queue row retries 5x and
+ * gives up, and the UI's own advice — toggle off/on — reuses the exact same
+ * colliding code, stranding the item forever. A collision here re-rolls; if
+ * the whole 5-char space is somehow still colliding after
+ * SHOP_CODE_MAX_ATTEMPTS tries, a longer code is minted instead of looping.
+ */
+export function generateShopCode(db: AnyDb): string {
+  for (let attempt = 0; attempt < SHOP_CODE_MAX_ATTEMPTS; attempt++) {
+    const code = `LT-${randomCode(SHOP_CODE_LENGTH)}`;
+    if (!shopCodeTaken(db, code)) return code;
+  }
+  for (;;) {
+    const code = `LT-${randomCode(SHOP_CODE_LENGTH + 2)}`;
+    if (!shopCodeTaken(db, code)) return code;
+  }
 }
 
 /** Queue rows are drained oldest-first, so two enqueues inside the same
@@ -298,13 +336,28 @@ function writeQueueRow(exec: AnyDb, itemId: string, op: "upsert" | "delete"): Pu
 function syncIfPublished(db: AnyDb, item: Item | undefined, op: "upsert" | "delete"): void {
   if (!item?.publishedAt) return;
   enqueuePublish(db, item.id, op);
+  // C1: nudge the drain immediately instead of waiting for the next launch or
+  // foreground — otherwise a published item can sit stale (or, unpublished,
+  // stay PUBLICLY LIVE) until the app happens to background and reopen.
+  kickSync(db);
 }
 
 /** Same rule for deletions, except the caller is already inside a transaction
- *  (and holds the row it is about to destroy), so the queue write joins it. */
-function queueRemovalInTx(tx: AnyDb, item: Item | undefined): void {
+ *  (and holds the row it is about to destroy), so the queue write joins it.
+ *  `db` (not `tx`) is what's handed to kickSync: its async continuation runs
+ *  after this transaction returns, so it must hold a handle good for then. */
+function queueRemovalInTx(tx: AnyDb, item: Item | undefined, db: AnyDb): void {
   if (!item?.publishedAt) return;
   writeQueueRow(tx, item.id, "delete");
+  kickSync(db);
+}
+
+/** Same shape as queueRemovalInTx but for an upsert queued from inside an
+ *  already-open transaction (replacePhoto) — see its comment for why `db`. */
+function queueUpsertInTx(tx: AnyDb, item: Item | undefined, db: AnyDb): void {
+  if (!item?.publishedAt) return;
+  writeQueueRow(tx, item.id, "upsert");
+  kickSync(db);
 }
 
 /** Removes a drained row. Called only after the network op succeeded. */

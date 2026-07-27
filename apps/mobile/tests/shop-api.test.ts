@@ -111,7 +111,7 @@ const ITEM: ShopItemUpsert = {
   department: "menswear",
   category: "jacket",
   condition: "9/10",
-  specs: { chest: 22, length: 27, note: null },
+  specs: [{ k: "Chest", v: '22"' }, { k: "Length", v: '27"' }],
   price: 850,
   status: "available",
   photoUrls: ["https://cdn.test/a.jpg"],
@@ -401,6 +401,43 @@ describe("uploadItemPhotos", () => {
     const res = await uploadItemPhotos("item-1", ["file:///a.jpg"]);
     expect(res.ok).toBe(false);
   });
+
+  // -------------------------------------------------------- I2a: orphan cleanup
+
+  test("removes objects at indices >= the new photo count after a successful upload", async () => {
+    const b = bucket({
+      list: jest.fn(async () => ({
+        data: [{ name: "0.jpg" }, { name: "1.jpg" }, { name: "2.jpg" }, { name: "3.jpg" }],
+        error: null,
+      })),
+    });
+    mockedSupabase.storage.from.mockReturnValue(b);
+
+    // Item shrank from 4 photos to 2 — 2.jpg and 3.jpg must not stay public.
+    await uploadItemPhotos("item-1", ["file:///a.jpg", "file:///b.jpg"]);
+
+    expect(b.list).toHaveBeenCalledWith("user-1/item-1");
+    expect(b.remove).toHaveBeenCalledWith(["user-1/item-1/2.jpg", "user-1/item-1/3.jpg"]);
+  });
+
+  test("no cleanup call when the folder already matches the new count", async () => {
+    const b = bucket({
+      list: jest.fn(async () => ({ data: [{ name: "0.jpg" }, { name: "1.jpg" }], error: null })),
+    });
+    mockedSupabase.storage.from.mockReturnValue(b);
+
+    await uploadItemPhotos("item-1", ["file:///a.jpg", "file:///b.jpg"]);
+
+    expect(b.remove).not.toHaveBeenCalled();
+  });
+
+  test("orphan cleanup failure never fails the publish — best-effort only", async () => {
+    mockedSupabase.storage.from.mockReturnValue(
+      bucket({ list: jest.fn(async () => { throw new Error("storage down"); }) }),
+    );
+    const res = await uploadItemPhotos("item-1", ["file:///a.jpg"]);
+    expect(res.ok).toBe(true);
+  });
 });
 
 describe("decodeBase64", () => {
@@ -461,7 +498,7 @@ describe("upsertShopItem", () => {
       department: "menswear",
       category: "jacket",
       condition: "9/10",
-      specs: { chest: 22, length: 27, note: null },
+      specs: [{ k: "Chest", v: '22"' }, { k: "Length", v: '27"' }],
       price: 850,
       status: "available",
       photo_urls: ["https://cdn.test/a.jpg"],

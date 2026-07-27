@@ -112,8 +112,10 @@ const SLOT_ORDER: Record<Photo["type"], number> = { front: 0, back: 1, tag: 2, f
  * from `specRowsFor`, which only ever emits catalog measurement fields.
  */
 export function toShopItemUpsert(item: Item, photoUrls: string[]): ShopItemUpsert {
-  const specs: Record<string, number | string | null> = {};
-  for (const { k, v } of specRowsFor(item as unknown as CatalogItem)) specs[k] = v;
+  // M1: an ORDERED ARRAY, not a jsonb object — Postgres orders jsonb object
+  // keys by length-then-bytes, which would scramble "Waist · Inseam" into
+  // "Rise · Waist" on the buyer's page. specRowsFor's own order survives verbatim.
+  const specs = specRowsFor(item as unknown as CatalogItem);
 
   return {
     itemLocalId: item.id,
@@ -181,4 +183,23 @@ export async function syncPublishQueue(db: AnyDb): Promise<DrainSummary> {
   } catch {
     return { ...EMPTY };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Immediate-nudge entry point (C1)
+// ---------------------------------------------------------------------------
+
+let inFlight: Promise<DrainSummary> | null = null;
+
+/**
+ * Fire-and-forget nudge after an enqueue (spec §3): without this, publishing
+ * or unpublishing only syncs on the next app launch or foreground, so a
+ * seller who toggles OFF and sees "Removed from shop" would have a listing
+ * that stays publicly live until the app happens to background/reopen.
+ * Overlap-guarded so rapid toggles can't stack drains; never throws, never
+ * blocks the caller — same offline-first contract as syncPublishQueue.
+ */
+export function kickSync(db: AnyDb): void {
+  if (inFlight) return;
+  inFlight = syncPublishQueue(db).finally(() => { inFlight = null; });
 }
