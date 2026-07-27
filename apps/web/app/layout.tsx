@@ -7,12 +7,12 @@ const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", axes: 
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://latag.vercel.app"),
-  title: { default: "Latag — the ukay ops console", template: "%s · Latag" },
+  title: { default: "Latag — ukay inventory and your own shop page", template: "%s · Latag" },
   description:
-    "Log a piece in 5 seconds, know your margins instantly, and drop to Instagram in one tap. Your stock, costs and margins never leave your phone unless you publish an item to your shop.",
+    "Run your whole ukay inventory offline — every department, every measurement, 469 PH ukay brands built in. Publish the items you choose to a shop page buyers can browse. Costs and margins never leave your phone.",
   openGraph: {
-    title: "Latag — the ukay ops console",
-    description: "Log fast. Know your margins. Work offline.",
+    title: "Latag — ukay inventory and your own shop page",
+    description: "Every piece you own in one offline inventory. One link buyers can browse.",
     url: "https://latag.vercel.app",
     siteName: "Latag",
     type: "website",
