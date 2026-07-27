@@ -163,7 +163,32 @@ https://latag.vercel.app/shop/{handle}/{item}
 
 ---
 
-### Task 8: F2 gate
+### Task 8: Privacy repositioning copy sweep
+
+**Files:** `apps/web/app/page.tsx`, `apps/web/app/privacy/page.tsx`, `apps/web/app/data/page.tsx`, `apps/web/app/terms/page.tsx`, `apps/web/app/layout.tsx` (metadata description), `apps/mobile/app/onboarding.tsx`, `apps/mobile/app/welcome.tsx`, `apps/mobile/app/(tabs)/settings.tsx`
+
+Spec §1 requires this and no other task carries it: the product now uploads published items, so **every absolute claim must become the conditional promise** — "nothing leaves your phone **unless you publish it**". Shipping a storefront while the privacy page still says "never uploaded" would be a false statement to users, not a copy nit.
+
+- [ ] **Step 1: Find every claim.** From the repo root:
+
+```bash
+grep -rniE "never leave|never upload|100% offline|no servers|stays on your phone|nothing is ever" apps/web/app apps/mobile/app apps/mobile/components
+```
+
+Expect ~8 hits (the count at spec time). Every one must be visited — none may be left as an unqualified absolute.
+
+- [ ] **Step 2: Rewrite each to the sharpened promise.** The distinction to preserve everywhere: **inventory, photos, costs and margins are local by default; only items you explicitly publish are uploaded, and published items carry no cost or profit data.** Examples of correct replacements:
+  - Landing hero/feature: "Works 100% offline" → "Works 100% offline — your stock, costs and margins never leave your phone unless you publish an item to your shop."
+  - Onboarding privacy card: "Photos stay on your phone / Compressed and stored on-device. Nothing is ever uploaded." → "Your inventory stays on your phone / Costs and margins never leave it. Only items you publish to your shop go online."
+  - Settings "Offline-first" row subtitle: "Inventory, photos & math never leave this phone" → "Inventory, costs & math stay on this phone — only published items go online".
+  - Welcome feature row: keep "100% offline after activation" only if paired with the publish caveat elsewhere on the screen; otherwise reword.
+- [ ] **Step 3: Privacy + Data pages get a real section**, not a tweak: what is uploaded when you publish (brand, name, category, condition, measurements, price, photos), what is never uploaded (cost, profit, supplier location, batch data, unpublished items), where it lives (Supabase, PH-region CDN), and how to remove it (unpublish → row and photos deleted). Terms gains a line that sellers are responsible for their listing content.
+- [ ] **Step 4: Re-run the grep** — every surviving hit must be paired with the publish caveat in the same sentence or the adjacent line. Gates for both apps.
+- [ ] **Step 5: Commit** — `docs(copy): sharpen the privacy promise for publishing — nothing leaves unless you publish`
+
+---
+
+### Task 9: F2 gate
 
 **Files:** `docs/qa/mobile-mvp-checklist.md` (+ Phase F2 section), spec §3/§4 SHIPPED marks, `.superpowers/sdd/progress.md`
 
@@ -173,6 +198,6 @@ https://latag.vercel.app/shop/{handle}/{item}
 
 ## Self-Review Notes
 
-- **Spec §3 coverage:** schema/RLS/bucket → T1; local publish state → T2; API + upload → T3; sync engine + pending count → T4; shop setup/manager + Pro gate → T5; per-item opt-in + auto-sync → T6; web shop/item/OG/sitemap → T7; QA/docs → T8. **Spec §4 (F3)** lands inside T7 because the buttons and their logic are the same deliverable — F3 therefore collapses into F2 rather than becoming a third branch.
+- **Spec coverage:** §1 privacy repositioning → T8 (added 2026-07-27 — it was unassigned); §3 schema/RLS/bucket → T1; local publish state → T2; API + upload → T3; sync engine + pending count → T4; shop setup/manager + Pro gate → T5; per-item opt-in + auto-sync → T6; web shop/item/OG/sitemap → T7; QA/docs → T8. **Spec §4 (F3)** lands inside T7 because the buttons and their logic are the same deliverable — F3 therefore collapses into F2 rather than becoming a third branch.
 - **Type consistency:** `ShopResult`/`ShopProfile`/`ShopItemUpsert` (T3) consumed by T4/T5/T6; `PublishQueueRow` (T2) consumed by T4; `enqueuePublish`/`markPublished`/`generateShopCode` (T2) consumed by T6; `inquiryMessage` + href builders (T7) used only in T7.
 - **Riskiest areas flagged for the reviewer:** (a) RLS correctness — a wrong policy leaks unpublished stock or blocks the seller's own writes; (b) the privacy boundary — verify no cost/profit/location field can reach `shop_items` through any path; (c) queue idempotency — a retried upsert must not duplicate rows or photos.
