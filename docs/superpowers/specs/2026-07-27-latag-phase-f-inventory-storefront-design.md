@@ -82,7 +82,7 @@ Marked SHIPPED with these knowingly open, rather than silently drifting:
 - ** not implemented.** §3 lists it on `shops` and the web bullet says "seller header (name, bio, avatar)". The migration has no such column and no avatar renders. Deferred — additive migration + upload flow when the header needs a face.
 - ** has no UI.** The column exists and RLS honours it, but nothing in the app can toggle it, so sold items are always hidden. The QA line about SOLD badges is unexecutable until a control ships.
 - ** has no UI.** A seller cannot take their whole shop offline from the app; only per-item publishing is exposed.
-- **Storage SELECT policy still permits listing.** `shop-photos` is a public bucket, so object GETs bypass RLS; the broad `using (bucket_id = 'shop-photos')` SELECT policy additionally allows `list()`, meaning orphaned objects are enumerable. Tightening it to an owner-scoped policy needs empirical verification that public GET is unaffected — scheduled as a follow-up with a real uploaded photo, not guessed at. Bucket limits (5MB, image MIME types only) were applied 2026-07-27.
+- **Storage listing — RESOLVED 2026-07-27.** The broad public SELECT policy also enabled anonymous list(), making orphaned photos enumerable. Probed empirically with a real object: unauthenticated public GET returns 200 (public buckets bypass RLS for reads) while anon list() saw the object. Migration 0004 drops the broad policy and replaces it with an owner-scoped one; the re-probe confirms photos still serve and list() now returns 0 entries. Bucket also limited to 5MB / image MIME types.
 
 ### Storage economics
 
