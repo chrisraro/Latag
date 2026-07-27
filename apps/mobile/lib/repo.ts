@@ -2,7 +2,7 @@ import { eq, and } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { sessions, items, photos, type Session, type Item, type Photo } from "../db/schema";
 import { specFieldsFor, type Department, type SpecKey } from "./catalog";
-import { consumeLog } from "./entitlements";
+import { ensureEntitlements, logsRemaining as remainingLogs } from "./entitlements";
 
 type AnyDb = any;
 const newId = () => Crypto.randomUUID();
@@ -129,9 +129,12 @@ function trimmedName(name: string | null | undefined): string | null {
   return t ? t : null;
 }
 
+/** Logging is uncapped since F1 — `logsRemaining` is reported, never enforced.
+ *  The entitlements row (and its logs_used column) is left untouched here;
+ *  `consumeLog` stays in lib/entitlements for the Pro gates F2 introduces. */
 export function addItem(db: AnyDb, input: AddItemInput): { item: Item; logsRemaining: number } {
   return db.transaction((tx: AnyDb) => {
-    const logsRemaining = consumeLog(tx); // throws before insert when exhausted
+    const logsRemaining = remainingLogs(ensureEntitlements(tx));
     const row = {
       id: newId(), sessionId: input.sessionId, brand: input.brand, name: trimmedName(input.name),
       department: input.department, category: input.category,

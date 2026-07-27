@@ -19,7 +19,7 @@ import { DateTimeSheet } from "../../components/DateTimeSheet";
 
 const DEFAULT_OFFSETS = [30]; // "30 min before"
 
-/** Edit sheet for any session — name, location pin, and schedule. A schedule
+/** Edit sheet for any batch — name, location pin, and schedule. A schedule
  *  change cancels the previously scheduled reminders and reschedules. */
 export default function EditSessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -70,7 +70,7 @@ export default function EditSessionScreen() {
     });
 
     if (scheduleChanged) {
-      // Cancel-then-reschedule: stale reminders must never fire for a moved session.
+      // Cancel-then-reschedule: stale reminders must never fire for a moved batch.
       await cancelReminders(parseNotifIds(session.reminderNotificationIds));
       let ids: string[] = [];
       if (scheduledAt && offsets.length > 0) {
@@ -88,11 +88,11 @@ export default function EditSessionScreen() {
     }
 
     router.back();
-    showSuccess(scheduledAt ? `Scheduled for ${formatScheduleStamp(scheduledAt)}` : "Session updated");
+    showSuccess(scheduledAt ? `Scheduled for ${formatScheduleStamp(scheduledAt)}` : "Batch updated");
   };
 
   const confirmDelete = () =>
-    Alert.alert("Delete session?", "All items and photos in this session are removed from your phone too.", [
+    Alert.alert("Delete batch?", "All items and photos in this batch are removed from your phone too.", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -101,7 +101,7 @@ export default function EditSessionScreen() {
           const { photoUris, reminderNotificationIds } = deleteSession(db, session.id);
           cancelReminders(reminderNotificationIds).catch(() => {});
           deleteFiles(photoUris).catch(() => {});
-          showSuccess("Session deleted");
+          showSuccess("Batch deleted");
           router.back();
         },
       },
@@ -111,9 +111,9 @@ export default function EditSessionScreen() {
   return (
     <View className="flex-1 bg-surface1 px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
       <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
-      <Text style={{ fontFamily: FONT.display }} className="mb-4 text-[19px] text-ink">Edit Session</Text>
+      <Text style={{ fontFamily: FONT.display }} className="mb-4 text-[19px] text-ink">Edit Batch</Text>
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" className="flex-1">
-        <TextInput value={name} onChangeText={setName} placeholder="Session name" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }} className={inputCls} />
+        <TextInput value={name} onChangeText={setName} placeholder="Batch name" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }} className={inputCls} />
         <LocationPicker value={pin} onChange={setPin} />
         <FieldLabel>Schedule for later · optional</FieldLabel>
         <Pressable
@@ -149,7 +149,7 @@ export default function EditSessionScreen() {
       </ScrollView>
       <PrimaryButton label="Save Changes" onPress={save} disabled={!name.trim() || saving} />
       <View className="mb-1 flex-row">
-        <SecondaryButton label="Delete Session" icon="Trash" danger onPress={confirmDelete} />
+        <SecondaryButton label="Delete Batch" icon="Trash" danger onPress={confirmDelete} />
       </View>
       {sheetOpen ? (
         <DateTimeSheet

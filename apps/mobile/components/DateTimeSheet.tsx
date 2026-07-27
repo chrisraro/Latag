@@ -60,7 +60,7 @@ export function DateTimeSheet({
       <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" className="flex-1 bg-black/60" onPress={onClose} />
       <View className="rounded-t-sheet border-t border-hairline bg-surface1 px-5 pb-8 pt-3">
         <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-hairline" />
-        <Text style={{ fontFamily: FONT.display }} className="text-[17px] text-ink">Schedule session</Text>
+        <Text style={{ fontFamily: FONT.display }} className="text-[17px] text-ink">Schedule batch</Text>
         <FieldLabel>Day</FieldLabel>
         <Wheel values={rangeValues(0, DAY_SPAN, 1)} value={dayOffset} onChange={setDayOffset} format={dayLabel} />
         <FieldLabel>Time</FieldLabel>

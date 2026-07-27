@@ -14,7 +14,7 @@ import { Icon, type IconName } from "../components/Icon";
 
 const PANES = 3;
 
-/** Sets the first-run flags and lands on the sessions list. Shared by both exits (Skip and Start logging). */
+/** Sets the first-run flags and lands on the inventory. Shared by both exits (Skip and Start logging). */
 async function finishOnboarding(router: ReturnType<typeof useRouter>) {
   // Navigate even if the flag writes fail — worst case, onboarding shows again.
   // Also sets `latag.welcomed` — covers users who reach onboarding directly
@@ -134,7 +134,7 @@ export default function OnboardingScreen() {
             <View className="flex-1 pr-2">
               <Text style={{ fontFamily: FONT.display }} className="text-[24px] text-ink">How do you source?</Text>
               <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="mt-1.5 text-[13.5px] text-inkdim">
-                You pick per session — run both styles anytime.
+                You pick per batch — run both styles anytime.
               </Text>
             </View>
             <Pressable
@@ -205,13 +205,13 @@ export default function OnboardingScreen() {
             <PermissionRow
               icon="Bell"
               title="Notifications"
-              body="Session reminders that ring like an alarm"
+              body="Batch reminders that ring like an alarm"
               request={ensureNotifPermission}
             />
             <PermissionRow
               icon="MapPin"
               title="Location"
-              body="Pin sessions on the map"
+              body="Pin batches on the map"
               request={async () => (await Location.requestForegroundPermissionsAsync()).granted}
             />
             <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-1 text-center text-[12px] text-inkfaint">

@@ -1,8 +1,9 @@
-/** Local session-reminder notifications — a thin, tolerant wrapper over
+/** Local batch-reminder notifications — a thin, tolerant wrapper over
  *  expo-notifications. Fully local (no push): reminders are scheduled on-device
  *  from lib/schedule's reminderTimes and fire through the "session-reminders"
- *  alarm channel. Every native call is guarded — reminders are best-effort and
- *  must never block or crash session flows. */
+ *  alarm channel (id kept: renaming it would orphan the installed channel).
+ *  Every native call is guarded — reminders are best-effort and must never
+ *  block or crash batch flows. */
 import * as Notifications from "expo-notifications";
 import { formatCountdown, reminderTimes } from "./schedule";
 
@@ -25,7 +26,7 @@ export async function ensureNotifPermission(): Promise<boolean> {
 export async function ensureAlarmChannel(): Promise<void> {
   try {
     await Notifications.setNotificationChannelAsync(ALARM_CHANNEL_ID, {
-      name: "Session reminders",
+      name: "Batch reminders",
       importance: Notifications.AndroidImportance.MAX,
       sound: "alarm.wav",
       vibrationPattern: [0, 400, 200, 400],
@@ -36,9 +37,9 @@ export async function ensureAlarmChannel(): Promise<void> {
   }
 }
 
-/** Notification body copy for a reminder firing `offsetMinutes` before the session. */
+/** Notification body copy for a reminder firing `offsetMinutes` before the batch. */
 export function reminderBodyFor(offsetMinutes: number): string {
-  if (offsetMinutes === 0) return "Bale opens now — start your session";
+  if (offsetMinutes === 0) return "Bale opens now — start your batch";
   return `Bale opens ${formatCountdown(new Date(offsetMinutes * MIN_MS), new Date(0))}`;
 }
 

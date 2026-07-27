@@ -100,9 +100,9 @@ test("permissions pane shows the three rows and the optional footer", async () =
   expect(all).toContain("Photos");
   expect(all).toContain("Save listing photos to your gallery");
   expect(all).toContain("Notifications");
-  expect(all).toContain("Session reminders that ring like an alarm");
+  expect(all).toContain("Batch reminders that ring like an alarm");
   expect(all).toContain("Location");
-  expect(all).toContain("Pin sessions on the map");
+  expect(all).toContain("Pin batches on the map");
   expect(all).toContain("All optional — Latag asks again only when a feature needs it.");
   expect(pressablesByText(t, "Allow").length).toBeGreaterThanOrEqual(3);
 });

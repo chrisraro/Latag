@@ -42,7 +42,7 @@ describe("parseNotifIds", () => {
 
 describe("reminderBodyFor", () => {
   test("offset 0 -> opens-now copy", () => {
-    expect(reminderBodyFor(0)).toBe("Bale opens now — start your session");
+    expect(reminderBodyFor(0)).toBe("Bale opens now — start your batch");
   });
   test("offset 30 -> countdown lead", () => {
     expect(reminderBodyFor(30)).toBe("Bale opens in 30m");
@@ -104,7 +104,7 @@ describe("ensureAlarmChannel", () => {
   test("creates the session-reminders alarm channel", async () => {
     await ensureAlarmChannel();
     expect(mocked.setNotificationChannelAsync).toHaveBeenCalledWith("session-reminders", {
-      name: "Session reminders",
+      name: "Batch reminders",
       importance: Notifications.AndroidImportance.MAX,
       sound: "alarm.wav",
       vibrationPattern: [0, 400, 200, 400],
@@ -147,7 +147,7 @@ describe("scheduleSessionReminders", () => {
       date: session([]).scheduledAt,
       channelId: "session-reminders",
     });
-    expect(calls[1].content.body).toBe("Bale opens now — start your session");
+    expect(calls[1].content.body).toBe("Bale opens now — start your batch");
     for (const call of calls) {
       expect(call.content.title).toBe("⏰ Bale Run");
       expect(call.content.data).toEqual({ url: "latag://session/s1" });

@@ -20,7 +20,7 @@ import { Badge, Chip, Money, PrimaryButton } from "../../components/ui";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { Icon } from "../../components/Icon";
 
-type Tab = "sessions" | "scheduled";
+type Tab = "batches" | "scheduled";
 
 function reminderSummary(offsets: number[]): string {
   if (offsets.length === 0) return "No reminders";
@@ -41,7 +41,7 @@ export default function SessionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [checked, setChecked] = useState(false);
-  const [tab, setTab] = useState<Tab>("sessions");
+  const [tab, setTab] = useState<Tab>("batches");
   // Countdown clock: re-render every 30s while anything is scheduled so
   // "in 45m" cards stay honest without any data change.
   const [now, setNow] = useState(() => new Date());
@@ -52,7 +52,7 @@ export default function SessionsScreen() {
 
   // First-run gate: redirect once if welcome/onboarding is still pending,
   // otherwise render normally. Rendering null until this resolves avoids
-  // flashing the sessions list before the redirect lands (splash is already
+  // flashing the batch list before the redirect lands (splash is already
   // up at mount).
   useEffect(() => {
     let cancelled = false;
@@ -119,7 +119,7 @@ export default function SessionsScreen() {
     const { notificationIds } = startScheduledSession(db, s.id);
     cancelReminders(notificationIds).catch(() => {}); // best-effort; ids may have fired already
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showSuccess("Session started");
+    showSuccess("Batch started");
     router.push(`/session/${s.id}`);
   };
 
@@ -127,7 +127,7 @@ export default function SessionsScreen() {
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <View className="flex-row items-center gap-3 pb-2.5 pt-3">
         <Text style={{ fontFamily: FONT.displayBlack }} className="flex-1 text-[26px] uppercase text-acid">Latag</Text>
-        {list.length > 0 ? <Badge label={`${list.length} SESSIONS`} /> : null}
+        {list.length > 0 ? <Badge label={`${list.length} BATCHES`} /> : null}
         <Pressable hitSlop={8} onPress={() => router.push("/settings")} accessibilityRole="button" accessibilityLabel="Settings" className="h-10 w-10 items-center justify-center rounded-full bg-surface2">
           <Icon name="GearSix" size={18} color={COLORS.inkDim} />
         </Pressable>
@@ -135,13 +135,13 @@ export default function SessionsScreen() {
       <View className="mb-3 mt-1 flex-row gap-1 rounded-full border border-hairline bg-surface2 p-1">
         <Pressable
           hitSlop={4}
-          onPress={() => switchTab("sessions")}
+          onPress={() => switchTab("batches")}
           accessibilityRole="button"
-          accessibilityLabel="Sessions"
-          accessibilityState={{ selected: tab === "sessions" }}
-          className={`h-11 flex-1 flex-row items-center justify-center gap-1.5 rounded-full px-3.5 ${tab === "sessions" ? "bg-acid" : ""}`}
+          accessibilityLabel="Batches"
+          accessibilityState={{ selected: tab === "batches" }}
+          className={`h-11 flex-1 flex-row items-center justify-center gap-1.5 rounded-full px-3.5 ${tab === "batches" ? "bg-acid" : ""}`}
         >
-          <Text style={{ fontFamily: FONT.display, letterSpacing: 0.39 }} className={`text-[13px] uppercase ${tab === "sessions" ? "text-acidink" : "text-inkdim"}`}>Sessions</Text>
+          <Text style={{ fontFamily: FONT.display, letterSpacing: 0.39 }} className={`text-[13px] uppercase ${tab === "batches" ? "text-acidink" : "text-inkdim"}`}>Batches</Text>
         </Pressable>
         <Pressable
           hitSlop={4}
@@ -159,14 +159,14 @@ export default function SessionsScreen() {
           ) : null}
         </Pressable>
       </View>
-      {tab === "sessions" ? (
+      {tab === "batches" ? (
         list.length === 0 ? (
           <View className="flex-1 items-center justify-center gap-3.5 px-4">
             <View className="h-[92px] w-full items-center justify-center rounded-card border-[1.5px] border-dashed border-hairline">
               <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="text-[13px] text-inkfaint">Your first run will show up here</Text>
             </View>
             <View className="items-center">
-              <Text style={{ fontFamily: FONT.display }} className="text-[18px] text-ink">No sessions yet</Text>
+              <Text style={{ fontFamily: FONT.display }} className="text-[18px] text-ink">No batches yet</Text>
               <Text style={{ fontFamily: FONT.text }} className="mt-1.5 text-center text-[13.5px] leading-5 text-inkdim">
                 Start one when you hit the racks.{"\n"}Everything works in airplane mode.
               </Text>
@@ -207,7 +207,7 @@ export default function SessionsScreen() {
       ) : scheduled.length === 0 ? (
         <View className="flex-1 items-center justify-center px-4">
           <View className="min-h-[92px] w-full items-center justify-center rounded-card border-[1.5px] border-dashed border-hairline px-6 py-5">
-            <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="text-center text-[13px] text-inkfaint">No scheduled sessions — plan your next bale run from New Session</Text>
+            <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="text-center text-[13px] text-inkfaint">No scheduled batches — plan your next bale run from New Batch</Text>
           </View>
         </View>
       ) : (
@@ -247,7 +247,7 @@ export default function SessionsScreen() {
       {/* +TAB_BAR_CLEARANCE: the floating tab bar is absolutely positioned over
           this screen, so the primary action has to be lifted clear of it. */}
       <View style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
-        <PrimaryButton label="New Session" icon="Plus" onPress={() => router.push("/session/new")} />
+        <PrimaryButton label="New Batch" icon="Plus" onPress={() => router.push("/session/new")} />
       </View>
     </View>
   );

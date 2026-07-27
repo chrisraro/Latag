@@ -48,7 +48,7 @@ export default function DashboardScreen() {
             <Badge label={session.type.toUpperCase()} />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Edit session"
+              accessibilityLabel="Edit batch"
               onPress={() => router.push(`/session/edit?id=${id}`)}
               className="h-10 w-10 items-center justify-center rounded-full bg-surface2"
             >

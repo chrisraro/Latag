@@ -18,7 +18,7 @@ export default function NotFoundScreen() {
         That link doesn't lead anywhere in Latag.
       </Text>
       <View className="mt-4 w-full">
-        <PrimaryButton label="Back to sessions" onPress={() => router.replace("/")} />
+        <PrimaryButton label="Back to inventory" onPress={() => router.replace("/")} />
       </View>
     </View>
   );
