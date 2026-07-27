@@ -93,11 +93,42 @@ test("user_brands accepts a row", () => {
   expect(row.createdAt).toBeInstanceOf(Date);
 });
 
+test("publish_queue accepts a row and defaults attempts to 0", () => {
+  const { db } = makeTestDb();
+  const createdAt = new Date(1800000000 * 1000);
+  db.insert(s.publishQueue).values({ id: "q1", itemId: "i1", op: "upsert", createdAt }).run();
+  const row = db.select().from(s.publishQueue).all()[0];
+  expect(row.itemId).toBe("i1");
+  expect(row.op).toBe("upsert");
+  expect(row.attempts).toBe(0);
+  expect(row.lastError).toBeNull();
+  expect(row.createdAt).toEqual(createdAt);
+});
+
+test("a freshly logged item is unpublished: publishedAt and shopCode both null", () => {
+  const { db } = makeTestDb();
+  db.insert(s.sessions).values({ id: "s1", name: "Run", type: "selector", createdAt: new Date() }).run();
+  db.insert(s.items).values({ id: "i1", sessionId: "s1", brand: "Nike", category: "Tee", condition: "9/10", targetSellPrice: 350, createdAt: new Date() }).run();
+  const item = db.select().from(s.items).all()[0];
+  expect(item.publishedAt).toBeNull();
+  expect(item.shopCode).toBeNull();
+});
+
+test("published item round-trips publishedAt + shopCode", () => {
+  const { db } = makeTestDb();
+  const publishedAt = new Date(1800000000 * 1000);
+  db.insert(s.sessions).values({ id: "s1", name: "Run", type: "selector", createdAt: new Date() }).run();
+  db.insert(s.items).values({ id: "i1", sessionId: "s1", brand: "Nike", category: "Tee", condition: "9/10", targetSellPrice: 350, createdAt: new Date(), publishedAt, shopCode: "LT-7K2Q9" }).run();
+  const item = db.select().from(s.items).all()[0];
+  expect(item.publishedAt).toEqual(publishedAt);
+  expect(item.shopCode).toBe("LT-7K2Q9");
+});
+
 test("migration rebuild preserves pre-existing item rows (zero data loss)", () => {
   const drizzleDir = path.join(__dirname, "..", "drizzle");
   const journal = JSON.parse(fs.readFileSync(path.join(drizzleDir, "meta/_journal.json"), "utf8")) as { entries: { tag: string }[] };
   const tags: string[] = journal.entries.map((e) => e.tag);
-  expect(tags.length).toBeGreaterThanOrEqual(3); // 0000 + E1 + E2 sessions migration
+  expect(tags.length).toBeGreaterThanOrEqual(4); // 0000 + E1 + E2 sessions + F2 publish state
 
   const sqlite = new Database(":memory:");
   // Apply the initial migration only, then seed an old-shape row.
@@ -148,5 +179,17 @@ test("migration rebuild preserves pre-existing item rows (zero data loss)", () =
   expect(sessionRow.scheduled_at).toBeNull();
   expect(sessionRow.reminder_offsets).toBeNull();
   expect(sessionRow.reminder_notification_ids).toBeNull();
+  // F2: the pre-existing item survives 0003 as an unpublished row, and the
+  // publish queue table exists and accepts a row.
+  expect(row.published_at).toBeNull();
+  expect(row.shop_code).toBeNull();
+  sqlite.prepare(
+    "INSERT INTO publish_queue (id, item_id, op, created_at) VALUES ('q1', 'i1', 'upsert', 1700000200)"
+  ).run();
+  const queued = sqlite.prepare("SELECT * FROM publish_queue WHERE id = 'q1'").get() as Record<string, unknown>;
+  expect(queued.item_id).toBe("i1");
+  expect(queued.op).toBe("upsert");
+  expect(queued.attempts).toBe(0);
+  expect(queued.last_error).toBeNull();
   sqlite.close();
 });

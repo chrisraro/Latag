@@ -1,6 +1,6 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
-import { sessions, items, photos, type Session, type Item, type Photo } from "../db/schema";
+import { sessions, items, photos, publishQueue, type Session, type Item, type Photo, type PublishQueueRow } from "../db/schema";
 import { specFieldsFor, type Department, type SpecKey } from "./catalog";
 import { ensureEntitlements, logsRemaining as remainingLogs } from "./entitlements";
 
@@ -214,4 +214,84 @@ export function deleteItem(db: AnyDb, id: string): { photoUris: string[] } {
     tx.delete(items).where(eq(items.id, id)).run();
     return { photoUris: uris };
   });
+}
+
+// ------------------------------------------------------------ storefront publish state
+
+/** Ambiguous glyphs (0/O, 1/I/L) are excluded so a buyer can read a code aloud
+ *  off a photo without ever getting it wrong. */
+const SHOP_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const SHOP_CODE_LENGTH = 5;
+
+/**
+ * Mints a buyer-facing item code, `LT-` + 5 unambiguous characters.
+ * Rejection sampling keeps every character equally likely (a plain byte % 31
+ * would over-weight the first eight letters of the alphabet).
+ */
+export function generateShopCode(): string {
+  const limit = Math.floor(256 / SHOP_CODE_ALPHABET.length) * SHOP_CODE_ALPHABET.length;
+  let code = "";
+  while (code.length < SHOP_CODE_LENGTH) {
+    for (const byte of Crypto.getRandomBytes(SHOP_CODE_LENGTH)) {
+      if (byte >= limit) continue;
+      code += SHOP_CODE_ALPHABET[byte % SHOP_CODE_ALPHABET.length];
+      if (code.length === SHOP_CODE_LENGTH) break;
+    }
+  }
+  return `LT-${code}`;
+}
+
+/** Queue rows are drained oldest-first, so two enqueues inside the same
+ *  millisecond must still order by insertion. This keeps createdAt strictly
+ *  increasing within a run; across launches wall-clock time already is. */
+let lastEnqueuedMs = 0;
+function nextEnqueueTime(): Date {
+  lastEnqueuedMs = Math.max(Date.now(), lastEnqueuedMs + 1);
+  return new Date(lastEnqueuedMs);
+}
+
+/**
+ * Queues a storefront sync for one item, replacing any row already pending for
+ * it — last write wins, so an edit-then-unpublish burst collapses to the single
+ * operation that reflects reality. Attempts and the last error reset with it.
+ */
+export function enqueuePublish(db: AnyDb, itemId: string, op: "upsert" | "delete"): PublishQueueRow {
+  return db.transaction((tx: AnyDb) => {
+    tx.delete(publishQueue).where(eq(publishQueue.itemId, itemId)).run();
+    const row = { id: newId(), itemId, op, attempts: 0, lastError: null, createdAt: nextEnqueueTime() };
+    tx.insert(publishQueue).values(row).run();
+    return tx.select().from(publishQueue).where(eq(publishQueue.id, row.id)).all()[0];
+  });
+}
+
+/** Removes a drained row. Called only after the network op succeeded. */
+export function dequeuePublish(db: AnyDb, id: string): void {
+  db.delete(publishQueue).where(eq(publishQueue.id, id)).run();
+}
+
+/** Pending sync rows, oldest first. */
+export function listPublishQueue(db: AnyDb): PublishQueueRow[] {
+  return db.select().from(publishQueue).orderBy(asc(publishQueue.createdAt)).all();
+}
+
+/** Records a failed attempt. The row stays queued — nothing is ever lost. */
+export function bumpAttempt(db: AnyDb, id: string, error: string): void {
+  const row = db.select().from(publishQueue).where(eq(publishQueue.id, id)).all()[0] as PublishQueueRow | undefined;
+  if (!row) return;
+  db.update(publishQueue).set({ attempts: row.attempts + 1, lastError: error }).where(eq(publishQueue.id, id)).run();
+}
+
+/**
+ * Flags an item as live on the storefront. The caller owns the code: pass the
+ * item's existing shopCode to keep it stable, or a fresh generateShopCode().
+ */
+export function markPublished(db: AnyDb, itemId: string, code: string): Item {
+  db.update(items).set({ publishedAt: new Date(), shopCode: code }).where(eq(items.id, itemId)).run();
+  return db.select().from(items).where(eq(items.id, itemId)).all()[0];
+}
+
+/** Takes an item off the storefront locally; the queue carries the removal. */
+export function markUnpublished(db: AnyDb, itemId: string): Item {
+  db.update(items).set({ publishedAt: null, shopCode: null }).where(eq(items.id, itemId)).run();
+  return db.select().from(items).where(eq(items.id, itemId)).all()[0];
 }

@@ -43,6 +43,23 @@ export const items = sqliteTable("items", {
   soldPrice: real("sold_price"),
   soldAt: integer("sold_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  // Storefront (F2). null publishedAt = not published. shopCode is the LT-XXXXX
+  // buyers quote; it is minted once and never changes for the life of the item.
+  publishedAt: integer("published_at", { mode: "timestamp" }),
+  shopCode: text("shop_code"),
+});
+
+/**
+ * Outbox for storefront sync: one pending row per item, drained by lib/shop-sync.
+ * Publishing never blocks the logging loop — the UI writes here and moves on.
+ */
+export const publishQueue = sqliteTable("publish_queue", {
+  id: text("id").primaryKey(),
+  itemId: text("item_id").notNull(),
+  op: text("op", { enum: ["upsert", "delete"] }).notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
 export const photos = sqliteTable("photos", {
@@ -70,3 +87,4 @@ export type Item = typeof items.$inferSelect;
 export type Photo = typeof photos.$inferSelect;
 export type UserBrand = typeof userBrands.$inferSelect;
 export type Entitlements = typeof entitlements.$inferSelect;
+export type PublishQueueRow = typeof publishQueue.$inferSelect;

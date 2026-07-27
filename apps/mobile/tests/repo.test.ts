@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { makeTestDb } from "./helpers/testDb";
-import { createSession, addItem, updateItem, addPhoto, replacePhoto, markSold, unmarkSold, deleteItem, updateSession, startScheduledSession, deleteSession } from "../lib/repo";
+import { createSession, addItem, updateItem, addPhoto, replacePhoto, markSold, unmarkSold, deleteItem, updateSession, startScheduledSession, deleteSession, enqueuePublish, dequeuePublish, listPublishQueue, bumpAttempt, markPublished, markUnpublished, generateShopCode } from "../lib/repo";
 import { ensureEntitlements, FREE_LOG_LIMIT } from "../lib/entitlements";
 import { parseOffsets } from "../lib/schedule";
 import { entitlements, items, photos, sessions } from "../db/schema";
@@ -275,4 +275,93 @@ test("replacePhoto on a type with no existing row behaves like addPhoto", () => 
   expect(replacedUris).toEqual([]);
   expect(photo.localUri).toBe("file:///m/back.jpg");
   expect(db.select().from(photos).where(eq(photos.itemId, item.id)).all()).toHaveLength(1);
+});
+
+// ---------------------------------------------------------------- publish state (F2)
+
+test("enqueuePublish twice for one item leaves ONE row with the latest op", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  enqueuePublish(db, item.id, "upsert");
+  enqueuePublish(db, item.id, "delete");
+  const rows = listPublishQueue(db);
+  expect(rows).toHaveLength(1);
+  expect(rows[0].itemId).toBe(item.id);
+  expect(rows[0].op).toBe("delete");
+  expect(rows[0].attempts).toBe(0);
+});
+
+test("enqueuePublish keeps one row per item and listPublishQueue returns them oldest-first", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const a = addItem(db, { sessionId: s.id, ...base }).item;
+  const b = addItem(db, { sessionId: s.id, ...base }).item;
+  enqueuePublish(db, a.id, "upsert");
+  enqueuePublish(db, b.id, "upsert");
+  const rows = listPublishQueue(db);
+  expect(rows.map((r) => r.itemId)).toEqual([a.id, b.id]);
+  expect(rows[0].createdAt.getTime()).toBeLessThanOrEqual(rows[1].createdAt.getTime());
+});
+
+test("re-enqueueing resets the attempt counter and clears the last error", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  enqueuePublish(db, item.id, "upsert");
+  bumpAttempt(db, listPublishQueue(db)[0].id, "network down");
+  const failed = listPublishQueue(db)[0];
+  expect(failed.attempts).toBe(1);
+  expect(failed.lastError).toBe("network down");
+  enqueuePublish(db, item.id, "upsert");
+  const requeued = listPublishQueue(db);
+  expect(requeued).toHaveLength(1);
+  expect(requeued[0].attempts).toBe(0);
+  expect(requeued[0].lastError).toBeNull();
+});
+
+test("bumpAttempt increments and dequeuePublish removes only its own row", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const a = addItem(db, { sessionId: s.id, ...base }).item;
+  const b = addItem(db, { sessionId: s.id, ...base }).item;
+  enqueuePublish(db, a.id, "upsert");
+  enqueuePublish(db, b.id, "delete");
+  const [rowA, rowB] = listPublishQueue(db);
+  bumpAttempt(db, rowA.id, "boom");
+  bumpAttempt(db, rowA.id, "boom again");
+  expect(listPublishQueue(db).find((r) => r.id === rowA.id)!.attempts).toBe(2);
+  expect(listPublishQueue(db).find((r) => r.id === rowA.id)!.lastError).toBe("boom again");
+  dequeuePublish(db, rowA.id);
+  expect(listPublishQueue(db).map((r) => r.id)).toEqual([rowB.id]);
+});
+
+test("markPublished sets publishedAt + shopCode; markUnpublished nulls both", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  expect(item.publishedAt).toBeNull();
+  expect(item.shopCode).toBeNull();
+  const published = markPublished(db, item.id, "LT-7K2Q9");
+  expect(published.publishedAt).toBeInstanceOf(Date);
+  expect(published.shopCode).toBe("LT-7K2Q9");
+  const unpublished = markUnpublished(db, item.id);
+  expect(unpublished.publishedAt).toBeNull();
+  expect(unpublished.shopCode).toBeNull();
+});
+
+test("generateShopCode produces LT- codes with no ambiguous 0/O/1/I/L characters", () => {
+  const codes = new Set<string>();
+  for (let i = 0; i < 500; i++) {
+    const code = generateShopCode();
+    expect(code).toMatch(/^LT-[A-Z2-9]{5}$/);
+    expect(code.slice(3)).not.toMatch(/[0O1IL]/);
+    codes.add(code);
+  }
+  expect(codes.size).toBeGreaterThan(400); // not a constant
 });
