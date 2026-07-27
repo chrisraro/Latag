@@ -75,6 +75,15 @@ Cost, profit, margins, supplier locations, batch data, and unsold stock stay loc
 - Per-shop and per-item `opengraph-image` so shared links preview; sitemap entries; ISR revalidation for freshness.
 - "Made with Latag" footer on every shop (growth loop).
 
+### Deviations recorded 2026-07-27 (found by the F2 whole-phase review)
+
+Marked SHIPPED with these knowingly open, rather than silently drifting:
+
+- ** not implemented.** §3 lists it on `shops` and the web bullet says "seller header (name, bio, avatar)". The migration has no such column and no avatar renders. Deferred — additive migration + upload flow when the header needs a face.
+- ** has no UI.** The column exists and RLS honours it, but nothing in the app can toggle it, so sold items are always hidden. The QA line about SOLD badges is unexecutable until a control ships.
+- ** has no UI.** A seller cannot take their whole shop offline from the app; only per-item publishing is exposed.
+- **Storage SELECT policy still permits listing.** `shop-photos` is a public bucket, so object GETs bypass RLS; the broad `using (bucket_id = 'shop-photos')` SELECT policy additionally allows `list()`, meaning orphaned objects are enumerable. Tightening it to an owner-scoped policy needs empirical verification that public GET is unaffected — scheduled as a follow-up with a real uploaded photo, not guessed at. Bucket limits (5MB, image MIME types only) were applied 2026-07-27.
+
 ### Storage economics
 
 Free tier: 1GB ≈ 3,000–6,000 photos at current compression; 5GB/month egress. Mitigations: 4-photo cap per item, Vercel image optimization, lazy loading. Revisit when approaching limits.
