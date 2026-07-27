@@ -39,7 +39,7 @@ export default function CameraScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-bg px-6" style={{ paddingBottom: insets.bottom }}>
         <Text style={{ fontFamily: FONT.display }} className="text-[18px] text-ink">Camera access needed</Text>
-        <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="mt-2 text-center text-[13px] text-inkdim">Photos are compressed and stored on your phone only — never uploaded.</Text>
+        <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="mt-2 text-center text-[13px] text-inkdim">Photos are compressed and stored on your phone only — uploaded only if you publish the item.</Text>
         <View className="mt-4 w-full"><PrimaryButton label="Allow Camera" onPress={requestPermission} /></View>
         <Pressable onPress={() => router.back()} className="h-11 items-center justify-center px-4"><Text style={{ lineHeight: 18 }} className="text-[13px] text-inkfaint">Not now</Text></Pressable>
       </View>

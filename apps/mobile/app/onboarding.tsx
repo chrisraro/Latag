@@ -181,8 +181,8 @@ export default function OnboardingScreen() {
             <View className="mt-4">
               <ModeCard
                 icon="ShieldCheck"
-                title="Photos stay on your phone"
-                body="Compressed and stored on-device. Nothing is ever uploaded."
+                title="Your inventory stays on your phone"
+                body="Costs and margins never leave it. Only items you publish to your shop go online."
               />
             </View>
           </View>
