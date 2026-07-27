@@ -54,16 +54,35 @@ export function SecondaryButton({
   onPress,
   danger,
   icon,
+  busy,
+  disabled,
 }: {
   label: string;
   onPress: () => void;
   danger?: boolean;
   icon?: IconName;
+  /** Work is in flight — the button locks, dims, and says so with a trailing
+   *  ellipsis, so a slow save or share never looks like a dead tap. */
+  busy?: boolean;
+  disabled?: boolean;
 }) {
+  const off = !!(busy || disabled);
+  const tint = off ? COLORS.inkFaint : danger ? COLORS.danger : COLORS.ink;
   return (
-    <Pressable onPress={onPress} className={`h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-full border ${danger ? "border-danger" : "border-hairline bg-surface2"}`}>
-      {icon ? <Icon name={icon} size={16} color={danger ? COLORS.danger : COLORS.ink} /> : null}
-      <Text style={{ fontFamily: FONT.display, letterSpacing: 0.42 }} className={`text-[14px] uppercase ${danger ? "text-danger" : "text-ink"}`}>{label}</Text>
+    <Pressable
+      disabled={off}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: off, busy: !!busy }}
+      className={`h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-full border ${off ? "border-hairline bg-surface2 opacity-50" : `${danger ? "border-danger" : "border-hairline bg-surface2"} active:scale-[0.97]`}`}
+    >
+      {icon ? <Icon name={icon} size={16} color={tint} /> : null}
+      <Text
+        style={{ fontFamily: FONT.display, letterSpacing: 0.42 }}
+        className={`text-[14px] uppercase ${off ? "text-inkfaint" : danger ? "text-danger" : "text-ink"}`}
+      >
+        {busy ? `${label}…` : label}
+      </Text>
     </Pressable>
   );
 }

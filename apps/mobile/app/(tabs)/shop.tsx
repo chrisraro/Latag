@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { View, Text, Pressable, Share } from "react-native";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +18,7 @@ import { AppHead } from "../../components/AppHead";
 import { Icon } from "../../components/Icon";
 import { GoProSheet } from "../../components/GoProSheet";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
+import { useTabScrollToTop } from "../../lib/tab-scroll";
 
 /**
  * Shop — three honest states and no dead end in any of them:
@@ -61,6 +62,13 @@ export default function ShopScreen() {
   const [stale, setStale] = useState(false); // showing the cached copy, not a fresh read
   const [failed, setFailed] = useState(false); // unreachable AND nothing cached
   const [loading, setLoading] = useState(false);
+  // Only the listings state renders a list; in the other states this is a no-op.
+  const listRef = useRef<FlashListRef<Item>>(null);
+  useTabScrollToTop("shop", useCallback(() => {
+    if (!listRef.current) return false;
+    listRef.current.scrollToOffset({ offset: 0, animated: true });
+    return true;
+  }, []));
 
   const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
   const { data: publishedRows } = useLiveQuery(
@@ -155,7 +163,7 @@ export default function ShopScreen() {
               You&apos;re offline, or the connection dropped. Everything you&apos;ve logged is safe on this phone.
             </Text>
             <View className="mt-4 flex-row">
-              <SecondaryButton label="Retry" icon="ArrowsClockwise" onPress={() => { if (!loading) void load(); }} />
+              <SecondaryButton label="Retry" icon="ArrowsClockwise" busy={loading} onPress={() => { if (!loading) void load(); }} />
             </View>
           </View>
         </View>

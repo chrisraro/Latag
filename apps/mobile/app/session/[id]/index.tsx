@@ -12,11 +12,36 @@ import { FONT, COLORS } from "../../../lib/theme";
 import { formatPeso, formatPct } from "../../../lib/format";
 import { captionSpecLine, type CatalogItem } from "../../../lib/catalog";
 import { selectorProjected, selectorRealized, bultoProjectedPct, bultoRealizedPct, soldRevenue } from "../../../lib/math";
-import { Badge, Chip, Money, PrimaryButton } from "../../../components/ui";
+import { Badge, Chip, Money, PrimaryButton, SecondaryButton } from "../../../components/ui";
 import { AppHead } from "../../../components/AppHead";
 import { Icon } from "../../../components/Icon";
 
 type Filter = "all" | "available" | "sold";
+
+/** A reminder can outlive the batch it was set for, and a tap on it routes here
+ *  by id. Rendering nothing would leave that tap on a permanently blank screen,
+ *  so say what happened and always offer a way out — including on a cold start,
+ *  where there is no back stack to pop. */
+function BatchNotFound() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const leave = () => (router.canGoBack() ? router.back() : router.replace("/batches"));
+  return (
+    <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
+      <AppHead title="Batch not found" onBack={leave} />
+      <View className="flex-1 items-center justify-center gap-4">
+        <View className="w-full items-center rounded-card border-[1.5px] border-dashed border-hairline px-6 py-8">
+          <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="text-center text-[13.5px] text-inkfaint">
+            This batch was deleted. Its items and photos are gone from this phone.
+          </Text>
+        </View>
+        <View className="w-full flex-row">
+          <SecondaryButton label="Back to batches" icon="Stack" onPress={leave} />
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function DashboardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,7 +53,10 @@ export default function DashboardScreen() {
   const { data: itemRows } = useLiveQuery(db.select().from(items).where(eq(items.sessionId, id)).orderBy(desc(items.createdAt)), [id]);
   const { data: photoRows } = useLiveQuery(db.select().from(photos), []);
   const session = sessionRows?.[0];
-  if (!session) return null;
+  // undefined = the live query hasn't resolved (one frame); an empty array is a
+  // definitive answer: there is no such batch.
+  if (!sessionRows) return null;
+  if (!session) return <BatchNotFound />;
   const all = itemRows ?? [];
   const visible = all.filter((i) => filter === "all" || i.status === filter);
   const thumbOf = (itemId: string) => (photoRows ?? []).find((p) => p.itemId === itemId && p.type === "front")?.localUri ?? null;

@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,6 +16,7 @@ import { Badge, Chip, Money } from "../../components/ui";
 import { AppHead } from "../../components/AppHead";
 import { Icon } from "../../components/Icon";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
+import { useTabScrollToTop } from "../../lib/tab-scroll";
 
 const STATUSES: InvStatus[] = ["all", "available", "sold"];
 const STATUS_LABEL: Record<InvStatus, string> = { all: "All", available: "Available", sold: "Sold" };
@@ -33,6 +34,12 @@ export default function InventoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<InvFilter>(DEFAULT_FILTER);
+  const listRef = useRef<FlashListRef<Item>>(null);
+  useTabScrollToTop("index", useCallback(() => {
+    if (!listRef.current) return false;
+    listRef.current.scrollToOffset({ offset: 0, animated: true });
+    return true;
+  }, []));
 
   const { data: itemRows } = useLiveQuery(db.select().from(items).orderBy(desc(items.createdAt)), []);
   const { data: photoRows } = useLiveQuery(db.select().from(photos), []);
@@ -115,6 +122,7 @@ export default function InventoryScreen() {
       </View>
 
       <FlashList
+        ref={listRef}
         data={visible}
         keyExtractor={(i: Item) => i.id}
         style={{ flex: 1 }}

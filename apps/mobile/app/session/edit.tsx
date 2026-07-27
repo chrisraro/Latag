@@ -32,9 +32,11 @@ export default function EditSessionScreen() {
   );
 
   const [name, setName] = useState(session?.name ?? "");
+  // A stored location may legitimately have no coordinates (a name typed without
+  // placing the map) — seeding on the name alone keeps that from being wiped on save.
   const [pin, setPin] = useState<PickedLocation | null>(
-    session?.locationName != null && session.lat != null && session.lng != null
-      ? { name: session.locationName, lat: session.lat, lng: session.lng }
+    session?.locationName != null
+      ? { name: session.locationName, lat: session.lat ?? null, lng: session.lng ?? null }
       : null,
   );
   const [scheduledAt, setScheduledAt] = useState<Date | null>(session?.scheduledAt ?? null);

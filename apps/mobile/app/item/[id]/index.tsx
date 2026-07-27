@@ -227,8 +227,9 @@ export default function ItemDetail() {
           <SecondaryButton label="Delete" icon="Trash" danger onPress={confirmDelete} />
         </View>
         <View className="mb-2 flex-row gap-2">
-          <SecondaryButton label="Save photos" icon="Download" onPress={savePhotos} />
-          <SecondaryButton label="Share to IG" icon="InstagramLogo" onPress={shareIG} />
+          {/* Both hit the gallery and share one guard, so both show the wait. */}
+          <SecondaryButton label="Save photos" icon="Download" busy={savingPhotos} onPress={savePhotos} />
+          <SecondaryButton label="Share to IG" icon="InstagramLogo" busy={savingPhotos} onPress={shareIG} />
         </View>
         <Pressable
           accessibilityRole="switch"

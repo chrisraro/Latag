@@ -25,6 +25,20 @@ test("create session → add item reports remaining logs without spending one", 
   expect(logsRemaining).toBe(FREE_LOG_LIMIT);
   expect(db.select().from(entitlements).all()[0].logsUsed).toBe(0);
 });
+test("addItem reports remaining logs WITHOUT writing an entitlements row", () => {
+  const { db } = makeTestDb();
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { logsRemaining } = addItem(db, { sessionId: s.id, ...base });
+  expect(logsRemaining).toBe(FREE_LOG_LIMIT);
+  expect(db.select().from(entitlements).all()).toHaveLength(0); // no INSERT in the hot path
+});
+test("addItem still reports Pro's uncounted logs when the row says pro", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  db.update(entitlements).set({ pro: true }).where(eq(entitlements.id, 1)).run();
+  const s = createSession(db, { name: "Run", type: "selector" });
+  expect(addItem(db, { sessionId: s.id, ...base }).logsRemaining).toBe(Infinity);
+});
 test("a free account with an exhausted counter can still log items", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);
