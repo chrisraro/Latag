@@ -78,6 +78,7 @@ const PROFILE: ShopProfile = {
   contactInstagram: null,
   contactEmail: null,
   showSold: false,
+  isPublished: true,
 };
 
 let tree: ReactTestRenderer | null = null;

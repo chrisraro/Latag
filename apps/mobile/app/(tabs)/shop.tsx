@@ -205,14 +205,28 @@ export default function ShopScreen() {
             <Text style={{ fontFamily: FONT.display }} className="text-[18px] text-ink" numberOfLines={1}>
               {profile.displayName}
             </Text>
-            <Text
-              selectable
-              style={{ fontFamily: FONT.semibold, lineHeight: 19 }}
-              className="mt-1.5 text-[13px] text-acid"
-              numberOfLines={1}
-            >
-              {shopUrlLabel(profile.handle)}
-            </Text>
+            {/* An offline shop is a 404 for buyers (RLS reads shops.is_published),
+                so showing the link — let alone offering to share it — would be a
+                lie. Say what is true and point at the switch. */}
+            {profile.isPublished ? (
+              <Text
+                selectable
+                style={{ fontFamily: FONT.semibold, lineHeight: 19 }}
+                className="mt-1.5 text-[13px] text-acid"
+                numberOfLines={1}
+              >
+                {shopUrlLabel(profile.handle)}
+              </Text>
+            ) : (
+              <>
+                <Text style={{ fontFamily: FONT.semibold, lineHeight: 19 }} className="mt-1.5 text-[13px] text-danger">
+                  Your shop is switched off
+                </Text>
+                <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-1 text-[12px] text-inkdim">
+                  Buyers who open your link see a not-found page. Turn it back on in Edit shop.
+                </Text>
+              </>
+            )}
             <Text
               style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }}
               className="mt-2.5 text-[12px] text-inkfaint"
@@ -236,11 +250,13 @@ export default function ShopScreen() {
                 Offline — showing your last saved shop
               </Text>
             ) : null}
-            <View className="mt-4 flex-row gap-2">
-              <SecondaryButton label="Copy link" icon="ClipboardText" onPress={() => void copyLink()} />
-              <SecondaryButton label="Share" icon="ShareNetwork" onPress={() => void shareLink()} />
-            </View>
-            <View className="mt-2 flex-row">
+            {profile.isPublished ? (
+              <View className="mt-4 flex-row gap-2">
+                <SecondaryButton label="Copy link" icon="ClipboardText" onPress={() => void copyLink()} />
+                <SecondaryButton label="Share" icon="ShareNetwork" onPress={() => void shareLink()} />
+              </View>
+            ) : null}
+            <View className={`${profile.isPublished ? "mt-2" : "mt-4"} flex-row`}>
               <SecondaryButton label="Edit shop" icon="PencilSimple" onPress={() => router.push("/shop/setup?edit=1")} />
             </View>
           </View>

@@ -1,0 +1,1 @@
+ALTER TABLE `items` ADD `photo_sync` text;

@@ -72,6 +72,7 @@ const PROFILE: ShopProfile = {
   contactInstagram: "naga.thrift",
   contactEmail: "naga@example.com",
   showSold: false,
+  isPublished: true,
 };
 
 let tree: ReactTestRenderer | null = null;
@@ -161,6 +162,16 @@ function field(t: ReactTestRenderer, label: string) {
 
 async function type(t: ReactTestRenderer, label: string, value: string) {
   await act(async () => { field(t, label).props.onChangeText(value); });
+}
+
+/** The on/off state a screen reader would announce for a labelled switch. */
+function switchState(t: ReactTestRenderer, label: string): boolean | undefined {
+  const hits = t.root.findAll(
+    (n) => n.props?.accessibilityRole === "switch" && n.props?.accessibilityLabel === label,
+    { deep: false },
+  );
+  expect(hits).toHaveLength(1);
+  return hits[0].props.accessibilityState?.checked;
 }
 
 // ---------------------------------------------------------------------------
@@ -287,6 +298,29 @@ describe("Shop tab — Pro, shop exists", () => {
     expect(texts(t)).toContain("2 changes pending");
   });
 
+  test("a shop switched off says so plainly instead of offering a link that 404s", async () => {
+    mockedGetMyShop.mockResolvedValue({ ok: true, data: { ...PROFILE, isPublished: false } });
+    insertItem({ id: "i1", publishedAt: new Date(), shopCode: "LT-7K2Q9" });
+    const t = await render(ShopScreen);
+    const all = texts(t);
+
+    expect(all).toContain("Your shop is switched off");
+    expect(all).toContain("Buyers who open your link see a not-found page. Turn it back on in Edit shop.");
+    expect(all).not.toContain("latag.vercel.app/shop/naga-thrift");
+    expect(all).not.toContain("Copy link");
+    expect(all).not.toContain("Share");
+    // The way back must stay on screen, and the stock is still listed.
+    expect(all).toContain("Edit shop");
+    expect(all).toContain("LT-7K2Q9");
+  });
+
+  test("a live shop keeps its link and never mentions being switched off", async () => {
+    const t = await render(ShopScreen);
+    const all = texts(t);
+    expect(all).toContain("latag.vercel.app/shop/naga-thrift");
+    expect(all).not.toContain("Your shop is switched off");
+  });
+
   test("a row that gave up after five tries is called out separately", async () => {
     insertItem({ id: "i1", publishedAt: new Date(), shopCode: "LT-7K2Q9" });
     queueRow({ id: "q1", itemId: "i1", attempts: 5, lastError: "boom" });
@@ -389,6 +423,7 @@ describe("Shop setup", () => {
       contactInstagram: "naga.thrift",
       contactEmail: "naga@example.com",
       showSold: false,
+      isPublished: true,
     });
     expect(cacheShop).toHaveBeenCalledWith(PROFILE);
     expect(showSuccess).toHaveBeenCalledWith("Shop saved");
@@ -413,6 +448,55 @@ describe("Shop setup", () => {
     const t = await render(ShopSetupScreen);
     await press(t, "Save shop");
     expect(mockedSaveMyShop).toHaveBeenCalledWith(expect.objectContaining({ showSold: true }));
+  });
+
+  // ------------------------------------------------------------- visibility
+
+  test("both visibility switches are labelled and explained in the seller's words", async () => {
+    const t = await render(ShopSetupScreen);
+    const all = texts(t);
+    expect(all).toContain("Shop is live");
+    expect(all).toContain("Turning this off hides your whole page. Your items stay published — they come back the moment you switch it on.");
+    expect(all).toContain("Show sold items");
+    expect(all).toContain("Sold pieces stay visible with a SOLD badge — good social proof.");
+  });
+
+  test("a brand-new shop starts live with sold items hidden", async () => {
+    const t = await render(ShopSetupScreen);
+    expect(switchState(t, "Shop is live")).toBe(true);
+    expect(switchState(t, "Show sold items")).toBe(false);
+  });
+
+  test("flipping the switches is what reaches saveMyShop", async () => {
+    mockedSaveMyShop.mockResolvedValue({ ok: true, data: PROFILE });
+    const t = await render(ShopSetupScreen);
+    await type(t, "Shop link", "naga-thrift");
+    await type(t, "Shop name", "Naga Thrift");
+    await press(t, "Show sold items");
+    await press(t, "Shop is live");
+
+    expect(switchState(t, "Show sold items")).toBe(true);
+    expect(switchState(t, "Shop is live")).toBe(false);
+
+    await press(t, "Save shop");
+    expect(mockedSaveMyShop).toHaveBeenCalledWith(
+      expect.objectContaining({ showSold: true, isPublished: false }),
+    );
+  });
+
+  test("edit mode shows a switched-off shop as switched off", async () => {
+    mockParams = { edit: "1" };
+    mockedGetMyShop.mockResolvedValue({ ok: true, data: { ...PROFILE, showSold: true, isPublished: false } });
+    mockedSaveMyShop.mockResolvedValue({ ok: true, data: PROFILE });
+    const t = await render(ShopSetupScreen);
+
+    expect(switchState(t, "Shop is live")).toBe(false);
+    expect(switchState(t, "Show sold items")).toBe(true);
+
+    await press(t, "Save shop");
+    expect(mockedSaveMyShop).toHaveBeenCalledWith(
+      expect.objectContaining({ showSold: true, isPublished: false }),
+    );
   });
 
   test("a taken handle lands under the field, not in a toast", async () => {
