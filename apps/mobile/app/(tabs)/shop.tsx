@@ -140,7 +140,7 @@ export default function ShopScreen() {
   if (!pro) {
     return (
       <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-        <AppHead title="Shop" />
+        <AppHead title="Shop" onSettings={() => router.push("/settings")} />
         <View className="flex-1 justify-center" style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
           <ValueCard>
             <PrimaryButton label="Unlock with Pro" onPress={() => setProSheet(true)} />
@@ -155,7 +155,7 @@ export default function ShopScreen() {
   if (failed && !profile) {
     return (
       <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-        <AppHead title="Shop" />
+        <AppHead title="Shop" onSettings={() => router.push("/settings")} />
         <View className="flex-1 justify-center" style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
           <View className="rounded-card border border-hairline bg-surface1" style={{ padding: 18 }}>
             <Text style={{ fontFamily: FONT.display }} className="text-[17px] text-ink">Couldn&apos;t load your shop</Text>
@@ -175,7 +175,7 @@ export default function ShopScreen() {
   if (profile === undefined) {
     return (
       <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-        <AppHead title="Shop" />
+        <AppHead title="Shop" onSettings={() => router.push("/settings")} />
         <View className="flex-1 justify-center" style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
           <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="text-center text-[13px] text-inkfaint">
             Loading your shop…
@@ -189,7 +189,7 @@ export default function ShopScreen() {
   if (profile === null) {
     return (
       <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-        <AppHead title="Shop" />
+        <AppHead title="Shop" onSettings={() => router.push("/settings")} />
         <View className="flex-1 justify-center" style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
           <ValueCard>
             <PrimaryButton label="Set up my shop" icon="Storefront" onPress={() => router.push("/shop/setup")} />
@@ -202,7 +202,11 @@ export default function ShopScreen() {
   // --- State 3: the shop exists ------------------------------------------
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-      <AppHead title="Shop" right={<Badge label={String(published.length)} />} />
+      <AppHead
+        title="Shop"
+        right={<Badge label={String(published.length)} />}
+        onSettings={() => router.push("/settings")}
+      />
       <FlashList
         data={published}
         keyExtractor={(i: Item) => i.id}

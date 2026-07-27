@@ -19,7 +19,7 @@ jest.mock("expo-glass-effect", () => {
 
 import { Platform } from "react-native";
 import * as Haptics from "expo-haptics";
-import { FloatingTabBar } from "../components/FloatingTabBar";
+import { FloatingTabBar, TAB_DESTINATIONS } from "../components/FloatingTabBar";
 import { registerTabScroll } from "../lib/tab-scroll";
 
 beforeEach(() => { jest.clearAllMocks(); });
@@ -31,9 +31,12 @@ function onPlatform(os: "ios" | "android", fn: () => void) {
   try { fn(); } finally { (Platform as { OS: string }).OS = original; }
 }
 
-const NAMES = ["index", "batches", "shop", "settings"] as const;
+// The navigator mounts more routes than the bar shows: `settings` still lives in
+// `(tabs)` (deep-linkable, and reachable from every screen's header gear since
+// G1 Task 4) but is no longer a destination.
+const NAMES = ["index", "inventory", "batches", "shop", "settings"] as const;
 const TITLES: Record<string, string> = {
-  index: "Inventory", batches: "Batches", shop: "Shop", settings: "Settings",
+  index: "Home", inventory: "Inventory", batches: "Batches", shop: "Shop", settings: "Settings",
 };
 
 function makeProps({ index = 0, prevent = false } = {}) {
@@ -69,12 +72,19 @@ function tabByLabel(t: ReactTestRenderer, label: string) {
   return hit!;
 }
 
-test("renders one accessible control per route, labelled by its title", () => {
+test("renders one accessible control per destination, labelled by its title", () => {
   const { props } = makeProps();
   const t = render(props);
   expect(tabs(t).map((n) => n.props.accessibilityLabel)).toEqual([
-    "Inventory", "Batches", "Shop", "Settings",
+    "Home", "Inventory", "Batches", "Shop",
   ]);
+});
+
+test("four destinations — Settings is a route, not a tab", () => {
+  expect(TAB_DESTINATIONS).toEqual(["index", "inventory", "batches", "shop"]);
+  const t = render(makeProps().props);
+  expect(tabs(t)).toHaveLength(4);
+  expect(tabs(t).map((n) => n.props.accessibilityLabel)).not.toContain("Settings");
 });
 
 // React Navigation ships Platform.select({ ios: "button", default: "tab" }) —
@@ -122,7 +132,7 @@ test("re-tapping the active tab scrolls its list to the top instead of navigatin
   const unregister = registerTabScroll("index", scroll);
   const { props, navigate } = makeProps({ index: 0 });
   const t = render(props);
-  act(() => { tabByLabel(t, "Inventory").props.onPress(); });
+  act(() => { tabByLabel(t, "Home").props.onPress(); });
   expect(scroll).toHaveBeenCalledTimes(1);
   expect(navigate).not.toHaveBeenCalled();
   expect(Haptics.selectionAsync).toHaveBeenCalled(); // the tap did something — say so
@@ -132,7 +142,7 @@ test("re-tapping the active tab scrolls its list to the top instead of navigatin
 test("re-tapping an active tab with nothing to scroll stays silent", () => {
   const { props, navigate } = makeProps({ index: 0 });
   const t = render(props);
-  act(() => { tabByLabel(t, "Inventory").props.onPress(); });
+  act(() => { tabByLabel(t, "Home").props.onPress(); });
   expect(navigate).not.toHaveBeenCalled();
   expect(Haptics.selectionAsync).not.toHaveBeenCalled();
 });

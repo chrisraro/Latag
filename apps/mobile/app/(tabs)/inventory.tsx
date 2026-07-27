@@ -62,7 +62,11 @@ export default function InventoryScreen() {
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
-      <AppHead title="Inventory" right={<Badge label={String(all.length)} />} />
+      <AppHead
+        title="Inventory"
+        right={<Badge label={String(all.length)} />}
+        onSettings={() => router.push("/settings")}
+      />
 
       <Text
         style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }}

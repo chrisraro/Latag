@@ -214,3 +214,20 @@ test("tapping a row opens item detail", async () => {
   expect(mockPush).toHaveBeenCalledWith("/item/i9");
 });
 
+/** The single control carrying an exact a11y label (header icon buttons). */
+function pressLabelled(t: ReactTestRenderer, label: string) {
+  const hits = t.root.findAll((n) => typeof n.props?.onPress === "function" && n.props?.accessibilityLabel === label);
+  expect(hits).toHaveLength(1);
+  act(() => { hits[0].props.onPress(); });
+}
+
+// Settings left the tab bar in G1 — the header gear is now the only way in
+// besides a deep link, from every tab.
+test("the header gear opens Settings and the count badge survives beside it", async () => {
+  seedThree();
+  const t = await render();
+  expect(texts(t)).toContain("3"); // the count badge, still in the right slot
+  pressLabelled(t, "Settings");
+  expect(mockPush).toHaveBeenCalledWith("/settings");
+});
+

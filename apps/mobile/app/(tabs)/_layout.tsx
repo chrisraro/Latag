@@ -13,6 +13,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="inventory" options={{ title: "Inventory" }} />
       <Tabs.Screen name="batches" options={{ title: "Batches" }} />
       <Tabs.Screen name="shop" options={{ title: "Shop" }} />
+      {/* Registered so `/settings` keeps resolving (deep links, and the gear in
+          every screen's header) — the allowlist keeps it off the bar. */}
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
     </Tabs>
   );
