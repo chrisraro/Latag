@@ -30,20 +30,28 @@ export const TAB_BAR_HEIGHT = 60;
 export const TAB_BAR_GAP = 12;
 /** Bottom padding a tab screen needs (on top of insets.bottom) to clear the bar. */
 export const TAB_BAR_CLEARANCE = TAB_BAR_HEIGHT + TAB_BAR_GAP + 8;
+/** Quick-add FAB, mirroring the native toolbar's trailing FAB. */
+const FAB_SIZE = 56;
 
 /**
  * Floating pill tab bar. iOS with Liquid Glass gets the real material; every
  * other surface (Android, older iOS, tests) falls back to an opaque surface1
  * pill so the bar is never a transparent smudge over the list behind it.
+ *
+ * `onQuickAdd` renders the trailing FAB. It is optional so the bar can still be
+ * mounted bare, but the app always passes it: when the native toolbar is
+ * unavailable this bar *is* the whole bar, and losing quick-add with it would
+ * leave the fallback with no way to log an item.
  */
-export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function FloatingTabBar({ state, descriptors, navigation, onQuickAdd }: BottomTabBarProps & { onQuickAdd?: () => void }) {
   const insets = useSafeAreaInsets();
   const glass = Platform.OS === "ios" && isLiquidGlassAvailable();
 
   const container: ViewStyle = {
     position: "absolute",
     left: 20,
-    right: 20,
+    // The pill yields the FAB's width plus a gap when quick-add is present.
+    right: onQuickAdd ? 20 + FAB_SIZE + 12 : 20,
     bottom: insets.bottom + TAB_BAR_GAP,
     height: TAB_BAR_HEIGHT,
     flexDirection: "row",
@@ -52,6 +60,27 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     borderWidth: 1,
     borderColor: COLORS.hairline,
   };
+
+  const fab = onQuickAdd ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Quick add"
+      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onQuickAdd(); }}
+      style={{
+        position: "absolute",
+        right: 20,
+        bottom: insets.bottom + TAB_BAR_GAP + (TAB_BAR_HEIGHT - FAB_SIZE) / 2,
+        width: FAB_SIZE,
+        height: FAB_SIZE,
+        borderRadius: FAB_SIZE / 2,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: COLORS.acid,
+      }}
+    >
+      <Icon name="Plus" size={22} color={COLORS.acidInk} />
+    </Pressable>
+  ) : null;
 
   const buttons = TAB_DESTINATIONS.map((name) => {
     const index = state.routes.findIndex((r) => r.name === name);
@@ -101,8 +130,12 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     );
   });
 
-  if (glass) {
-    return <GlassView style={container} glassEffectStyle="regular">{buttons}</GlassView>;
-  }
-  return <View style={[container, { backgroundColor: COLORS.surface1 }]}>{buttons}</View>;
+  return (
+    <>
+      {glass
+        ? <GlassView style={container} glassEffectStyle="regular">{buttons}</GlassView>
+        : <View style={[container, { backgroundColor: COLORS.surface1 }]}>{buttons}</View>}
+      {fab}
+    </>
+  );
 }

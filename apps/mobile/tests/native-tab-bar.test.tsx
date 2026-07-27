@@ -127,11 +127,20 @@ describe("resolveJetpackUI — the capability check", () => {
 });
 
 describe("NativeTabBarView — fallback is mandatory", () => {
-  test("renders FloatingTabBar's four destinations when the native module is unavailable", () => {
+  test("renders FloatingTabBar's four destinations plus quick-add when the native module is unavailable", () => {
     const { props } = makeProps();
     const t = render(<NativeTabBarView {...props} jetpackUI={null} />);
     const tabs = t.root.findAll((n) => typeof n.props?.onPress === "function" && !!n.props?.accessibilityLabel);
-    expect(tabs.map((n) => n.props.accessibilityLabel)).toEqual(["Home", "Inventory", "Batches", "Shop"]);
+    // Quick-add rides along: without it the fallback bar would have no way to
+    // log an item at all (G2 Task 2).
+    expect(tabs.map((n) => n.props.accessibilityLabel)).toEqual(["Home", "Inventory", "Batches", "Shop", "Quick add"]);
+  });
+
+  test("the fallback's FAB fires onQuickAdd", () => {
+    const { props, onQuickAdd } = makeProps();
+    const t = render(<NativeTabBarView {...props} jetpackUI={null} />);
+    act(() => { pressableFor(t, "Quick add").props.onPress(); });
+    expect(onQuickAdd).toHaveBeenCalledTimes(1);
   });
 
   test("a native module that resolves but throws while rendering also falls back, via the error boundary", () => {
@@ -151,7 +160,7 @@ describe("NativeTabBarView — fallback is mandatory", () => {
     const { props } = makeProps();
     const t = render(<NativeTabBarView {...props} jetpackUI={poisoned} />);
     const tabs = t.root.findAll((n) => typeof n.props?.onPress === "function" && !!n.props?.accessibilityLabel);
-    expect(tabs.map((n) => n.props.accessibilityLabel)).toEqual(["Home", "Inventory", "Batches", "Shop"]);
+    expect(tabs.map((n) => n.props.accessibilityLabel)).toEqual(["Home", "Inventory", "Batches", "Shop", "Quick add"]);
     errorSpy.mockRestore();
   });
 });

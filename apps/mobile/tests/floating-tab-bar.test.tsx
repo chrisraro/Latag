@@ -153,3 +153,21 @@ test("long press emits tabLongPress for that route", () => {
   act(() => { tabByLabel(t, "Batches").props.onLongPress(); });
   expect(emit).toHaveBeenCalledWith({ type: "tabLongPress", target: "batches-key" });
 });
+
+// The fallback bar carries quick-add too (G2 Task 2): when the native toolbar
+// is unavailable this is the only bar, and it must still be able to add an item.
+test("no quick-add handler means no FAB — the bar is still just four tabs", () => {
+  const t = render(makeProps().props);
+  expect(tabs(t).map((n) => n.props.accessibilityLabel)).not.toContain("Quick add");
+});
+
+test("a quick-add handler renders the FAB, which fires it once", () => {
+  const onQuickAdd = jest.fn();
+  const { props } = makeProps();
+  const t = render({ ...props, onQuickAdd });
+  const fab = tabByLabel(t, "Quick add");
+  expect(fab.props.accessibilityRole).toBe("button");
+  act(() => { fab.props.onPress(); });
+  expect(onQuickAdd).toHaveBeenCalledTimes(1);
+  expect(Haptics.impactAsync).toHaveBeenCalled();
+});

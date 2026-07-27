@@ -3,6 +3,7 @@ import { filterItems, inventoryTotals, DEFAULT_FILTER } from "../lib/inventory";
 const it0 = (over: Partial<Parameters<typeof filterItems>[0][number]> = {}) => ({
   brand: "Carhartt", name: null, department: "tops", category: "Jacket",
   status: "available" as const, targetSellPrice: 850, soldPrice: null,
+  sessionId: "s1" as string | null,
   createdAt: new Date("2026-07-01T00:00:00Z"), ...over,
 });
 
@@ -24,6 +25,23 @@ test("department and status filters", () => {
   expect(filterItems(rows, { ...DEFAULT_FILTER, department: "footwear" })).toHaveLength(1);
   expect(filterItems(rows, { ...DEFAULT_FILTER, status: "sold" })).toHaveLength(1);
   expect(filterItems(rows, { ...DEFAULT_FILTER, status: "available" })).toHaveLength(2);
+});
+
+test("the batch facet defaults to all and narrows to loose items only", () => {
+  const rows = [it0({ brand: "In batch" }), it0({ brand: "Loose", sessionId: null })];
+  expect(filterItems(rows, DEFAULT_FILTER)).toHaveLength(2);
+  expect(filterItems(rows, { ...DEFAULT_FILTER, batch: "none" }).map((r) => r.brand)).toEqual(["Loose"]);
+});
+
+test("the batch facet composes with the other facets", () => {
+  const rows = [
+    it0({ brand: "Loose tee", sessionId: null }),
+    it0({ brand: "Loose jeans", sessionId: null, department: "bottoms" }),
+    it0({ brand: "Batched jeans", department: "bottoms" }),
+  ];
+  expect(
+    filterItems(rows, { ...DEFAULT_FILTER, batch: "none", department: "bottoms" }).map((r) => r.brand),
+  ).toEqual(["Loose jeans"]);
 });
 
 test("price sorts use the effective price (soldPrice wins when sold)", () => {

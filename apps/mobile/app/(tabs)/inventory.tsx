@@ -50,6 +50,7 @@ export default function InventoryScreen() {
     filter.query !== DEFAULT_FILTER.query ||
     filter.department !== DEFAULT_FILTER.department ||
     filter.status !== DEFAULT_FILTER.status ||
+    filter.batch !== DEFAULT_FILTER.batch ||
     filter.sort !== DEFAULT_FILTER.sort;
   const visible = useMemo(() => filterItems(all, filter), [itemRows, filter]);
   const totals = useMemo(() => inventoryTotals(visible), [visible]);
@@ -118,9 +119,24 @@ export default function InventoryScreen() {
       </ScrollView>
 
       <View className="mb-2.5 flex-row items-center gap-2">
-        {STATUSES.map((s) => (
-          <Chip key={s} label={STATUS_LABEL[s]} selected={filter.status === s} onPress={() => setFilter((f) => ({ ...f, status: s }))} />
-        ))}
+        {/* Status plus the batch facet scroll — four chips plus the sort chip
+            overflow a narrow phone — while sort stays pinned to the right. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flexGrow: 0, flexShrink: 1 }}
+          contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+        >
+          {STATUSES.map((s) => (
+            <Chip key={s} label={STATUS_LABEL[s]} selected={filter.status === s} onPress={() => setFilter((f) => ({ ...f, status: s }))} />
+          ))}
+          {/* Items with no batch (G2). Tapping it again clears the facet. */}
+          <Chip
+            label="Loose items"
+            selected={filter.batch === "none"}
+            onPress={() => setFilter((f) => ({ ...f, batch: f.batch === "none" ? "all" : "none" }))}
+          />
+        </ScrollView>
         <View className="flex-1" />
         {/* Acid only once you've moved off the default, so the chip reads as state, not decoration. */}
         <Chip label={SORT_LABEL[filter.sort]} selected={filter.sort !== DEFAULT_FILTER.sort} onPress={cycleSort} />
@@ -165,7 +181,7 @@ export default function InventoryScreen() {
           <View className="items-center px-1 py-8">
             <View style={{ borderRadius: 12 }} className="w-full items-center border-[1.5px] border-dashed border-hairline px-6 py-8">
               <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="text-center text-[13px] text-inkfaint">
-                {all.length === 0 ? "No items yet — start a batch to log your first piece." : "No items match these filters."}
+                {all.length === 0 ? "No items yet — tap + to log your first piece." : "No items match these filters."}
               </Text>
             </View>
           </View>
