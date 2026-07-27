@@ -225,6 +225,64 @@
   .set-row .sm span{display:block;font-size:12px;color:var(--ink-faint);margin-top:1px}
   .ghostcard{border:1.5px dashed var(--hairline);border-radius:12px;height:92px;display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:13px}
 
+  /* ---------- inventory + storefront ---------- */
+  .tabbar{
+    position:absolute;left:16px;right:16px;bottom:24px;z-index:7;display:flex;gap:4px;padding:6px;
+    border-radius:99px;background:rgba(26,26,26,.86);border:1px solid rgba(242,242,242,.10);
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 16px 36px rgba(0,0,0,.62);
+  }
+  .tabbar .tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:54px;border-radius:99px;color:var(--ink-faint);font-size:9.5px;font-weight:700;font-stretch:118%;letter-spacing:.06em;text-transform:uppercase}
+  .tabbar .tb.on{background:var(--acid);color:var(--acid-ink)}
+  .totals{display:flex;gap:22px;padding:4px 0 12px;border-bottom:1px solid var(--hairline)}
+  .totals div b{display:block;font-size:19px;font-weight:800;font-stretch:118%;line-height:1.25}
+  .totals div span{font-size:10.5px;font-weight:600;letter-spacing:.07em;color:var(--ink-faint)}
+  .sortrow{display:flex;align-items:center;justify-content:space-between;padding:10px 0 2px;font-size:12px;color:var(--ink-faint)}
+  .sortrow b{color:var(--ink-dim);font-weight:600}
+  .sortrow .sort{display:flex;align-items:center;gap:5px;color:var(--ink-dim);font-weight:600}
+  .code{font-size:11px;font-weight:700;font-stretch:110%;letter-spacing:.09em;color:var(--acid);border:1px solid rgba(184,241,53,.34);border-radius:6px;padding:2px 7px;flex:none}
+  .urlpill{display:flex;align-items:center;gap:9px;height:46px;border-radius:12px;background:#0b0b0b;border:1px solid var(--hairline);padding:0 13px;font-size:13.5px;color:var(--ink);margin:12px 0 10px;overflow:hidden;white-space:nowrap}
+  .urlpill .dim{color:var(--ink-faint)}
+  .privnote{font-size:11.5px;line-height:1.5;color:var(--ink-faint);text-align:center;padding:0 4px}
+  .row.tight{padding:11px 0}
+  .row.tight .thumb{width:58px;height:58px;font-size:18px}
+  .row.tight .meta span{font-size:11.5px;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row.tight .price{flex:none}
+  .morehint{font-size:12px;color:var(--ink-faint);text-align:center;padding:16px 0 0}
+
+  /* ---------- browser frame (public storefront) ---------- */
+  .mock.wide{width:900px}
+  .browser{width:900px;background:var(--bg);border:8px solid var(--bezel);border-radius:22px;overflow:hidden;display:flex;flex-direction:column}
+  .browser .chrome{display:flex;align-items:center;gap:14px;height:50px;padding:0 16px;background:#151515;border-bottom:1px solid var(--hairline);flex:none}
+  .browser .dots3{display:flex;gap:7px;flex:none}
+  .browser .dots3 i{width:11px;height:11px;border-radius:50%;background:#343434}
+  .browser .url{flex:1;height:32px;border-radius:99px;background:#0b0b0b;border:1px solid var(--hairline);display:flex;align-items:center;gap:9px;padding:0 14px;font-size:12.5px;color:var(--ink-faint)}
+  .browser .url b{color:var(--ink);font-weight:600}
+  .shoppage{padding:40px 44px 34px}
+  .shophead{display:flex;gap:22px;align-items:flex-start;padding-bottom:26px;border-bottom:1px solid var(--hairline)}
+  .shophead .av{width:78px;height:78px;border-radius:20px;background:var(--acid);color:var(--acid-ink);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;font-stretch:125%;letter-spacing:.02em;flex:none}
+  .shophead h4{font-size:36px;font-weight:900;font-stretch:125%;letter-spacing:-.01em;line-height:1.04}
+  .shophead p{font-size:14.5px;color:var(--ink-dim);margin-top:9px;max-width:60ch;text-wrap:pretty}
+  .shophead .meta2{font-size:12px;color:var(--ink-faint);margin-top:11px;letter-spacing:.03em}
+  .shopgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;grid-auto-flow:dense;margin-top:24px}
+  .pcard{border:1px solid var(--hairline);border-radius:16px;background:var(--surface1);overflow:hidden;display:flex;flex-direction:column;transition:transform .5s var(--ease),border-color .5s var(--ease)}
+  .pcard:hover{transform:translateY(-4px);border-color:#3d3d3d}
+  .pcard .shot{aspect-ratio:4/3.3;background:linear-gradient(165deg,#282828,#111);display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:800;color:#3c3c3c;position:relative}
+  .pcard .shot .cond{position:absolute;left:12px;top:12px;font-size:10.5px;font-weight:700;letter-spacing:.06em;background:rgba(0,0,0,.72);border:1px solid var(--hairline);border-radius:99px;padding:3px 10px;color:var(--ink-dim)}
+  .pcard .body{padding:15px 16px 16px;display:flex;flex-direction:column;flex:1}
+  .pcard .brandline{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--ink-faint);text-transform:uppercase}
+  .pcard .name{font-size:16px;font-weight:600;line-height:1.28;margin-top:5px}
+  .pcard .foot2{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:14px}
+  .pcard .amt{font-size:21px;font-weight:800;font-stretch:120%;color:var(--acid)}
+  .pcard .amt .cur{font-size:.68em;font-weight:600}
+  .inquire{display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap;margin-top:22px;padding:22px 24px;border:1px solid var(--hairline);border-radius:16px;background:var(--surface1)}
+  .inquire b{display:block;font-size:17px;font-weight:700}
+  .inquire p{font-size:13px;color:var(--ink-faint);margin-top:4px}
+  .ibtns{display:flex;gap:10px}
+  .ibtn{display:flex;align-items:center;gap:9px;height:48px;padding:0 20px;border-radius:99px;background:var(--surface2);border:1px solid var(--hairline);font-size:13.5px;font-weight:700;font-stretch:112%;letter-spacing:.02em;color:var(--ink);white-space:nowrap}
+  .ibtn.primary{background:var(--acid);border-color:var(--acid);color:var(--acid-ink)}
+  .shopfoot{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:26px;padding-top:18px;border-top:1px solid var(--hairline);font-size:12px;color:var(--ink-faint)}
+  .shopfoot .lat{font-weight:900;font-stretch:125%;text-transform:uppercase;letter-spacing:.06em;color:var(--acid)}
+
   @media (max-width:430px){ .phone{zoom:.88} }
   @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
 </style>
@@ -249,6 +307,13 @@
 <symbol id="i-package" viewBox="0 0 256 256"><path d="M225.6,62.64l-88-48.17a19.91,19.91,0,0,0-19.2,0l-88,48.17A20,20,0,0,0,20,80.19v95.62a20,20,0,0,0,10.4,17.55l88,48.17a19.89,19.89,0,0,0,19.2,0l88-48.17A20,20,0,0,0,236,175.81V80.19A20,20,0,0,0,225.6,62.64ZM128,36.57,200,76,178.57,87.73l-72-39.42Zm0,78.83L56,76,81.56,62l72,39.41ZM44,96.79l72,39.4v76.67L44,173.44Zm96,116.07V136.19l24-13.13V152a12,12,0,0,0,24,0V109.92l24-13.13v76.65Z"/></symbol>
 <symbol id="i-target" viewBox="0 0 256 256"><path d="M229.26,90.4a108,108,0,0,1-177.63,114A108,108,0,0,1,195.41,43.63l20.1-20.11a12,12,0,0,1,17,17l-96,96a12,12,0,1,1-17-17l24-24a36,36,0,1,0,19.76,39.65,12,12,0,0,1,23.53,4.74,60,60,0,1,1-25.73-62L178.3,60.74a84,84,0,1,0,28.46,38,12,12,0,1,1,22.5-8.35Z"/></symbol>
 <symbol id="i-x" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></symbol>
+<symbol id="i-squares-four" viewBox="0 0 256 256"><rect x="32" y="32" width="82" height="82" rx="16"/><rect x="142" y="32" width="82" height="82" rx="16"/><rect x="32" y="142" width="82" height="82" rx="16"/><rect x="142" y="142" width="82" height="82" rx="16"/></symbol>
+<symbol id="i-storefront" viewBox="0 0 256 256"><path d="M34,98,54,44H202l20,54" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/><path d="M52,98V204H204V98" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/><path d="M102,204V150h52v54" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-link-simple" viewBox="0 0 256 256"><path d="M96,168H74a40,40,0,0,1,0-80H96" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><path d="M160,88h22a40,40,0,0,1,0,80H160" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><path d="M92,128h72" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round"/></symbol>
+<symbol id="i-share-network" viewBox="0 0 256 256"><path d="M88,120,168,74M88,140l80,44" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"/><circle cx="66" cy="130" r="26"/><circle cx="190" cy="62" r="26"/><circle cx="190" cy="196" r="26"/></symbol>
+<symbol id="i-instagram-logo" viewBox="0 0 256 256"><rect x="36" y="36" width="184" height="184" rx="52" fill="none" stroke="currentColor" stroke-width="20"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-width="20"/><circle cx="182" cy="74" r="12"/></symbol>
+<symbol id="i-chat-bubble" viewBox="0 0 256 256"><ellipse cx="128" cy="114" rx="96" ry="82" fill="none" stroke="currentColor" stroke-width="20"/><path d="M84,190v42l46-32" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-t-shirt" viewBox="0 0 256 256"><path d="M96,36,32,72l22,44,26-14V220H176V102l26,14,22-44L160,36a32,32,0,0,1-64,0Z" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </defs></svg>
 
 
@@ -736,6 +801,233 @@
     <div class="homebar"><i></i></div>
   </div>
   <figcaption><b>15 · Settings</b><span>License status, on-device storage footprint, the offline promise stated as fact, and the one cloud-adjacent control (anonymous telemetry) as an explicit opt-out toggle. Sign-out never touches inventory.</span></figcaption>
+</figure>
+
+<div class="sect"><h2>INVENTORY &amp; STOREFRONT</h2><i></i><span class="tag2">shipping — inventory is home, publishing is opt-in</span></div>
+
+<!-- ══════════════ 16 · INVENTORY (HOME) ══════════════ -->
+<figure class="mock">
+  <div class="phone" id="shot-inventory">
+    <div class="island"></div>
+    <div class="statusbar num"><span>9:41</span><span class="icons"><svg class="ic" width="14" height="14" viewBox="0 0 256 256"><use href="#i-airplane-tilt"/></svg><svg width="24" height="12" viewBox="0 0 26 13"><rect x=".5" y=".5" width="21" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".5"/><rect x="2.5" y="2.5" width="17" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2.5" height="5" rx="1" fill="currentColor" opacity=".5"/></svg></span></div>
+    <div class="screen">
+      <div class="apphead" style="padding-top:14px">
+        <h3 style="font-size:26px">Inventory</h3>
+        <span class="badge num">128 ITEMS</span>
+      </div>
+      <div class="totals num">
+        <div><b>96</b><span>AVAILABLE</span></div>
+        <div><b>32</b><span>SOLD</span></div>
+        <div><b style="color:var(--acid)"><span style="font-size:.68em;font-weight:600">₱</span>74,300</b><span>EST. RETAIL</span></div>
+      </div>
+      <div class="field" style="margin:14px 0 8px">
+        <svg class="ic" width="17" height="17" viewBox="0 0 256 256" style="color:var(--ink-faint)"><use href="#i-magnifying-glass"/></svg>
+        <span class="ph2">Search brand, item, or code</span>
+      </div>
+      <div class="chiprow">
+        <span class="chip on">All</span>
+        <span class="chip">Tops</span>
+        <span class="chip">Bottoms</span>
+        <span class="chip">Dresses</span>
+        <span class="chip">Footwear</span>
+      </div>
+      <div class="sortrow">
+        <span>Showing <b>available</b> · all batches</span>
+        <span class="sort">Newest first <svg class="ic" width="12" height="12" viewBox="0 0 256 256"><use href="#i-caret-down"/></svg></span>
+      </div>
+      <div style="flex:1;overflow:hidden;padding-bottom:92px">
+        <div class="row tight">
+          <span class="thumb">C</span>
+          <div class="meta"><b>Carhartt Detroit Jacket</b><span class="num">TOPS · M · PTP 23″ · 9/10</span></div>
+          <div class="price num"><span class="cur">₱</span>1,450<small>Naga #4</small></div>
+        </div>
+        <div class="row tight">
+          <span class="thumb">L</span>
+          <div class="meta"><b>Levi's 501 Original</b><span class="num">BOTTOMS · W32 · INSEAM 30</span></div>
+          <div class="price num"><span class="cur">₱</span>890<small>Baguio</small></div>
+        </div>
+        <div class="row tight">
+          <span class="thumb">N</span>
+          <div class="meta"><b>Nike Air Max 90</b><span class="num">FOOTWEAR · US 9.5 · INSOLE 27.5CM</span></div>
+          <div class="price num"><span class="cur">₱</span>1,650<small>Naga #4</small></div>
+        </div>
+        <div class="row tight">
+          <span class="thumb">G</span>
+          <div class="meta"><b>Guess Shoulder Bag</b><span class="num">BAGS · 28 × 20 CM · 9/10</span></div>
+          <div class="price num"><span class="cur">₱</span>2,100<small>Divisoria</small></div>
+        </div>
+        <div class="row tight" style="border-bottom:0">
+          <span class="thumb">A</span>
+          <div class="meta"><b>Adidas Firebird Track Top</b><span class="num">TOPS · L · PTP 22″ · 8/10</span></div>
+          <div class="price num"><span class="cur">₱</span>980<small>Baguio</small></div>
+        </div>
+        <div class="morehint num">91 more items · scroll to load</div>
+      </div>
+    </div>
+    <div class="tabbar">
+      <span class="tb on"><svg class="ic" width="19" height="19" viewBox="0 0 256 256"><use href="#i-squares-four"/></svg>Inventory</span>
+      <span class="tb"><svg class="ic" width="19" height="19" viewBox="0 0 256 256"><use href="#i-package"/></svg>Batches</span>
+      <span class="tb"><svg class="ic" width="19" height="19" viewBox="0 0 256 256"><use href="#i-storefront"/></svg>Shop</span>
+      <span class="tb"><svg class="ic" width="19" height="19" viewBox="0 0 256 256"><use href="#i-gear-six"/></svg>Settings</span>
+    </div>
+    <div class="homebar"><i></i></div>
+  </div>
+  <figcaption><b>16 · Inventory — the home screen</b><span>Every piece across every batch in one searchable list, filtered by department and never by which run it came from. Measurements read in each department's own units — PTP for tops, waist and inseam for bottoms, US size and insole for footwear. The floating tab bar rides above the list so the thumb never leaves the bottom third.</span></figcaption>
+</figure>
+
+<!-- ══════════════ 17 · SHOP TAB ══════════════ -->
+<figure class="mock">
+  <div class="phone" id="shot-shop">
+    <div class="island"></div>
+    <div class="statusbar num"><span>9:41</span><span class="icons"><svg class="ic" width="14" height="14" viewBox="0 0 256 256"><use href="#i-wifi-high"/></svg><svg width="24" height="12" viewBox="0 0 26 13"><rect x=".5" y=".5" width="21" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".5"/><rect x="2.5" y="2.5" width="17" height="8" rx="2" fill="currentColor"/><rect x="23" y="4" width="2.5" height="5" rx="1" fill="currentColor" opacity=".5"/></svg></span></div>
+    <div class="screen">
+      <div class="apphead" style="padding-top:14px">
+        <h3 style="font-size:26px">Shop</h3>
+        <span class="badge" style="color:var(--acid);border-color:rgba(184,241,53,.5)">LIVE</span>
+      </div>
+      <div class="scard" style="margin-top:8px">
+        <div class="top"><b>Your storefront</b><span class="badge">PRO</span></div>
+        <div class="urlpill">
+          <svg class="ic" width="15" height="15" viewBox="0 0 256 256" style="color:var(--ink-faint)"><use href="#i-link-simple"/></svg>
+          <span><span class="dim">latag.vercel.app/shop/</span>naga-thrift</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="btn-secondary" style="flex:1;height:44px;font-size:13px"><svg class="ic" width="15" height="15" viewBox="0 0 256 256"><use href="#i-clipboard-text"/></svg>&nbsp;&nbsp;Copy link</div>
+          <div class="btn-secondary" style="flex:1;height:44px;font-size:13px"><svg class="ic" width="15" height="15" viewBox="0 0 256 256"><use href="#i-share-network"/></svg>&nbsp;&nbsp;Share</div>
+        </div>
+      </div>
+      <div class="sortrow" style="padding:6px 0 0">
+        <span class="num"><b>12 published</b> · 3 sold</span>
+        <span class="sort">Manage <svg class="ic" width="12" height="12" viewBox="0 0 256 256"><use href="#i-caret-right"/></svg></span>
+      </div>
+      <div style="flex:1;overflow:hidden;padding-bottom:92px">
+        <div class="row tight">
+          <span class="thumb">C</span>
+          <div class="meta"><b>Carhartt Detroit Jacket</b><span style="display:flex;align-items:center;gap:7px;margin-top:5px"><span class="code num">LT-7K2Q9</span><span class="num">TOPS · M</span></span></div>
+          <div class="price num"><span class="cur">₱</span>1,450</div>
+        </div>
+        <div class="row tight">
+          <span class="thumb">L</span>
+          <div class="meta"><b>Levi's 501 Original</b><span style="display:flex;align-items:center;gap:7px;margin-top:5px"><span class="code num">LT-4B8M1</span><span class="num">BOTTOMS · W32</span></span></div>
+          <div class="price num"><span class="cur">₱</span>890</div>
+        </div>
+        <div class="row tight">
+          <span class="thumb">U</span>
+          <div class="meta"><b>Uniqlo Flannel Overshirt</b><span style="display:flex;align-items:center;gap:7px;margin-top:5px"><span class="code num">LT-9H3T7</span><span class="num">TOPS · L</span></span></div>
+          <div class="price num"><span class="cur">₱</span>620</div>
+        </div>
+        <div class="row tight is-sold" style="border-bottom:0">
+          <span class="thumb">N</span>
+          <div class="meta"><b>Nike Air Max 90</b><span style="display:flex;align-items:center;gap:7px;margin-top:5px"><span class="code num" style="color:var(--sold);border-color:var(--hairline)">LT-2R6X4</span><span class="num">FOOTWEAR · 9.5</span></span></div>
+          <div class="price num" style="color:var(--sold)"><span class="cur">₱</span>1,650<small>SOLD</small></div>
+        </div>
+        <div class="privnote" style="margin-top:20px">Only what you publish goes online.<br>Costs and margins never leave this phone.</div>
+      </div>
+    </div>
+    <div class="tabbar">
+      <span class="tb"><svg class="ic" width="19" height="19" viewBox="0 0 256 256"><use href="#i-squares-four"/></svg>Inventory</span>
+      <span class="tb"><svg class="ic" width="19" height="19" viewBox="0 0 256 256"><use href="#i-package"/></svg>Batches</span>
+      <span class="tb on"><svg class="ic" width="19" height="19" viewBox="0 0 256 256"><use href="#i-storefront"/></svg>Shop</span>
+      <span class="tb"><svg class="ic" width="19" height="19" viewBox="0 0 256 256"><use href="#i-gear-six"/></svg>Settings</span>
+    </div>
+    <div class="homebar"><i></i></div>
+  </div>
+  <figcaption><b>17 · Shop tab</b><span>The seller's claimed handle, one tap to copy or share it, and the exact list of what the public can see. Every published piece carries a short code buyers can quote in a message. Publishing is per item and reversible — nothing leaves the phone until it appears in this list.</span></figcaption>
+</figure>
+
+<!-- ══════════════ 18 · PUBLIC STOREFRONT ══════════════ -->
+<figure class="mock wide">
+  <div class="browser" id="shot-storefront">
+    <div class="chrome">
+      <span class="dots3"><i></i><i></i><i></i></span>
+      <span class="url"><svg class="ic" width="13" height="13" viewBox="0 0 256 256"><use href="#i-shield-check"/></svg><span><b>latag.vercel.app</b>/shop/naga-thrift</span></span>
+    </div>
+    <div class="shoppage">
+      <div class="shophead">
+        <span class="av">NT</span>
+        <div>
+          <h4>Naga Thrift</h4>
+          <p>Hand-picked ukay from Bicol. New bale opens every Friday, sizes run small to large. Nationwide shipping via J&amp;T — message the code of the piece you want and it's held for 24 hours.</p>
+          <div class="meta2 num">12 items available · Naga City, Camarines Sur · updated today</div>
+        </div>
+      </div>
+      <div class="chiprow" style="margin-top:22px;overflow:visible">
+        <span class="chip on">All</span>
+        <span class="chip">Tops</span>
+        <span class="chip">Bottoms</span>
+        <span class="chip">Dresses</span>
+        <span class="chip">Footwear</span>
+        <span class="chip">Bags</span>
+        <span class="chip">Accessories</span>
+      </div>
+      <div class="shopgrid">
+        <div class="pcard">
+          <div class="shot"><span class="cond">9/10</span>C</div>
+          <div class="body">
+            <span class="brandline">Carhartt</span>
+            <span class="name">Detroit Jacket · Duck Canvas</span>
+            <div class="foot2"><span class="amt num"><span class="cur">₱</span>1,450</span><span class="code num">LT-7K2Q9</span></div>
+          </div>
+        </div>
+        <div class="pcard">
+          <div class="shot"><span class="cond">8/10</span>L</div>
+          <div class="body">
+            <span class="brandline">Levi's</span>
+            <span class="name">501 Original · W32 · Inseam 30</span>
+            <div class="foot2"><span class="amt num"><span class="cur">₱</span>890</span><span class="code num">LT-4B8M1</span></div>
+          </div>
+        </div>
+        <div class="pcard">
+          <div class="shot"><span class="cond">9/10</span>N</div>
+          <div class="body">
+            <span class="brandline">Nike</span>
+            <span class="name">Air Max 90 · US 9.5</span>
+            <div class="foot2"><span class="amt num"><span class="cur">₱</span>1,650</span><span class="code num">LT-2R6X4</span></div>
+          </div>
+        </div>
+        <div class="pcard">
+          <div class="shot"><span class="cond">10/10</span>U</div>
+          <div class="body">
+            <span class="brandline">Uniqlo</span>
+            <span class="name">Flannel Overshirt · L</span>
+            <div class="foot2"><span class="amt num"><span class="cur">₱</span>620</span><span class="code num">LT-9H3T7</span></div>
+          </div>
+        </div>
+        <div class="pcard">
+          <div class="shot"><span class="cond">9/10</span>G</div>
+          <div class="body">
+            <span class="brandline">Guess</span>
+            <span class="name">Shoulder Bag · 28 × 20 cm</span>
+            <div class="foot2"><span class="amt num"><span class="cur">₱</span>2,100</span><span class="code num">LT-5D1W8</span></div>
+          </div>
+        </div>
+        <div class="pcard">
+          <div class="shot"><span class="cond">8/10</span>R</div>
+          <div class="body">
+            <span class="brandline">Ralph Lauren</span>
+            <span class="name">Floral Midi Dress · S</span>
+            <div class="foot2"><span class="amt num"><span class="cur">₱</span>1,180</span><span class="code num">LT-6P4N2</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="inquire">
+        <div>
+          <b>Ask about LT-7K2Q9 — Carhartt Detroit Jacket</b>
+          <p>Your message opens pre-filled with the code, size and price.</p>
+        </div>
+        <div class="ibtns">
+          <span class="ibtn primary"><svg class="ic" width="17" height="17" viewBox="0 0 256 256"><use href="#i-chat-bubble"/></svg>Messenger</span>
+          <span class="ibtn"><svg class="ic" width="17" height="17" viewBox="0 0 256 256"><use href="#i-instagram-logo"/></svg>Instagram DM</span>
+          <span class="ibtn"><svg class="ic" width="17" height="17" viewBox="0 0 256 256"><use href="#i-envelope-simple"/></svg>Email</span>
+        </div>
+      </div>
+      <div class="shopfoot">
+        <span>Published listings carry no cost or profit data — the seller's inventory, photos and margins stay on their phone.</span>
+        <span class="lat">Latag</span>
+      </div>
+    </div>
+  </div>
+  <figcaption><b>18 · Public storefront — latag.vercel.app/shop/naga-thrift</b><span>What a buyer sees: the seller's handle, their bio, department filters and only the pieces they chose to publish. Every listing shows its short code so an inquiry starts with an unambiguous reference. Messenger, Instagram DM and email open pre-filled. No cost, no margin, no batch data ever crosses over.</span></figcaption>
 </figure>
 
 </div>
