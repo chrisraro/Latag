@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
+import { View, Text, Pressable, RefreshControl, ScrollView, TextInput } from "react-native";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -17,6 +17,7 @@ import { AppHead } from "../../components/AppHead";
 import { Icon } from "../../components/Icon";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
+import { REFRESH_TINT, settle, useRefresh } from "../../lib/refresh";
 
 const STATUSES: InvStatus[] = ["all", "available", "sold"];
 const STATUS_LABEL: Record<InvStatus, string> = { all: "All", available: "Available", sold: "Sold" };
@@ -35,6 +36,9 @@ export default function InventoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<InvFilter>(DEFAULT_FILTER);
+  // Bumped by a pull-to-refresh; it is the dependency of the live queries below,
+  // so changing it re-runs each read against the file on disk.
+  const [reread, setReread] = useState(0);
   const listRef = useRef<FlashListRef<Item>>(null);
   useTabScrollToTop("inventory", useCallback(() => {
     if (!listRef.current) return false;
@@ -42,10 +46,22 @@ export default function InventoryScreen() {
     return true;
   }, []));
 
-  const { data: itemRows } = useLiveQuery(db.select().from(items).orderBy(desc(items.createdAt)), []);
-  const { data: photoRows } = useLiveQuery(db.select().from(photos), []);
+  const { data: itemRows } = useLiveQuery(db.select().from(items).orderBy(desc(items.createdAt)), [reread]);
+  const { data: photoRows } = useLiveQuery(db.select().from(photos), [reread]);
 
   const all = itemRows ?? [];
+
+  // Pull-to-refresh: re-read the local tables, and nothing else. The outbox
+  // drain deliberately lives on Home and Shop — the two tabs that actually show
+  // the queue's state — because importing it here would drag the Supabase auth
+  // client into a screen that is offline-first by law (see lib/supabase.ts).
+  const { refreshing, onRefresh } = useRefresh(
+    useCallback(async () => {
+      setReread((n) => n + 1);
+      await settle();
+    }, []),
+  );
+
   const filterActive =
     filter.query !== DEFAULT_FILTER.query ||
     filter.department !== DEFAULT_FILTER.department ||
@@ -148,6 +164,7 @@ export default function InventoryScreen() {
         keyExtractor={(i: Item) => i.id}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...REFRESH_TINT} />}
         renderItem={({ item }: { item: Item }) => {
           const uri = thumbOf(item.id);
           const spec = captionSpecLine(item as CatalogItem);
