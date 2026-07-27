@@ -6,18 +6,19 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { desc, isNull, isNotNull } from "drizzle-orm";
 import * as Haptics from "expo-haptics";
-import { db } from "../db/client";
-import { sessions, items, type Session } from "../db/schema";
-import { FONT, COLORS } from "../lib/theme";
-import { formatPct } from "../lib/format";
-import { selectorProjected, selectorRealized, bultoRealizedPct } from "../lib/math";
-import { decideStartRoute } from "../lib/first-run";
-import { formatCountdown, formatScheduleStamp, scheduleSortKey, parseOffsets } from "../lib/schedule";
-import { startScheduledSession } from "../lib/repo";
-import { cancelReminders } from "../lib/notifications";
-import { showSuccess } from "../lib/toast";
-import { Badge, Chip, Money, PrimaryButton } from "../components/ui";
-import { Icon } from "../components/Icon";
+import { db } from "../../db/client";
+import { sessions, items, type Session } from "../../db/schema";
+import { FONT, COLORS } from "../../lib/theme";
+import { formatPct } from "../../lib/format";
+import { selectorProjected, selectorRealized, bultoRealizedPct } from "../../lib/math";
+import { decideStartRoute } from "../../lib/first-run";
+import { formatCountdown, formatScheduleStamp, scheduleSortKey, parseOffsets } from "../../lib/schedule";
+import { startScheduledSession } from "../../lib/repo";
+import { cancelReminders } from "../../lib/notifications";
+import { showSuccess } from "../../lib/toast";
+import { Badge, Chip, Money, PrimaryButton } from "../../components/ui";
+import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
+import { Icon } from "../../components/Icon";
 
 type Tab = "sessions" | "scheduled";
 
@@ -243,7 +244,9 @@ export default function SessionsScreen() {
           }}
         />
       )}
-      <View style={{ paddingBottom: insets.bottom + 4 }}>
+      {/* +TAB_BAR_CLEARANCE: the floating tab bar is absolutely positioned over
+          this screen, so the primary action has to be lifted clear of it. */}
+      <View style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
         <PrimaryButton label="New Session" icon="Plus" onPress={() => router.push("/session/new")} />
       </View>
     </View>

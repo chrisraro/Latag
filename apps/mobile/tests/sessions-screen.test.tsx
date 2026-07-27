@@ -35,7 +35,7 @@ import { sessions, items } from "../db/schema";
 import { startScheduledSession } from "../lib/repo";
 import { cancelReminders } from "../lib/notifications";
 import { showSuccess } from "../lib/toast";
-import SessionsScreen from "../app/index";
+import SessionsScreen from "../app/(tabs)/batches";
 
 const MIN = 60_000;
 let tree: ReactTestRenderer | null = null;

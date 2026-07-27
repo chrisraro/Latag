@@ -125,6 +125,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000" }}>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#000" } }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="session/new" options={{ presentation: "modal" }} />
         <Stack.Screen name="session/edit" options={{ presentation: "modal" }} />
         <Stack.Screen name="session/[id]/camera" options={{ presentation: "fullScreenModal" }} />

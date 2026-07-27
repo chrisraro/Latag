@@ -6,18 +6,19 @@ import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import Constants from "expo-constants";
 import * as Updates from "expo-updates";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
-import { db } from "../db/client";
-import { entitlements } from "../db/schema";
-import { supabase } from "../lib/supabase";
-import { fetchLicense, applyLicense, clearLicense } from "../lib/license";
-import { FREE_LOG_LIMIT, logsRemaining, ensureEntitlements } from "../lib/entitlements";
-import { getMediaUsage } from "../lib/storage-usage";
-import { showSuccess, showError } from "../lib/toast";
-import { runUpdateCheck, versionLabel } from "../lib/updates";
-import { FONT, COLORS } from "../lib/theme";
-import { FieldLabel } from "../components/ui";
-import { AppHead } from "../components/AppHead";
-import { Icon, type IconName } from "../components/Icon";
+import { db } from "../../db/client";
+import { entitlements } from "../../db/schema";
+import { supabase } from "../../lib/supabase";
+import { fetchLicense, applyLicense, clearLicense } from "../../lib/license";
+import { FREE_LOG_LIMIT, logsRemaining, ensureEntitlements } from "../../lib/entitlements";
+import { getMediaUsage } from "../../lib/storage-usage";
+import { showSuccess, showError } from "../../lib/toast";
+import { runUpdateCheck, versionLabel } from "../../lib/updates";
+import { FONT, COLORS } from "../../lib/theme";
+import { FieldLabel } from "../../components/ui";
+import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
+import { AppHead } from "../../components/AppHead";
+import { Icon, type IconName } from "../../components/Icon";
 
 type Tone = "default" | "acid" | "danger";
 
@@ -264,7 +265,11 @@ export default function SettingsScreen() {
         ) : null}
       </ScrollView>
 
-      <Text style={{ fontFamily: FONT.text, lineHeight: 16 }} className="pb-4 pt-3 text-center text-[11.5px] text-inkfaint">
+      {/* paddingBottom clears the absolutely-positioned floating tab bar. */}
+      <Text
+        style={{ fontFamily: FONT.text, lineHeight: 16, paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}
+        className="pt-3 text-center text-[11.5px] text-inkfaint"
+      >
         Latag {version} · Made for the ukay grind
       </Text>
     </View>
