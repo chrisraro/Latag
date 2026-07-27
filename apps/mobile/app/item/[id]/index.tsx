@@ -37,6 +37,9 @@ export default function ItemDetail() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [savingPhotos, setSavingPhotos] = useState(false); // double-tap guard
   const [shopHandle, setShopHandle] = useState<string | null>(null);
+  // Whether the whole shop is switched on. A live listing behind a switched-off
+  // shop 404s for buyers, so its public link must not be offered as if it works.
+  const [shopLive, setShopLive] = useState(true);
   const pro = entRows?.[0]?.pro === true;
 
   // Publishing needs a shop to publish into. The cached handle answers first so
@@ -46,10 +49,11 @@ export default function ItemDetail() {
     let alive = true;
     void (async () => {
       const cached = await cachedShop();
-      if (alive && cached) setShopHandle(cached.handle);
+      if (alive && cached) { setShopHandle(cached.handle); setShopLive(cached.isPublished !== false); }
       const res = await getMyShop();
       if (!alive || !res.ok) return;
       setShopHandle(res.data?.handle ?? null);
+      setShopLive(res.data?.isPublished !== false);
       void cacheShop(res.data);
     })();
     return () => { alive = false; };
@@ -265,7 +269,12 @@ export default function ItemDetail() {
             />
           </View>
         </Pressable>
-        {published && shopHandle ? (
+        {published && shopHandle && !shopLive ? (
+          <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mb-2 text-[12px] text-inkfaint">
+            Your shop is switched off, so this link won’t open for buyers yet.
+          </Text>
+        ) : null}
+        {published && shopHandle && shopLive ? (
           <View className="mb-2 flex-row">
             <SecondaryButton label="Copy item link" icon="ClipboardText" onPress={() => void copyItemLink()} />
           </View>
