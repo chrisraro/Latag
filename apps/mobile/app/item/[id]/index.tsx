@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../../../db/client";
 import { entitlements, items, photos, sessions } from "../../../db/schema";
 import { unmarkSold, deleteItem, enqueuePublish, generateShopCode, markPublished, markUnpublished } from "../../../lib/repo";
+import { kickSync } from "../../../lib/shop-sync";
 import { deleteFiles } from "../../../lib/media";
 import { savePhotosToAlbum } from "../../../lib/albums";
 import { shareToInstagram } from "../../../lib/ig-share";
@@ -116,13 +117,18 @@ export default function ItemDetail() {
     if (published) {
       markUnpublished(db, id);
       enqueuePublish(db, id, "delete");
+      // C1: nudge the drain now — without this the listing stays PUBLICLY LIVE
+      // until the app happens to background and reopen, which makes this toast
+      // a false statement about public data.
+      kickSync(db);
       showSuccess("Removed from shop");
       return;
     }
     // Codes are permanent: a republished item keeps the one buyers already have
     // from a screenshot or a message thread.
-    markPublished(db, id, item.shopCode ?? generateShopCode());
+    markPublished(db, id, item.shopCode ?? generateShopCode(db));
     enqueuePublish(db, id, "upsert");
+    kickSync(db);
     showSuccess("Publishing — your shop updates shortly");
   };
 

@@ -46,7 +46,8 @@ export type ShopItemUpsert = {
   department: string;
   category: string;
   condition: string;
-  specs: Record<string, number | string | null>;
+  // M1: an ORDERED ARRAY (not a jsonb object) — see toShopItemUpsert in shop-sync.ts.
+  specs: { k: string; v: string }[];
   price: number;
   status: "available" | "sold";
   photoUrls: string[];
@@ -383,6 +384,24 @@ export async function uploadItemPhotos(itemId: string, localUris: string[]): Pro
       urls.push(bucket.getPublicUrl(path).data.publicUrl);
     }
 
+    // ORPHAN CLEANUP (I2a): objects are written at indices 0..n-1 only, so a
+    // published item shrinking from e.g. 4 photos to 2 would otherwise leave
+    // 2.jpg/3.jpg publicly readable forever. Best-effort — cleanup must never
+    // fail a publish that already succeeded.
+    try {
+      const folder = `${userId}/${itemId}`;
+      const listed = await bucket.list(folder);
+      const orphans = (listed.data ?? [])
+        .filter((f: { name: string }) => {
+          const idx = parseInt(f.name, 10);
+          return Number.isInteger(idx) && idx >= uris.length;
+        })
+        .map((f: { name: string }) => `${folder}/${f.name}`);
+      if (orphans.length > 0) await bucket.remove(orphans);
+    } catch {
+      // ignored on purpose
+    }
+
     return { ok: true, data: urls };
   });
 }
@@ -417,7 +436,7 @@ export async function upsertShopItem(row: ShopItemUpsert): Promise<ShopResult<nu
         department: row.department,
         category: row.category,
         condition: row.condition,
-        specs: row.specs ?? {},
+        specs: row.specs ?? [],
         price: row.price,
         status: row.status,
         photo_urls: row.photoUrls ?? [],

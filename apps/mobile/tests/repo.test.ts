@@ -1,9 +1,18 @@
 import { eq } from "drizzle-orm";
+import * as Crypto from "expo-crypto";
 import { makeTestDb } from "./helpers/testDb";
 import { createSession, addItem, updateItem, addPhoto, replacePhoto, markSold, unmarkSold, deleteItem, updateSession, startScheduledSession, deleteSession, enqueuePublish, dequeuePublish, listPublishQueue, bumpAttempt, markPublished, markUnpublished, generateShopCode } from "../lib/repo";
 import { ensureEntitlements, FREE_LOG_LIMIT } from "../lib/entitlements";
 import { parseOffsets } from "../lib/schedule";
 import { entitlements, items, photos, sessions } from "../db/schema";
+import { kickSync } from "../lib/shop-sync";
+
+jest.mock("../lib/shop-sync", () => ({ kickSync: jest.fn() }));
+const mockedKickSync = kickSync as jest.Mock;
+
+beforeEach(() => {
+  mockedKickSync.mockClear();
+});
 
 const base = { brand: "Nike", department: "tops" as const, category: "Tee", ptpInches: 21.5, lengthInches: 27, condition: "9/10", targetSellPrice: 350 };
 
@@ -357,14 +366,56 @@ test("markPublished sets publishedAt + shopCode; markUnpublished keeps the code 
 });
 
 test("generateShopCode produces LT- codes with no ambiguous 0/O/1/I/L characters", () => {
+  const { db } = makeTestDb();
   const codes = new Set<string>();
   for (let i = 0; i < 500; i++) {
-    const code = generateShopCode();
+    const code = generateShopCode(db);
     expect(code).toMatch(/^LT-[A-Z2-9]{5}$/);
     expect(code.slice(3)).not.toMatch(/[0O1IL]/);
     codes.add(code);
   }
   expect(codes.size).toBeGreaterThan(400); // not a constant
+});
+
+// ------------------------------------------------------- M2: shop-code collisions
+
+test("generateShopCode re-rolls on a local collision instead of colliding forever", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  markPublished(db, item.id, "LT-AAAAA"); // seeds the collision
+
+  const spy = jest
+    .spyOn(Crypto, "getRandomBytes")
+    .mockReturnValueOnce(new Uint8Array([0, 0, 0, 0, 0])) // -> "AAAAA", already taken
+    .mockReturnValueOnce(new Uint8Array([1, 1, 1, 1, 1])); // -> "BBBBB", free
+
+  const code = generateShopCode(db);
+
+  expect(code).toBe("LT-BBBBB");
+  expect(spy).toHaveBeenCalledTimes(2);
+  spy.mockRestore();
+});
+
+test("generateShopCode falls back to a longer code after exhausting its re-roll budget", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  markPublished(db, item.id, "LT-AAAAA"); // the only 5-char code this rigged RNG can ever produce
+
+  const spy = jest
+    .spyOn(Crypto, "getRandomBytes")
+    .mockReturnValue(new Uint8Array(7).fill(0)); // always resolves to all-"A"s, at any requested length
+
+  const code = generateShopCode(db);
+
+  // Every 5-char attempt collides with the seeded code; the fallback mints a
+  // longer one instead of looping forever, and that longer code isn't taken.
+  expect(code).toBe("LT-AAAAAAA");
+  expect(spy.mock.calls.length).toBeGreaterThan(10);
+  spy.mockRestore();
 });
 
 // ------------------------------------------------- auto-sync on a published item (F2)
@@ -395,8 +446,35 @@ test("editing an UNPUBLISHED item queues nothing — local stock never touches t
   updateItem(db, item.id, { targetSellPrice: 400 });
   markSold(db, item.id, 380);
   unmarkSold(db, item.id);
+  addPhoto(db, { itemId: item.id, localUri: "file:///m/front.jpg", type: "front" });
+  replacePhoto(db, { itemId: item.id, localUri: "file:///m/front2.jpg", type: "front" });
   deleteItem(db, item.id);
   expect(listPublishQueue(db)).toHaveLength(0);
+  expect(mockedKickSync).not.toHaveBeenCalled(); // local-only stock never nudges a sync
+});
+
+// ------------------------------------------------------- C1: kick a sync immediately
+
+test("every path that enqueues for a published item also kicks an immediate sync attempt", () => {
+  const { db } = makeTestDb();
+
+  const edited = publishedItem(db);
+  updateItem(db, edited.id, { targetSellPrice: 400 });
+  expect(mockedKickSync).toHaveBeenLastCalledWith(db);
+
+  const sold = publishedItem(db);
+  markSold(db, sold.id, 380);
+  expect(mockedKickSync).toHaveBeenLastCalledWith(db);
+
+  const unsold = publishedItem(db);
+  markSold(db, unsold.id, 380);
+  unmarkSold(db, unsold.id);
+  expect(mockedKickSync).toHaveBeenLastCalledWith(db);
+
+  const deleted = publishedItem(db);
+  mockedKickSync.mockClear();
+  deleteItem(db, deleted.id);
+  expect(mockedKickSync).toHaveBeenCalledWith(db);
 });
 
 test("marking a published item sold queues an upsert carrying the sold status", () => {
@@ -449,4 +527,55 @@ test("deleting a batch removes its published items from the shop too", () => {
   const rows = listPublishQueue(db);
   expect(rows.map((r) => [r.itemId, r.op])).toEqual([[listed.id, "delete"]]);
   expect(rows.some((r) => r.itemId === local.id)).toBe(false);
+  expect(mockedKickSync).toHaveBeenCalledWith(db);
+});
+
+// ------------------------------------------------- I1: photo changes on a published item
+
+test("addPhoto on a published item queues an upsert and kicks a sync — a new shot must reach the shop", () => {
+  const { db } = makeTestDb();
+  const item = publishedItem(db);
+  mockedKickSync.mockClear();
+  addPhoto(db, { itemId: item.id, localUri: "file:///m/back.jpg", type: "back" });
+  const rows = listPublishQueue(db);
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ itemId: item.id, op: "upsert" });
+  expect(mockedKickSync).toHaveBeenCalledWith(db);
+});
+
+test("addPhoto on an unpublished item queues nothing and never kicks a sync", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  addPhoto(db, { itemId: item.id, localUri: "file:///m/back.jpg", type: "back" });
+  expect(listPublishQueue(db)).toHaveLength(0);
+  expect(mockedKickSync).not.toHaveBeenCalled();
+});
+
+test("replacePhoto on a published item queues an upsert and kicks a sync — a re-shoot must reach the shop", () => {
+  const { db } = makeTestDb();
+  const item = publishedItem(db);
+  addPhoto(db, { itemId: item.id, localUri: "file:///m/front-old.jpg", type: "front" });
+  mockedKickSync.mockClear();
+
+  replacePhoto(db, { itemId: item.id, localUri: "file:///m/front-new.jpg", type: "front" });
+
+  const rows = listPublishQueue(db);
+  expect(rows).toHaveLength(1); // last-write-wins: one queued upsert, not two
+  expect(rows[0]).toMatchObject({ itemId: item.id, op: "upsert" });
+  expect(mockedKickSync).toHaveBeenCalledWith(db);
+});
+
+test("replacePhoto on an unpublished item queues nothing and never kicks a sync", () => {
+  const { db } = makeTestDb();
+  ensureEntitlements(db);
+  const s = createSession(db, { name: "Run", type: "selector" });
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  addPhoto(db, { itemId: item.id, localUri: "file:///m/front-old.jpg", type: "front" });
+
+  replacePhoto(db, { itemId: item.id, localUri: "file:///m/front-new.jpg", type: "front" });
+
+  expect(listPublishQueue(db)).toHaveLength(0);
+  expect(mockedKickSync).not.toHaveBeenCalled();
 });
