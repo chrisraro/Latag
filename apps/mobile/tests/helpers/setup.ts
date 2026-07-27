@@ -1,4 +1,7 @@
-jest.mock("expo-crypto", () => ({ randomUUID: () => require("node:crypto").randomUUID() }));
+jest.mock("expo-crypto", () => ({
+  randomUUID: () => require("node:crypto").randomUUID(),
+  getRandomBytes: (n: number) => new Uint8Array(require("node:crypto").randomBytes(n)),
+}));
 jest.mock("expo-notifications", () => ({
   scheduleNotificationAsync: jest.fn(async () => "id-" + Math.random()),
   cancelScheduledNotificationAsync: jest.fn(),
