@@ -7,12 +7,55 @@
  * `createServerClient()` / `createBrowserClient()` fall back to when no
  * `Database` generic is supplied. Widen this (or switch to generated types)
  * if/when the schema grows past what's hand-maintainable here.
+ *
+ * Row shapes must be `type` aliases, never `interface`: supabase-js constrains
+ * them to `Record<string, unknown>`, which an interface does not satisfy (no
+ * implicit index signature), and the failure mode is silent — every query in
+ * the app degrades to `never` rather than pointing at this file.
  */
 
 export type LicenseStatus = "active" | "revoked";
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 export type FeedbackType = "feedback" | "suggestion" | "feature_request";
 export type FeedbackStatus = "new" | "reviewed" | "done";
+export type ShopItemStatus = "available" | "sold";
+
+/** `public.shops` — see supabase/migrations/0003_storefront.sql. */
+export type ShopRow = {
+  id: string;
+  user_id: string;
+  handle: string;
+  display_name: string;
+  bio: string | null;
+  contact_messenger: string | null;
+  contact_instagram: string | null;
+  contact_email: string | null;
+  show_sold: boolean;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** `public.shop_items` — buyer-relevant columns only, by design. */
+export type ShopItemRow = {
+  id: string;
+  shop_id: string;
+  code: string;
+  item_local_id: string;
+  brand: string;
+  name: string | null;
+  department: string;
+  category: string;
+  condition: string;
+  /** Measurement label → formatted value, e.g. `{ "Pit-to-pit": "21\"" }`. */
+  specs: Record<string, string>;
+  price: number;
+  status: ShopItemStatus;
+  photo_urls: string[];
+  sort_order: number;
+  published_at: string;
+  updated_at: string;
+}
 
 export interface Database {
   public: {
@@ -120,6 +163,23 @@ export interface Database {
         Row: { key: string; enabled: boolean; notes: string | null };
         Insert: { key: string; enabled?: boolean; notes?: string | null };
         Update: Partial<{ key: string; enabled: boolean; notes: string | null }>;
+        Relationships: [];
+      };
+      shops: {
+        Row: ShopRow;
+        Insert: ShopRow;
+        Update: Partial<ShopRow>;
+        Relationships: [];
+      };
+      /**
+       * Buyer-facing fields only. There is deliberately no cost, profit,
+       * location or batch column here (spec §1/§3) — the absence of the column
+       * IS the privacy enforcement. Do not widen this type past the migration.
+       */
+      shop_items: {
+        Row: ShopItemRow;
+        Insert: ShopItemRow;
+        Update: Partial<ShopItemRow>;
         Relationships: [];
       };
     };
