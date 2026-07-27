@@ -1,27 +1,30 @@
 import { eq } from "drizzle-orm";
 import { makeTestDb } from "./helpers/testDb";
 import { createSession, addItem, updateItem, addPhoto, replacePhoto, markSold, unmarkSold, deleteItem, updateSession, startScheduledSession, deleteSession } from "../lib/repo";
-import { ensureEntitlements, FREE_LOG_LIMIT, FreeTierExhaustedError } from "../lib/entitlements";
+import { ensureEntitlements, FREE_LOG_LIMIT } from "../lib/entitlements";
 import { parseOffsets } from "../lib/schedule";
-import { items, photos, sessions } from "../db/schema";
+import { entitlements, items, photos, sessions } from "../db/schema";
 
 const base = { brand: "Nike", department: "tops" as const, category: "Tee", ptpInches: 21.5, lengthInches: 27, condition: "9/10", targetSellPrice: 350 };
 
-test("create session → add item consumes a log", () => {
+test("create session → add item reports remaining logs without spending one", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);
   const s = createSession(db, { name: "Run", type: "selector" });
   const { item, logsRemaining } = addItem(db, { sessionId: s.id, ...base, individualCost: 60 });
   expect(item.status).toBe("available");
-  expect(logsRemaining).toBe(FREE_LOG_LIMIT - 1);
+  expect(logsRemaining).toBe(FREE_LOG_LIMIT);
+  expect(db.select().from(entitlements).all()[0].logsUsed).toBe(0);
 });
-test("exhausted tier blocks insert atomically", () => {
+test("a free account with an exhausted counter can still log items", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);
+  db.update(entitlements).set({ logsUsed: FREE_LOG_LIMIT, pro: false }).where(eq(entitlements.id, 1)).run();
   const s = createSession(db, { name: "Run", type: "bulto", totalBaleCost: 10000 });
-  for (let i = 0; i < FREE_LOG_LIMIT; i++) addItem(db, { sessionId: s.id, ...base });
-  expect(() => addItem(db, { sessionId: s.id, ...base })).toThrow(FreeTierExhaustedError);
-  expect(db.select().from(items).all()).toHaveLength(FREE_LOG_LIMIT);
+  const { item } = addItem(db, { sessionId: s.id, ...base });
+  expect(item.id).toBeTruthy();
+  expect(item.status).toBe("available");
+  expect(db.select().from(items).all()).toHaveLength(1);
 });
 test("edits are free; sold flow records and clears price+date", () => {
   const { db } = makeTestDb();
@@ -37,7 +40,7 @@ test("edits are free; sold flow records and clears price+date", () => {
   expect(undone.status).toBe("available");
   expect(undone.soldPrice).toBeNull();
 });
-test("deleteItem removes rows, returns photo uris, never refunds logs", () => {
+test("deleteItem removes rows, returns photo uris, never moves the log counter", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);
   const s = createSession(db, { name: "Run", type: "selector" });
@@ -48,7 +51,7 @@ test("deleteItem removes rows, returns photo uris, never refunds logs", () => {
   expect(db.select().from(items).all()).toHaveLength(0);
   expect(db.select().from(photos).all()).toHaveLength(0);
   const after = addItem(db, { sessionId: s.id, ...base }).logsRemaining;
-  expect(after).toBe(before - 1); // no refund happened
+  expect(after).toBe(before); // logging is uncapped — nothing to spend or refund
 });
 test("replacePhoto swaps a single slot's row without leaving duplicates", () => {
   const { db } = makeTestDb();

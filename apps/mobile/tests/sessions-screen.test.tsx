@@ -109,10 +109,10 @@ test("defaults to Sessions tab: live sessions only, Scheduled seg carries a coun
   const all = texts(t);
   expect(all).toContain("Naga Run");
   expect(all).not.toContain("Baguio Weekend"); // scheduled stays off the live tab
-  expect(all).toContain("Sessions");
+  expect(all).toContain("Batches");
   expect(all).toContain("Scheduled");
   expect(all).toContain("1"); // scheduled count badge
-  expect(pressableByText(t, "Sessions").props.accessibilityState).toEqual({ selected: true });
+  expect(pressableByText(t, "Batches").props.accessibilityState).toEqual({ selected: true });
 });
 
 test("Scheduled tab: soonest-first cards with countdown, stamp, pin line, reminder summary", async () => {
@@ -145,7 +145,7 @@ test("Start now converts the session, cancels reminders, toasts, and pushes the 
   press(t, "Start now");
   expect(startScheduledSession).toHaveBeenCalledWith(expect.anything(), "sch1");
   expect(cancelReminders).toHaveBeenCalledWith(["n1", "n2"]);
-  expect(showSuccess).toHaveBeenCalledWith("Session started");
+  expect(showSuccess).toHaveBeenCalledWith("Batch started");
   expect(mockPush).toHaveBeenCalledWith("/session/sch1");
 });
 
@@ -171,7 +171,7 @@ test("empty Scheduled tab shows the ghost card copy", async () => {
   insertSession();
   const t = await render();
   press(t, "Scheduled");
-  expect(texts(t)).toContain("No scheduled sessions — plan your next bale run from New Session");
+  expect(texts(t)).toContain("No scheduled batches — plan your next bale run from New Batch");
 });
 
 test("live session card gains a pinned-location line when locationName is set", async () => {

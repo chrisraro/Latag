@@ -10,7 +10,7 @@ import { db } from "../../db/client";
 import { entitlements } from "../../db/schema";
 import { supabase } from "../../lib/supabase";
 import { fetchLicense, applyLicense, clearLicense } from "../../lib/license";
-import { FREE_LOG_LIMIT, logsRemaining, ensureEntitlements } from "../../lib/entitlements";
+import { ensureEntitlements } from "../../lib/entitlements";
 import { getMediaUsage } from "../../lib/storage-usage";
 import { showSuccess, showError } from "../../lib/toast";
 import { runUpdateCheck, versionLabel } from "../../lib/updates";
@@ -184,7 +184,6 @@ export default function SettingsScreen() {
 
   if (!ent) return null; // brief frame before ensureEntitlements' effect resolves
 
-  const remaining = logsRemaining(ent);
   const version = Constants.expoConfig?.version ?? "1.0.0";
   // isEmbeddedLaunch: in production the factory bundle has its own updateId,
   // so updateId alone can't distinguish "embedded" from "OTA applied".
@@ -208,9 +207,9 @@ export default function SettingsScreen() {
           <SettingsRow
             icon={ent.pro ? "ShieldCheck" : "Package"}
             iconTone={ent.pro ? "acid" : "default"}
-            title={ent.pro ? "PRO — Active" : `Free — ${FREE_LOG_LIMIT} item logs`}
+            title={ent.pro ? "PRO — Active" : "Free"}
             titleTone={ent.pro ? "acid" : "default"}
-            subtitle={ent.pro ? "Unlimited item logs, works offline forever" : `${remaining} left · Pro unlocks unlimited`}
+            subtitle={ent.pro ? "Unlimited item logs, works offline forever" : "Unlimited local inventory · Pro unlocks your shop"}
             last
             noPadding
           />

@@ -6,10 +6,9 @@ import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { desc, eq } from "drizzle-orm";
 import * as Haptics from "expo-haptics";
 import { db } from "../../../db/client";
-import { items, entitlements, sessions, photos } from "../../../db/schema";
+import { items, sessions, photos } from "../../../db/schema";
 import { addItem, updateItem, addPhoto, replacePhoto } from "../../../lib/repo";
 import { deleteFiles } from "../../../lib/media";
-import { FreeTierExhaustedError, logsRemaining, ensureEntitlements } from "../../../lib/entitlements";
 import { peekStagedPhotos, takeStagedPhotos, type SlotType } from "../../../lib/photo-staging";
 import { CONDITIONS, COLORS, FONT } from "../../../lib/theme";
 import { DEPARTMENTS, typesFor, specFieldsFor, type Department, type SpecField, type SpecKey } from "../../../lib/catalog";
@@ -21,7 +20,6 @@ import { AppHead } from "../../../components/AppHead";
 import { Icon } from "../../../components/Icon";
 import { Wheel, rangeValues } from "../../../components/Wheel";
 import { PhotoSlot } from "../../../components/PhotoSlot";
-import { GoProSheet } from "../../../components/GoProSheet";
 import { BrandPickerSheet } from "../../../components/BrandPickerSheet";
 
 const PRICE = [...rangeValues(50, 500, 10), ...rangeValues(550, 5000, 50)];
@@ -47,7 +45,6 @@ export default function RapidConsole() {
 
   const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(eq(sessions.id, id)), [id]);
   const { data: sessionItems } = useLiveQuery(db.select().from(items).where(eq(items.sessionId, id)), [id]);
-  const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
   const { data: existingPhotoRows } = useLiveQuery(db.select().from(photos).where(eq(photos.itemId, editId ?? "")), [editId]);
   const session = sessionRows?.[0];
 
@@ -63,7 +60,6 @@ export default function RapidConsole() {
   const [price, setPrice] = useState(350);
   const [cost, setCost] = useState(0);
   const [staged, setStaged] = useState<Partial<Record<SlotType, string>>>({});
-  const [goPro, setGoPro] = useState(false);
   const [saving, setSaving] = useState(false); // idempotency: block double-fire until we navigate away
 
   // pull staged photos whenever we regain focus from the camera
@@ -99,13 +95,6 @@ export default function RapidConsole() {
     setPrice(existing.targetSellPrice); setCost(existing.individualCost);
   }, [editId]);
 
-  // ensureEntitlements is a write; it must never run during render (React may
-  // call render more than once per commit). Do it as a post-render effect —
-  // the live query then picks up the newly-inserted row on its own.
-  useEffect(() => {
-    if (entRows && !entRows[0]) ensureEntitlements(db);
-  }, [entRows]);
-
   const recentBrands = useMemo(() => {
     const seen = new Set<string>(); const out: string[] = [];
     for (const i of db.select().from(items).orderBy(desc(items.createdAt)).all()) {
@@ -135,9 +124,6 @@ export default function RapidConsole() {
   };
 
   if (!session) return null;
-  const ent = entRows?.[0];
-  if (!ent) return null; // brief frame before ensureEntitlements' effect resolves
-  const remaining = logsRemaining(ent);
   const filledSlots = SLOTS.filter((s) => staged[s] ?? existingPhotoMap[s]);
 
   const save = () => {
@@ -172,10 +158,9 @@ export default function RapidConsole() {
       setStaged({});
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showSuccess(editId ? "Changes saved" : `${input.brand} ${input.category} logged — ${formatPeso(input.targetSellPrice)}`);
-      router.back(); // back to the session/detail so the saved item is visible; `saving` stays true until unmount
-    } catch (e) {
+      router.back(); // back to the batch dashboard so the saved item is visible; `saving` stays true until unmount
+    } catch {
       setSaving(false);
-      if (e instanceof FreeTierExhaustedError) { setGoPro(true); return; }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showError("Couldn't save — try again");
     }
@@ -187,11 +172,7 @@ export default function RapidConsole() {
         title={session.name}
         size={17}
         onBack={() => router.back()}
-        right={
-          <Badge
-            label={`#${(sessionItems?.length ?? 0) + (editId ? 0 : 1)} · ${formatPeso(selectorProjected(sessionItems ?? []))}${Number.isFinite(remaining) && remaining <= 10 ? `  ·  ${remaining} free logs left` : ""}`}
-          />
-        }
+        right={<Badge label={`#${(sessionItems?.length ?? 0) + (editId ? 0 : 1)} · ${formatPeso(selectorProjected(sessionItems ?? []))}`} />}
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 12 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2 flex-none" contentContainerStyle={{ flexGrow: 1 }}>
@@ -299,7 +280,6 @@ export default function RapidConsole() {
       <View style={{ paddingBottom: insets.bottom + 4 }}>
         <PrimaryButton label={editId ? "Save changes" : "Save item"} icon="Check" onPress={save} disabled={saving} />
       </View>
-      <GoProSheet visible={goPro} onClose={() => setGoPro(false)} />
       <BrandPickerSheet
         visible={brandPicker} value={brand} recents={recentBrands}
         onPick={(n) => { setBrand(n); setBrandPicker(false); }}

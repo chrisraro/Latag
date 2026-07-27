@@ -50,24 +50,24 @@ export default function NewSessionScreen() {
       showSuccess(`${s.name} created`);
       return;
     }
-    // Scheduled path: session creation never blocks on notifications — a
-    // permission deny or scheduling failure still saves the session.
+    // Scheduled path: batch creation never blocks on notifications — a
+    // permission deny or scheduling failure still saves the batch.
     const granted = await ensureNotifPermission();
     if (!granted) showError("Reminders off — enable notifications in system settings");
     const s = createSession(db, { ...base, scheduledAt, reminderOffsets: offsets });
     if (granted && offsets.length > 0) {
       if (reminderTimes(scheduledAt, offsets, new Date()).length === 0) {
-        showError("All reminders would be in the past — session scheduled without reminders");
+        showError("All reminders would be in the past — batch scheduled without reminders");
       } else {
         try {
           const ids = await scheduleSessionReminders({ id: s.id, name: s.name, scheduledAt, offsets });
           if (ids.length > 0) updateSession(db, s.id, { reminderNotificationIds: ids });
         } catch {
-          // Best-effort: reminders failed but the scheduled session is saved.
+          // Best-effort: reminders failed but the scheduled batch is saved.
         }
       }
     }
-    router.dismiss(); // back to the list — a scheduled session has no dashboard yet
+    router.dismiss(); // back to the list — a scheduled batch has no dashboard yet
     showSuccess(`Scheduled for ${formatScheduleStamp(scheduledAt)}`);
   };
 
@@ -75,10 +75,10 @@ export default function NewSessionScreen() {
   return (
     <View className="flex-1 bg-surface1 px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
       <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
-      <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">New Session</Text>
+      <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">New Batch</Text>
       <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="mb-4 mt-1 text-[12.5px] text-inkfaint">Name it after the spot — you'll thank yourself later.</Text>
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" className="flex-1">
-        <TextInput value={name} onChangeText={setName} placeholder="Session name" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }} className={inputCls} />
+        <TextInput value={name} onChangeText={setName} placeholder="Batch name" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }} className={inputCls} />
         <FieldLabel>Mode</FieldLabel>
         <View className="flex-row gap-1 rounded-full border border-hairline bg-surface2 p-1">
           {(["selector", "bulto"] as const).map((t) => (
@@ -126,7 +126,7 @@ export default function NewSessionScreen() {
           </View>
         </>) : null}
       </ScrollView>
-      <PrimaryButton label={scheduledAt ? "Schedule Session" : "Create Session"} onPress={create} disabled={!name.trim() || creating} />
+      <PrimaryButton label={scheduledAt ? "Schedule Batch" : "Create Batch"} onPress={create} disabled={!name.trim() || creating} />
       {sheetOpen ? (
         <DateTimeSheet
           visible
