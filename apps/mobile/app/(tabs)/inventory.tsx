@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { View, Text, Pressable, RefreshControl, ScrollView, TextInput } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, View, Text, Pressable, RefreshControl, ScrollView, TextInput } from "react-native";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -7,14 +7,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { desc } from "drizzle-orm";
 import { db } from "../../db/client";
-import { items, photos, type Item } from "../../db/schema";
+import { entitlements, items, photos, type Item } from "../../db/schema";
 import { FONT, COLORS } from "../../lib/theme";
 import { formatPeso } from "../../lib/format";
 import { DEPARTMENTS, captionSpecLine, type CatalogItem } from "../../lib/catalog";
 import { DEFAULT_FILTER, filterItems, inventoryTotals, type InvFilter, type InvSort, type InvStatus } from "../../lib/inventory";
+import { itemSwipeActions, type ItemActionKey } from "../../lib/swipe-actions";
+import { enqueuePublish, generateShopCode, markPublished, markSold, markUnpublished, unmarkSold } from "../../lib/repo";
+import { kickSync } from "../../lib/shop-sync";
+import { cachedShop } from "../../lib/shop-api";
+import { showSuccess } from "../../lib/toast";
 import { Badge, Chip, Money } from "../../components/ui";
 import { AppHead } from "../../components/AppHead";
 import { Icon } from "../../components/Icon";
+import { SwipeRow, type SwipeBinding } from "../../components/SwipeRow";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
 import { REFRESH_TINT, settle, useRefresh } from "../../lib/refresh";
@@ -48,13 +54,28 @@ export default function InventoryScreen() {
 
   const { data: itemRows } = useLiveQuery(db.select().from(items).orderBy(desc(items.createdAt)), [reread]);
   const { data: photoRows } = useLiveQuery(db.select().from(photos), [reread]);
+  const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
+  const pro = entRows?.[0]?.pro === true;
 
   const all = itemRows ?? [];
 
+  // Whether a storefront exists at all, read from the last cached profile —
+  // AsyncStorage only, so the swipe knows the answer in a market with no signal
+  // and this screen never issues a request of its own. A seller who has never
+  // opened the Shop tab has no cache and is simply not offered Publish here;
+  // item detail, which does hit the network, remains the authority.
+  const [hasShop, setHasShop] = useState(false);
+  useEffect(() => {
+    if (!pro) { setHasShop(false); return; }
+    let alive = true;
+    void cachedShop().then((s) => { if (alive) setHasShop(s != null); });
+    return () => { alive = false; };
+  }, [pro]);
+
   // Pull-to-refresh: re-read the local tables, and nothing else. The outbox
   // drain deliberately lives on Home and Shop — the two tabs that actually show
-  // the queue's state — because importing it here would drag the Supabase auth
-  // client into a screen that is offline-first by law (see lib/supabase.ts).
+  // the queue's state — so a pull here never blocks on anything. (A publish or
+  // unpublish fired from a swipe nudges the queue itself, below.)
   const { refreshing, onRefresh } = useRefresh(
     useCallback(async () => {
       setReread((n) => n + 1);
@@ -76,6 +97,59 @@ export default function InventoryScreen() {
   );
   const thumbOf = (itemId: string) => thumbs.get(itemId) ?? null;
   const cycleSort = () => setFilter((f) => ({ ...f, sort: SORT_CYCLE[(SORT_CYCLE.indexOf(f.sort) + 1) % SORT_CYCLE.length] }));
+
+  /**
+   * Takes a listing down and makes sure the internet hears about it now, rather
+   * than whenever the app next backgrounds — without the nudge the toast would
+   * be a false statement about a page buyers can still open.
+   */
+  const takeDown = (id: string) => {
+    markUnpublished(db, id);
+    enqueuePublish(db, id, "delete");
+    kickSync(db);
+    showSuccess("Removed from shop");
+  };
+
+  /**
+   * Runs one swiped action. Every branch here honours the guard declared in
+   * `lib/swipe-actions`: `confirm` opens a dialog first, `undo` does the work
+   * and hands back a one-tap reversal. Nothing fires silently.
+   */
+  const runSwipe = (key: ItemActionKey, item: Item) => {
+    switch (key) {
+      case "markSold":
+        // At the asking price — the swipe is the fast path; the sold screen is
+        // still there when the price was haggled down.
+        markSold(db, item.id, item.targetSellPrice);
+        showSuccess(`Sold at ${formatPeso(item.targetSellPrice)} — tap to undo`, {
+          onPress: () => { unmarkSold(db, item.id); },
+        });
+        return;
+      case "undoSold":
+        Alert.alert("Undo this sale?", "The sold price and the date it sold on are cleared.", [
+          { text: "Cancel", style: "cancel" },
+          { text: "Undo sold", style: "destructive", onPress: () => { unmarkSold(db, item.id); showSuccess("Back in stock"); } },
+        ]);
+        return;
+      case "publish":
+        // Codes are permanent: a republished item keeps the one buyers already
+        // have from a screenshot or a message thread.
+        markPublished(db, item.id, item.shopCode ?? generateShopCode(db));
+        enqueuePublish(db, item.id, "upsert");
+        kickSync(db);
+        showSuccess("Publishing — tap to undo", { onPress: () => takeDown(item.id) });
+        return;
+      case "unpublish":
+        Alert.alert("Remove from shop?", "Buyers stop seeing this item. You can publish it again later.", [
+          { text: "Cancel", style: "cancel" },
+          { text: "Remove", style: "destructive", onPress: () => takeDown(item.id) },
+        ]);
+        return;
+    }
+  };
+
+  const swipeBindings = (item: Item): SwipeBinding<ItemActionKey>[] =>
+    itemSwipeActions(item, { pro, hasShop }).map((a) => ({ ...a, onPress: () => runSwipe(a.key, item) }));
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
@@ -169,29 +243,33 @@ export default function InventoryScreen() {
           const uri = thumbOf(item.id);
           const spec = captionSpecLine(item as CatalogItem);
           return (
-            <Pressable onPress={() => router.push(`/item/${item.id}`)} className="flex-row items-center gap-3 border-b border-hairline px-3 py-3.5">
-              <View className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}>
-                {uri ? <Image source={{ uri }} recyclingKey={uri} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
-                     : <Text style={{ fontFamily: FONT.bold }} className="text-[20px] text-inkfaint">{item.brand[0]}</Text>}
-              </View>
-              <View className="min-w-0 flex-1">
-                <View className="flex-row items-center gap-2">
-                  <Text style={{ fontFamily: FONT.semibold }} className={`min-w-0 shrink text-[17px] ${item.status === "sold" ? "text-inkdim" : "text-ink"}`} numberOfLines={1}>
-                    {item.brand}
-                    {item.name ? <Text className="text-inkdim"> · {item.name}</Text> : null}
-                  </Text>
-                  {item.status === "sold" ? <Badge label="SOLD" tone="sold" /> : null}
+            // Drag the row for the sold toggle and the storefront; tapping it
+            // still opens the item, where every one of those lives permanently.
+            <SwipeRow actions={swipeBindings(item)}>
+              <Pressable onPress={() => router.push(`/item/${item.id}`)} className="flex-row items-center gap-3 border-b border-hairline px-3 py-3.5">
+                <View className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}>
+                  {uri ? <Image source={{ uri }} recyclingKey={uri} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
+                       : <Text style={{ fontFamily: FONT.bold }} className="text-[20px] text-inkfaint">{item.brand[0]}</Text>}
                 </View>
-                <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint" numberOfLines={1}>
-                  {item.category} · {item.condition}{spec ? ` · ${spec}` : ""}
-                </Text>
-              </View>
-              <View className="ml-1 items-end">
-                <Money value={item.soldPrice ?? item.targetSellPrice} size="row" />
-                {item.status === "sold" && item.soldPrice !== item.targetSellPrice
-                  ? <Text style={{ fontFamily: FONT.medium, fontVariant: ["tabular-nums"], lineHeight: 15 }} className="mt-0.5 text-[11px] text-inkfaint">listed {formatPeso(item.targetSellPrice)}</Text> : null}
-              </View>
-            </Pressable>
+                <View className="min-w-0 flex-1">
+                  <View className="flex-row items-center gap-2">
+                    <Text style={{ fontFamily: FONT.semibold }} className={`min-w-0 shrink text-[17px] ${item.status === "sold" ? "text-inkdim" : "text-ink"}`} numberOfLines={1}>
+                      {item.brand}
+                      {item.name ? <Text className="text-inkdim"> · {item.name}</Text> : null}
+                    </Text>
+                    {item.status === "sold" ? <Badge label="SOLD" tone="sold" /> : null}
+                  </View>
+                  <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint" numberOfLines={1}>
+                    {item.category} · {item.condition}{spec ? ` · ${spec}` : ""}
+                  </Text>
+                </View>
+                <View className="ml-1 items-end">
+                  <Money value={item.soldPrice ?? item.targetSellPrice} size="row" />
+                  {item.status === "sold" && item.soldPrice !== item.targetSellPrice
+                    ? <Text style={{ fontFamily: FONT.medium, fontVariant: ["tabular-nums"], lineHeight: 15 }} className="mt-0.5 text-[11px] text-inkfaint">listed {formatPeso(item.targetSellPrice)}</Text> : null}
+                </View>
+              </Pressable>
+            </SwipeRow>
           );
         }}
         ListEmptyComponent={
