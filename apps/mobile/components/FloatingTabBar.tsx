@@ -7,9 +7,19 @@ import { FONT, COLORS } from "../lib/theme";
 import { scrollTabToTop } from "../lib/tab-scroll";
 import { Icon, type IconName } from "./Icon";
 
+/**
+ * The bar's destinations, in order. This is an allowlist, not a mirror of the
+ * navigator: `(tabs)` also holds `home.tsx`, which `index` re-exports, and a
+ * route file must never become a destination just by existing. Anything not
+ * listed here is reachable by route but not by the bar. (`settings` leaves in
+ * G1 Task 4, when the gear moves into every screen's header.)
+ */
+export const TAB_DESTINATIONS = ["index", "inventory", "batches", "shop", "settings"] as const;
+
 /** Route name → icon. Keep in sync with `app/(tabs)/_layout.tsx`. */
 const TAB_ICONS: Record<string, IconName> = {
-  index: "Package",
+  index: "House",
+  inventory: "Package",
   batches: "Stack",
   shop: "Storefront",
   settings: "GearSix",
@@ -43,7 +53,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     borderColor: COLORS.hairline,
   };
 
-  const buttons = state.routes.map((route, index) => {
+  const buttons = TAB_DESTINATIONS.map((name) => {
+    const index = state.routes.findIndex((r) => r.name === name);
+    if (index < 0) return null; // destination not mounted in this navigator
+    const route = state.routes[index];
     const focused = state.index === index;
     const label = descriptors[route.key]?.options.title ?? route.name;
     const tint = focused ? COLORS.acid : COLORS.inkFaint;
