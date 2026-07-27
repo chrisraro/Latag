@@ -55,7 +55,7 @@ Cost, profit, margins, supplier locations, batch data, and unsold stock stay loc
 ### Supabase (migration `0003_storefront.sql`)
 
 - **`shops`**: `id`, `user_id` (unique, FK auth.users), `handle` (unique, citext, `^[a-z0-9-]{3,20}$`), `display_name`, `bio`, `avatar_url`, `contact_messenger`, `contact_instagram`, `contact_email`, `show_sold` (bool, default false), `is_published`, `created_at`, `updated_at`.
-- **`shop_items`**: `id`, `shop_id` (FK), `item_local_id` (device uuid — unique per shop, enables idempotent upsert), `brand`, `name`, `department`, `category`, `condition`, `specs` (jsonb — the department's measurements only), `price`, `status` (`available`/`sold`), `photo_urls` (text[]), `sort_order`, `published_at`, `updated_at`. **No cost, profit, location, or batch columns — by design.**
+- **`shop_items`**: `id`, `shop_id` (FK), `code` (short human-readable `LT-XXXXX`, unique per shop — the inquiry fallback), `item_local_id` (device uuid — unique per shop, enables idempotent upsert), `brand`, `name`, `department`, `category`, `condition`, `specs` (jsonb — the department's measurements only), `price`, `status` (`available`/`sold`), `photo_urls` (text[]), `sort_order`, `published_at`, `updated_at`. **No cost, profit, location, or batch columns — by design.**
 - **RLS**: public `select` on `shops` where `is_published`; public `select` on `shop_items` where the parent shop is published and (`status = 'available'` or the shop's `show_sold`). All writes owner-scoped via `auth.uid() = shops.user_id`, so mobile writes directly — no API layer.
 - **Storage**: bucket `shop-photos`, public read, authenticated write scoped to `{user_id}/…`. Max **4 photos per published item**.
 
@@ -79,13 +79,42 @@ Free tier: 1GB ≈ 3,000–6,000 photos at current compression; 5GB/month egress
 
 ## 4. F3 — Inquiry routing
 
-Three seller-configured buttons on the item page:
+Seller configures three handles in Shop settings (`contact_messenger`, `contact_instagram`, `contact_email`); the item page renders a button per configured channel. **Researched and verified 2026-07-27** — prefill support differs per channel, and the design follows the evidence rather than assuming parity.
 
-- **Messenger** — `https://m.me/{handle}`
-- **Instagram** — `https://ig.me/m/{handle}`
-- **Email** — `mailto:` with full pre-draft: subject `Inquiry: {brand} {name} (₱{price})`, body containing the item URL and key specs.
+### Per-channel behaviour
 
-**Honest constraint (documented in UI):** Messenger and Instagram do not support pre-filled message text from a web link — only `mailto:` does. For those two, the page copies the item link to the clipboard and tells the buyer so, rather than opening an empty chat with no context. Also provide "Copy link" and native Web Share.
+| Channel | Prefill | Template |
+|---|---|---|
+| **Messenger** | **Yes** — documented by Meta, verified through the live redirect chain; works for Pages **and** personal profiles | `https://m.me/{handle}?text={encoded}` |
+| **Instagram** | **No** — `ig.me` discards query params; only `ref` exists and it is bot-webhook-only | `https://ig.me/m/{handle}` + clipboard copy |
+| **Email** | **Yes** | `mailto:{addr}?subject={encoded}&body={encoded}` |
+
+Evidence: Meta's [m.me links doc](https://developers.facebook.com/documentation/business-messaging/messenger-platform/discovery/m-me-links) (updated 2026-03-23) documents `text`; the redirect trace resolves to `fb-messenger-public://user-thread/{id}?text=…` with the text intact. Meta's [ig.me doc](https://developers.facebook.com/documentation/business-messaging/instagram-messaging/features/ig-me-links) documents only `ref`, and `ig.me/m/x?text=Hello` was observed dropping the parameter.
+
+### Message composition
+
+One builder produces the text for every channel, so the buyer's message reads the same everywhere:
+
+```
+[LT-7K2Q9] Hi! Is this still available?
+Carhartt Detroit Jacket — 9/10 — ₱850
+https://latag.vercel.app/shop/{handle}/{item}
+```
+
+- **Short item code first** (`LT-XXXXX`, generated per published item, stored on `shop_items.code`, shown on the listing page). If prefill fails for any reason, the buyer can type six characters and the seller still knows the exact item. This is the fallback that makes every other failure survivable.
+- Keep the body short — long strings risk truncation and read as spam.
+- Subject line for email: `Inquiry: {brand} {name} ({code})`.
+
+### Belt-and-braces rules
+
+- **Copy to clipboard on every channel tap**, including Messenger. Prefill failing then degrades to a paste instead of a dead end; it costs nothing.
+- Instagram shows a toast: "Message copied — paste it in the DM."
+- **Desktop fallback**: `ig.me` is mobile-app-only (per Meta's own limitations). On desktop, link to `instagram.com/{handle}` and render the message as selectable text instead of firing a link that dead-ends.
+- Also provide "Copy link" and native Web Share.
+
+### Verify on device before shipping
+
+The Messenger evidence is documentation + redirect-chain analysis, not pixels observed in a composer. One credible 2023 Stack Overflow answer asserts prefill is disallowed — it was answering about `messenger.com/t/?text=`, which genuinely does not work, so it appears mis-scoped rather than contradictory. Meta's [platform policy](https://developers.facebook.com/devpolicy/) also restricts prefilled content to text created by the user or by a business whose employees use the app; a seller's own listing text on the seller's own shop plausibly qualifies, and Meta documents the parameter itself. **F3's QA must confirm on one Android and one iPhone that the text lands in the composer un-sent.** If it does not, the clipboard path already covers it and only the toast copy changes.
 
 ## 5. Cross-cutting
 
