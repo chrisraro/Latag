@@ -167,6 +167,7 @@ export default function RootLayout() {
         <Stack.Screen name="session/edit" options={{ presentation: "modal" }} />
         <Stack.Screen name="session/[id]/camera" options={{ presentation: "fullScreenModal" }} />
         <Stack.Screen name="item/[id]/sold" options={{ presentation: "modal" }} />
+        <Stack.Screen name="shop/setup" options={{ presentation: "modal" }} />
         <Stack.Screen name="auth/sign-in" options={{ presentation: "modal" }} />
       </Stack>
       <AppToast />

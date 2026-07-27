@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy"; // SDK 57: legacy submodule, matching lib/media.ts
 import { supabase } from "./supabase";
 
@@ -121,6 +122,78 @@ export function normalizeHandle(raw: string): string {
 
 export function isValidHandle(h: string): boolean {
   return HANDLE_RE.test(h ?? "");
+}
+
+/**
+ * Sellers type "@juan" or paste a whole profile URL. Both mean the username,
+ * which is all m.me / ig.me / mailto need — so accept either and store the
+ * bare handle. Deliberately does NOT touch case: Messenger usernames are
+ * case-insensitive but emails are not, and this runs over both.
+ */
+export function normalizeContactHandle(raw: string): string {
+  return (raw ?? "")
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^(www\.)?(m\.me|ig\.me\/m|instagram\.com|facebook\.com|fb\.com)\//i, "")
+    .replace(/^@+/, "")
+    .replace(/\/+$/, "")
+    .trim();
+}
+
+// ---------------------------------------------------------------------------
+// Public links
+// ---------------------------------------------------------------------------
+
+export const SHOP_ORIGIN = "https://latag.vercel.app";
+/** Display-only: the scheme is noise on a screen the seller reads aloud. */
+export const SHOP_URL_PREFIX = "latag.vercel.app/shop/";
+
+export function shopUrl(handle: string): string {
+  return `${SHOP_ORIGIN}/shop/${normalizeHandle(handle)}`;
+}
+
+export function shopUrlLabel(handle: string): string {
+  return `${SHOP_URL_PREFIX}${normalizeHandle(handle)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Last-known profile
+// ---------------------------------------------------------------------------
+
+const SHOP_CACHE_KEY = "latag.shop.profile";
+
+/**
+ * The shop link has to be readable in a market with no signal, so the last
+ * profile we successfully loaded is kept on the phone. It is a convenience
+ * copy, never the source of truth — every write still goes through Supabase.
+ */
+export async function cacheShop(p: ShopProfile | null): Promise<void> {
+  try {
+    if (p) await AsyncStorage.setItem(SHOP_CACHE_KEY, JSON.stringify(p));
+    else await AsyncStorage.removeItem(SHOP_CACHE_KEY);
+  } catch {
+    // A cache that fails to write is not an error worth surfacing.
+  }
+}
+
+export async function cachedShop(): Promise<ShopProfile | null> {
+  try {
+    const raw = await AsyncStorage.getItem(SHOP_CACHE_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Partial<ShopProfile>;
+    if (typeof p?.handle !== "string" || typeof p?.displayName !== "string") return null;
+    return {
+      handle: p.handle,
+      displayName: p.displayName,
+      bio: p.bio ?? null,
+      contactMessenger: p.contactMessenger ?? null,
+      contactInstagram: p.contactInstagram ?? null,
+      contactEmail: p.contactEmail ?? null,
+      showSold: p.showSold === true,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**

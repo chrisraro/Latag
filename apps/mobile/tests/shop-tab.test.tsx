@@ -1,0 +1,453 @@
+import renderer, { act, type ReactTestRenderer } from "react-test-renderer";
+
+jest.mock("expo-haptics", () => ({
+  selectionAsync: jest.fn(),
+  impactAsync: jest.fn(),
+  notificationAsync: jest.fn(),
+  ImpactFeedbackStyle: { Medium: "medium" },
+  NotificationFeedbackType: { Success: "success", Error: "error" },
+}));
+jest.mock("expo-image", () => ({ Image: () => null }));
+jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn(async () => true) }));
+jest.mock("../db/client", () => {
+  const { makeTestDb } = require("./helpers/testDb");
+  return { db: makeTestDb().db };
+});
+// Synchronous stand-in: re-runs the query every render (fresh data, no liveness needed).
+jest.mock("drizzle-orm/expo-sqlite", () => ({ useLiveQuery: (q: any) => ({ data: q.all() }) }));
+
+const mockPush = jest.fn();
+const mockBack = jest.fn();
+const mockRouter = { push: mockPush, replace: jest.fn(), back: mockBack, dismiss: jest.fn() };
+let mockParams: Record<string, string> = {};
+jest.mock("expo-router", () => ({
+  useRouter: () => mockRouter,
+  useLocalSearchParams: () => mockParams,
+  // Screens refresh on focus; in tests one mount is one focus.
+  useFocusEffect: (cb: () => void | (() => void)) => {
+    const { useEffect } = require("react");
+    useEffect(() => cb(), [cb]);
+  },
+}));
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock("../lib/toast", () => ({ showError: jest.fn(), showSuccess: jest.fn() }));
+// The network seam. The pure helpers keep their real behaviour — the screens
+// render their output verbatim, so faking them would test nothing.
+jest.mock("../lib/shop-api", () => ({
+  SHOP_URL_PREFIX: "latag.vercel.app/shop/",
+  shopUrl: (h: string) => `https://latag.vercel.app/shop/${h}`,
+  shopUrlLabel: (h: string) => `latag.vercel.app/shop/${h}`,
+  normalizeHandle: (raw: string) =>
+    (raw ?? "").toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 20),
+  isValidHandle: (h: string) => /^[a-z0-9-]{3,20}$/.test(h ?? ""),
+  normalizeContactHandle: (raw: string) => (raw ?? "").trim().replace(/^@+/, ""),
+  getMyShop: jest.fn(),
+  saveMyShop: jest.fn(),
+  checkHandleAvailable: jest.fn(),
+  cachedShop: jest.fn(async () => null),
+  cacheShop: jest.fn(async () => {}),
+}));
+
+import { Share } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { db } from "../db/client";
+import { entitlements, items, photos, publishQueue, sessions } from "../db/schema";
+import { cacheShop, cachedShop, checkHandleAvailable, getMyShop, saveMyShop, type ShopProfile } from "../lib/shop-api";
+import { showError, showSuccess } from "../lib/toast";
+import ShopScreen from "../app/(tabs)/shop";
+import ShopSetupScreen from "../app/shop/setup";
+
+const mockedGetMyShop = getMyShop as jest.MockedFunction<typeof getMyShop>;
+const mockedSaveMyShop = saveMyShop as jest.MockedFunction<typeof saveMyShop>;
+const mockedCheckHandle = checkHandleAvailable as jest.MockedFunction<typeof checkHandleAvailable>;
+const mockedCachedShop = cachedShop as jest.MockedFunction<typeof cachedShop>;
+
+const PROFILE: ShopProfile = {
+  handle: "naga-thrift",
+  displayName: "Naga Thrift",
+  bio: "Curated finds from Bicol",
+  contactMessenger: "nagathrift",
+  contactInstagram: "naga.thrift",
+  contactEmail: "naga@example.com",
+  showSold: false,
+};
+
+let tree: ReactTestRenderer | null = null;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  db.delete(publishQueue).run();
+  db.delete(photos).run();
+  db.delete(items).run();
+  db.delete(sessions).run();
+  db.delete(entitlements).run();
+  db.insert(sessions).values({ id: "s1", name: "Naga Run", type: "bulto", totalBaleCost: 1000, createdAt: new Date() }).run();
+  mockParams = {};
+  mockedGetMyShop.mockResolvedValue({ ok: true, data: null });
+  mockedCachedShop.mockResolvedValue(null);
+  mockedCheckHandle.mockResolvedValue({ ok: true, data: true });
+});
+
+afterEach(() => {
+  act(() => { tree?.unmount(); });
+  tree = null;
+});
+
+function setPro(pro: boolean): void {
+  db.insert(entitlements).values({ id: 1, pro, logsUsed: 0 }).run();
+}
+
+function insertItem(over: Partial<typeof items.$inferInsert> = {}): void {
+  db.insert(items).values({
+    id: "i1", sessionId: "s1", brand: "Carhartt", name: null, department: "tops",
+    category: "Jacket", condition: "9/10", individualCost: 0, targetSellPrice: 850,
+    status: "available", createdAt: new Date("2026-07-01T00:00:00Z"), ...over,
+  }).run();
+}
+
+function queueRow(over: Partial<typeof publishQueue.$inferInsert> = {}): void {
+  db.insert(publishQueue).values({
+    id: "q1", itemId: "i1", op: "upsert", attempts: 0, createdAt: new Date(), ...over,
+  }).run();
+}
+
+async function render(Screen: () => React.JSX.Element | null): Promise<ReactTestRenderer> {
+  await act(async () => { tree = renderer.create(<Screen />); });
+  return tree!;
+}
+
+/** Flattens every text node in render order. */
+function texts(t: ReactTestRenderer): string[] {
+  const out: string[] = [];
+  const walk = (node: unknown): void => {
+    if (node == null) return;
+    if (typeof node === "string") { out.push(node); return; }
+    if (Array.isArray(node)) { node.forEach(walk); return; }
+    walk((node as { children?: unknown }).children);
+  };
+  walk(t.toJSON());
+  return out;
+}
+
+function collectTexts(node: any, out: string[] = []): string[] {
+  for (const child of node.children ?? []) {
+    if (typeof child === "string") out.push(child);
+    else collectTexts(child, out);
+  }
+  return out;
+}
+
+/** Innermost pressable whose rendered text includes `label`. */
+function pressableByText(t: ReactTestRenderer, label: string) {
+  const hits = t.root.findAll(
+    (n) => typeof n.props?.onPress === "function" && collectTexts(n).includes(label),
+  );
+  expect(hits.length).toBeGreaterThan(0);
+  return hits[hits.length - 1];
+}
+
+async function press(t: ReactTestRenderer, label: string) {
+  const target = pressableByText(t, label);
+  await act(async () => { target.props.onPress(); });
+}
+
+function field(t: ReactTestRenderer, label: string) {
+  const hits = t.root.findAll((n) => n.props?.accessibilityLabel === label && typeof n.props?.onChangeText === "function");
+  expect(hits.length).toBeGreaterThan(0);
+  return hits[0];
+}
+
+async function type(t: ReactTestRenderer, label: string, value: string) {
+  await act(async () => { field(t, label).props.onChangeText(value); });
+}
+
+// ---------------------------------------------------------------------------
+// Shop tab
+// ---------------------------------------------------------------------------
+
+describe("Shop tab — free user", () => {
+  test("shows the value proposition behind the Pro gate and never hits the network", async () => {
+    setPro(false);
+    const t = await render(ShopScreen);
+    const all = texts(t);
+    expect(all).toContain("Your own shop page");
+    expect(all).toContain("Publish items to a public page buyers can browse — share one link on FB, IG, or Messenger.");
+    expect(all).toContain("Unlock with Pro");
+    expect(all).not.toContain("Set up my shop");
+    expect(mockedGetMyShop).not.toHaveBeenCalled();
+  });
+
+  test("Unlock with Pro opens the Pro sheet rather than dead-ending", async () => {
+    setPro(false);
+    const t = await render(ShopScreen);
+    expect(texts(t)).not.toContain("This one needs Latag Pro");
+    await press(t, "Unlock with Pro");
+    expect(texts(t)).toContain("This one needs Latag Pro");
+  });
+});
+
+describe("Shop tab — Pro, no shop yet", () => {
+  test("same pitch, but the CTA routes to setup", async () => {
+    setPro(true);
+    const t = await render(ShopScreen);
+    const all = texts(t);
+    expect(all).toContain("Your own shop page");
+    expect(all).toContain("Set up my shop");
+    expect(all).not.toContain("Unlock with Pro");
+    await press(t, "Set up my shop");
+    expect(mockPush).toHaveBeenCalledWith("/shop/setup");
+  });
+
+  test("a failed load with nothing cached offers a retry, not an empty screen", async () => {
+    setPro(true);
+    mockedGetMyShop.mockResolvedValue({ ok: false, reason: "network", message: "Network request failed" });
+    const t = await render(ShopScreen);
+    expect(texts(t)).toContain("Couldn't load your shop");
+    await press(t, "Retry");
+    expect(mockedGetMyShop).toHaveBeenCalledTimes(2);
+  });
+
+  test("a failed load falls back to the last shop seen on this phone", async () => {
+    setPro(true);
+    mockedGetMyShop.mockResolvedValue({ ok: false, reason: "network", message: "offline" });
+    mockedCachedShop.mockResolvedValue(PROFILE);
+    const t = await render(ShopScreen);
+    const all = texts(t);
+    expect(all).toContain("latag.vercel.app/shop/naga-thrift");
+    expect(all).toContain("Offline — showing your last saved shop");
+  });
+});
+
+describe("Shop tab — Pro, shop exists", () => {
+  beforeEach(() => {
+    setPro(true);
+    mockedGetMyShop.mockResolvedValue({ ok: true, data: PROFILE });
+  });
+
+  test("header card carries the link, the counts and the published rows", async () => {
+    insertItem({ id: "i1", brand: "Carhartt", publishedAt: new Date("2026-07-02T00:00:00Z"), shopCode: "LT-7K2Q9" });
+    insertItem({ id: "i2", brand: "Levi's", status: "sold", soldPrice: 700, soldAt: new Date(), publishedAt: new Date("2026-07-01T00:00:00Z"), shopCode: "LT-A2B3C" });
+    insertItem({ id: "i3", brand: "Nike" }); // unpublished — must not appear
+    const t = await render(ShopScreen);
+    const all = texts(t);
+    expect(all).toContain("Naga Thrift");
+    expect(all).toContain("latag.vercel.app/shop/naga-thrift");
+    expect(all).toContain("2 published · 1 sold");
+    expect(all).toContain("LT-7K2Q9");
+    expect(all).toContain("Carhartt");
+    expect(all).not.toContain("Nike");
+    expect(all).not.toContain("Set up my shop");
+  });
+
+  test("caches the profile it just loaded so the next launch works offline", async () => {
+    await render(ShopScreen);
+    expect(cacheShop).toHaveBeenCalledWith(PROFILE);
+  });
+
+  test("Copy link copies the https URL and says so", async () => {
+    const t = await render(ShopScreen);
+    await press(t, "Copy link");
+    expect(Clipboard.setStringAsync).toHaveBeenCalledWith("https://latag.vercel.app/shop/naga-thrift");
+    expect(showSuccess).toHaveBeenCalledWith("Link copied");
+  });
+
+  test("Share hands the URL to the OS share sheet", async () => {
+    const spy = jest.spyOn(Share, "share").mockResolvedValue({ action: "sharedAction" } as never);
+    const t = await render(ShopScreen);
+    await press(t, "Share");
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("https://latag.vercel.app/shop/naga-thrift") }));
+    spy.mockRestore();
+  });
+
+  test("Edit shop opens setup in edit mode", async () => {
+    const t = await render(ShopScreen);
+    await press(t, "Edit shop");
+    expect(mockPush).toHaveBeenCalledWith("/shop/setup?edit=1");
+  });
+
+  test("tapping a published row opens that item", async () => {
+    insertItem({ id: "i9", brand: "Carhartt", publishedAt: new Date(), shopCode: "LT-7K2Q9" });
+    const t = await render(ShopScreen);
+    await press(t, "LT-7K2Q9");
+    expect(mockPush).toHaveBeenCalledWith("/item/i9");
+  });
+
+  test("nothing published yet reads as an instruction, not an error", async () => {
+    const t = await render(ShopScreen);
+    expect(texts(t)).toContain("Nothing published yet — open an item and turn on Publish to shop.");
+  });
+
+  test("queued changes surface as an honest pending count", async () => {
+    insertItem({ id: "i1", publishedAt: new Date(), shopCode: "LT-7K2Q9" });
+    queueRow({ id: "q1", itemId: "i1" });
+    queueRow({ id: "q2", itemId: "i1", op: "delete" });
+    const t = await render(ShopScreen);
+    expect(texts(t)).toContain("2 changes pending");
+  });
+
+  test("a row that gave up after five tries is called out separately", async () => {
+    insertItem({ id: "i1", publishedAt: new Date(), shopCode: "LT-7K2Q9" });
+    queueRow({ id: "q1", itemId: "i1", attempts: 5, lastError: "boom" });
+    const t = await render(ShopScreen);
+    const all = texts(t);
+    expect(all).toContain("1 change couldn't sync — open the item and switch Publish off, then on");
+    expect(all).not.toContain("1 change pending"); // stuck rows are not "pending"
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Setup screen
+// ---------------------------------------------------------------------------
+
+describe("Shop setup", () => {
+  test("fresh setup starts empty with the handle rules spelled out", async () => {
+    const t = await render(ShopSetupScreen);
+    const all = texts(t);
+    expect(all).toContain("Set up your shop");
+    expect(all).toContain("latag.vercel.app/shop/");
+    expect(all).toContain("3-20 characters: letters, numbers, dashes");
+    expect(field(t, "Shop link").props.value).toBe("");
+  });
+
+  test("edit mode prefills every field from the saved shop", async () => {
+    mockParams = { edit: "1" };
+    mockedGetMyShop.mockResolvedValue({ ok: true, data: PROFILE });
+    const t = await render(ShopSetupScreen);
+    expect(texts(t)).toContain("Edit shop");
+    expect(field(t, "Shop link").props.value).toBe("naga-thrift");
+    expect(field(t, "Shop name").props.value).toBe("Naga Thrift");
+    expect(field(t, "Bio").props.value).toBe("Curated finds from Bicol");
+    expect(field(t, "Messenger username").props.value).toBe("nagathrift");
+    expect(field(t, "Instagram username").props.value).toBe("naga.thrift");
+    expect(field(t, "Email address").props.value).toBe("naga@example.com");
+  });
+
+  test("handle availability is debounced 500ms and reported in plain words", async () => {
+    jest.useFakeTimers();
+    try {
+      const t = await render(ShopSetupScreen);
+      await type(t, "Shop link", "Naga Thrift");
+      expect(texts(t)).toContain("Checking…");
+      expect(mockedCheckHandle).not.toHaveBeenCalled(); // still inside the debounce
+
+      await act(async () => { jest.advanceTimersByTime(500); });
+      expect(mockedCheckHandle).toHaveBeenCalledWith("naga-thrift");
+      expect(texts(t)).toContain("Available");
+
+      mockedCheckHandle.mockResolvedValue({ ok: true, data: false });
+      await type(t, "Shop link", "taken-name");
+      await act(async () => { jest.advanceTimersByTime(500); });
+      expect(texts(t)).toContain("Taken — try another");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("an offline availability check stays quiet instead of accusing the seller", async () => {
+    jest.useFakeTimers();
+    try {
+      mockedCheckHandle.mockResolvedValue({ ok: false, reason: "network", message: "offline" });
+      const t = await render(ShopSetupScreen);
+      await type(t, "Shop link", "naga-thrift");
+      await act(async () => { jest.advanceTimersByTime(500); });
+      const all = texts(t);
+      expect(all).not.toContain("Taken — try another");
+      expect(all).not.toContain("Checking…");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("save is blocked until the handle and shop name are usable", async () => {
+    const t = await render(ShopSetupScreen);
+    await press(t, "Save shop");
+    expect(mockedSaveMyShop).not.toHaveBeenCalled();
+
+    await type(t, "Shop link", "naga-thrift");
+    await press(t, "Save shop");
+    expect(mockedSaveMyShop).not.toHaveBeenCalled(); // no shop name yet
+  });
+
+  test("saving normalizes the handle and contacts, toasts, and closes", async () => {
+    mockedSaveMyShop.mockResolvedValue({ ok: true, data: PROFILE });
+    const t = await render(ShopSetupScreen);
+    await type(t, "Shop link", "Naga Thrift");
+    await type(t, "Shop name", "  Naga Thrift  ");
+    await type(t, "Bio", "Curated finds from Bicol");
+    await type(t, "Messenger username", "@nagathrift");
+    await type(t, "Instagram username", "@naga.thrift");
+    await type(t, "Email address", " naga@example.com ");
+    await press(t, "Save shop");
+
+    expect(mockedSaveMyShop).toHaveBeenCalledWith({
+      handle: "naga-thrift",
+      displayName: "Naga Thrift",
+      bio: "Curated finds from Bicol",
+      contactMessenger: "nagathrift",
+      contactInstagram: "naga.thrift",
+      contactEmail: "naga@example.com",
+      showSold: false,
+    });
+    expect(cacheShop).toHaveBeenCalledWith(PROFILE);
+    expect(showSuccess).toHaveBeenCalledWith("Shop saved");
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  test("blank optional fields save as null, not empty strings", async () => {
+    mockedSaveMyShop.mockResolvedValue({ ok: true, data: PROFILE });
+    const t = await render(ShopSetupScreen);
+    await type(t, "Shop link", "naga-thrift");
+    await type(t, "Shop name", "Naga Thrift");
+    await press(t, "Save shop");
+    expect(mockedSaveMyShop).toHaveBeenCalledWith(
+      expect.objectContaining({ bio: null, contactMessenger: null, contactInstagram: null, contactEmail: null }),
+    );
+  });
+
+  test("editing preserves show-sold rather than silently resetting it", async () => {
+    mockParams = { edit: "1" };
+    mockedGetMyShop.mockResolvedValue({ ok: true, data: { ...PROFILE, showSold: true } });
+    mockedSaveMyShop.mockResolvedValue({ ok: true, data: { ...PROFILE, showSold: true } });
+    const t = await render(ShopSetupScreen);
+    await press(t, "Save shop");
+    expect(mockedSaveMyShop).toHaveBeenCalledWith(expect.objectContaining({ showSold: true }));
+  });
+
+  test("a taken handle lands under the field, not in a toast", async () => {
+    mockedSaveMyShop.mockResolvedValue({ ok: false, reason: "taken", message: "duplicate key" });
+    const t = await render(ShopSetupScreen);
+    await type(t, "Shop link", "naga-thrift");
+    await type(t, "Shop name", "Naga Thrift");
+    await press(t, "Save shop");
+    expect(texts(t)).toContain("That link was just taken — try another");
+    expect(showSuccess).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  test("signed out offers the way back in instead of a bare refusal", async () => {
+    mockedSaveMyShop.mockResolvedValue({ ok: false, reason: "auth", message: "Not signed in" });
+    const t = await render(ShopSetupScreen);
+    await type(t, "Shop link", "naga-thrift");
+    await type(t, "Shop name", "Naga Thrift");
+    await press(t, "Save shop");
+    expect(showError).toHaveBeenCalledWith(
+      "Sign in first to set up your shop",
+      expect.objectContaining({ sticky: true, onPress: expect.any(Function) }),
+    );
+    const opts = (showError as jest.Mock).mock.calls[0][1] as { onPress: () => void };
+    opts.onPress();
+    expect(mockPush).toHaveBeenCalledWith("/auth/sign-in");
+  });
+
+  test("an offline save keeps the form open and says what happened", async () => {
+    mockedSaveMyShop.mockResolvedValue({ ok: false, reason: "network", message: "Network request failed" });
+    const t = await render(ShopSetupScreen);
+    await type(t, "Shop link", "naga-thrift");
+    await type(t, "Shop name", "Naga Thrift");
+    await press(t, "Save shop");
+    expect(showError).toHaveBeenCalledWith("Couldn't save your shop — check your connection and try again");
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+});
