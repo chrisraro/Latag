@@ -1,9 +1,10 @@
-import { Platform, Pressable, Text, View, type ViewStyle } from "react-native";
+import { Animated, Platform, Pressable, Text, View, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
 import { FONT, COLORS } from "../lib/theme";
+import { usePressScale } from "../lib/motion";
 import { scrollTabToTop } from "../lib/tab-scroll";
 import { Icon, type IconName } from "./Icon";
 
@@ -46,6 +47,11 @@ const FAB_SIZE = 56;
 export function FloatingTabBar({ state, descriptors, navigation, onQuickAdd }: BottomTabBarProps & { onQuickAdd?: () => void }) {
   const insets = useSafeAreaInsets();
   const glass = Platform.OS === "ios" && isLiquidGlassAvailable();
+  // The first half of the FAB → composer transition: the button gives under the
+  // thumb, then the composer rises from the bottom (its `animation` is set in
+  // app/_layout.tsx). Purely decorative — `onPress` navigates immediately and
+  // never waits for the scale to settle.
+  const press = usePressScale();
 
   const container: ViewStyle = {
     position: "absolute",
@@ -62,24 +68,32 @@ export function FloatingTabBar({ state, descriptors, navigation, onQuickAdd }: B
   };
 
   const fab = onQuickAdd ? (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Quick add"
-      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onQuickAdd(); }}
+    <Animated.View
       style={{
         position: "absolute",
         right: 20,
         bottom: insets.bottom + TAB_BAR_GAP + (TAB_BAR_HEIGHT - FAB_SIZE) / 2,
-        width: FAB_SIZE,
-        height: FAB_SIZE,
-        borderRadius: FAB_SIZE / 2,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: COLORS.acid,
+        ...press.style,
       }}
     >
-      <Icon name="Plus" size={22} color={COLORS.acidInk} />
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Quick add"
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onQuickAdd(); }}
+        style={{
+          width: FAB_SIZE,
+          height: FAB_SIZE,
+          borderRadius: FAB_SIZE / 2,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: COLORS.acid,
+        }}
+      >
+        <Icon name="Plus" size={22} color={COLORS.acidInk} />
+      </Pressable>
+    </Animated.View>
   ) : null;
 
   const buttons = TAB_DESTINATIONS.map((name) => {
