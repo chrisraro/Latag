@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, View, Text, Pressable, FlatList, RefreshControl, ScrollView } from "react-native";
+import { Alert, AppState, View, Text, Pressable, FlatList, RefreshControl, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -11,10 +11,13 @@ import { FONT, COLORS } from "../../lib/theme";
 import { formatPct } from "../../lib/format";
 import { selectorProjected, selectorRealized, bultoRealizedPct } from "../../lib/math";
 import { formatCountdown, formatScheduleStamp, scheduleSortKey, parseOffsets } from "../../lib/schedule";
-import { startScheduledSession } from "../../lib/repo";
+import { deleteSession, startScheduledSession } from "../../lib/repo";
 import { cancelReminders } from "../../lib/notifications";
+import { deleteFiles } from "../../lib/media";
+import { batchSwipeActions, type BatchActionKey } from "../../lib/swipe-actions";
 import { showSuccess } from "../../lib/toast";
 import { Badge, Chip, Money, PrimaryButton } from "../../components/ui";
+import { SwipeRow, type SwipeBinding } from "../../components/SwipeRow";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
 import { REFRESH_TINT, settle, useRefresh } from "../../lib/refresh";
@@ -134,6 +137,32 @@ export default function SessionsScreen() {
     router.push(`/session/${s.id}`);
   };
 
+  /**
+   * Deleting a batch takes every item and photo in it, so the swipe only ever
+   * opens this dialog — there is no undo that could put the photos back.
+   */
+  const confirmDelete = (s: Session) =>
+    Alert.alert("Delete batch?", `“${s.name}” and every item and photo in it are removed from your phone.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          const { photoUris, reminderNotificationIds } = deleteSession(db, s.id);
+          cancelReminders(reminderNotificationIds).catch(() => {}); // best-effort; ids may have fired already
+          deleteFiles(photoUris).catch(() => {});
+          showSuccess("Batch deleted");
+        },
+      },
+    ]);
+
+  /** Swipe shortcuts on a live batch card — both also live inside the batch. */
+  const swipeBindings = (s: Session): SwipeBinding<BatchActionKey>[] =>
+    batchSwipeActions().map((a) => ({
+      ...a,
+      onPress: () => (a.key === "addItem" ? router.push(`/session/${s.id}/add`) : confirmDelete(s)),
+    }));
+
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <AppHead
@@ -194,30 +223,34 @@ export default function SessionsScreen() {
             keyExtractor={({ s }) => s.id}
             refreshControl={refreshControl}
             renderItem={({ item: { s, count, soldCount, pct, money, note, negative } }) => (
-              <Pressable onPress={() => router.push(`/session/${s.id}`)} className="mb-3 rounded-card border border-hairline bg-surface1 p-[18px]">
-                <View className="flex-row items-center gap-3">
-                  <Text style={{ fontFamily: FONT.semibold }} className="flex-1 text-[17px] text-ink" numberOfLines={1}>{s.name}</Text>
-                  <Badge label={s.type.toUpperCase()} />
-                </View>
-                {s.locationName ? (
-                  <View className="mt-1"><PinLine name={s.locationName} /></View>
-                ) : s.location ? (
-                  <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint">{s.location}</Text>
-                ) : null}
-                <View className="mt-4 flex-row items-baseline justify-between gap-3">
-                  <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="text-[12px] text-inkfaint">{count} items · {soldCount} sold</Text>
-                  {s.type === "bulto" ? (
-                    <Text style={{ fontFamily: FONT.display, fontVariant: ["tabular-nums"] }} className={`text-[22px] ${negative ? "text-danger" : "text-acid"}`}>
-                      {pct === null ? "—" : formatPct(pct)} <Text style={{ fontFamily: FONT.medium }} className="text-[12px] text-inkfaint">{note}</Text>
-                    </Text>
-                  ) : (
-                    <Text style={{ fontVariant: ["tabular-nums"] }}>
-                      <Money value={money ?? 0} size="card" negative={negative} />
-                      <Text style={{ fontFamily: FONT.medium }} className="text-[12px] text-inkfaint"> {note}</Text>
-                    </Text>
-                  )}
-                </View>
-              </Pressable>
+              // The card's bottom margin moves onto the swipe container so the
+              // revealed action panels match the card's height, not the gap.
+              <SwipeRow actions={swipeBindings(s)} background={COLORS.surface1} radius={12} style={{ marginBottom: 12 }}>
+                <Pressable onPress={() => router.push(`/session/${s.id}`)} className="rounded-card border border-hairline bg-surface1 p-[18px]">
+                  <View className="flex-row items-center gap-3">
+                    <Text style={{ fontFamily: FONT.semibold }} className="flex-1 text-[17px] text-ink" numberOfLines={1}>{s.name}</Text>
+                    <Badge label={s.type.toUpperCase()} />
+                  </View>
+                  {s.locationName ? (
+                    <View className="mt-1"><PinLine name={s.locationName} /></View>
+                  ) : s.location ? (
+                    <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint">{s.location}</Text>
+                  ) : null}
+                  <View className="mt-4 flex-row items-baseline justify-between gap-3">
+                    <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="text-[12px] text-inkfaint">{count} items · {soldCount} sold</Text>
+                    {s.type === "bulto" ? (
+                      <Text style={{ fontFamily: FONT.display, fontVariant: ["tabular-nums"] }} className={`text-[22px] ${negative ? "text-danger" : "text-acid"}`}>
+                        {pct === null ? "—" : formatPct(pct)} <Text style={{ fontFamily: FONT.medium }} className="text-[12px] text-inkfaint">{note}</Text>
+                      </Text>
+                    ) : (
+                      <Text style={{ fontVariant: ["tabular-nums"] }}>
+                        <Money value={money ?? 0} size="card" negative={negative} />
+                        <Text style={{ fontFamily: FONT.medium }} className="text-[12px] text-inkfaint"> {note}</Text>
+                      </Text>
+                    )}
+                  </View>
+                </Pressable>
+              </SwipeRow>
             )}
           />
         )
