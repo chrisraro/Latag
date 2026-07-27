@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { View, Text, Pressable, Share } from "react-native";
+import { View, Text, Pressable, RefreshControl, ScrollView, Share, type ScrollViewProps } from "react-native";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -10,7 +10,7 @@ import * as Clipboard from "expo-clipboard";
 import { db } from "../../db/client";
 import { entitlements, items, photos, publishQueue, type Item } from "../../db/schema";
 import { cacheShop, cachedShop, getMyShop, shopUrl, shopUrlLabel, type ShopProfile } from "../../lib/shop-api";
-import { MAX_ATTEMPTS, pendingLabel } from "../../lib/shop-sync";
+import { MAX_ATTEMPTS, kickSync, pendingLabel } from "../../lib/shop-sync";
 import { showSuccess } from "../../lib/toast";
 import { FONT, COLORS } from "../../lib/theme";
 import { Badge, Money, PrimaryButton, SecondaryButton } from "../../components/ui";
@@ -19,6 +19,7 @@ import { Icon } from "../../components/Icon";
 import { GoProSheet } from "../../components/GoProSheet";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
+import { REFRESH_TINT, settle, useRefresh } from "../../lib/refresh";
 
 /**
  * Shop — three honest states and no dead end in any of them:
@@ -54,6 +55,31 @@ function ValueCard({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * The card states (free, unreachable, loading, no shop yet) share one shell —
+ * a ScrollView rather than a View, so the pull-to-refresh gesture exists in
+ * every state of the tab and not only where a list happens to be mounted.
+ */
+function Centered({
+  bottom,
+  refreshControl,
+  children,
+}: {
+  bottom: number;
+  refreshControl: ScrollViewProps["refreshControl"];
+  children: React.ReactNode;
+}) {
+  return (
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingBottom: bottom }}
+      refreshControl={refreshControl}
+    >
+      {children}
+    </ScrollView>
+  );
+}
+
 export default function ShopScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -62,6 +88,9 @@ export default function ShopScreen() {
   const [stale, setStale] = useState(false); // showing the cached copy, not a fresh read
   const [failed, setFailed] = useState(false); // unreachable AND nothing cached
   const [loading, setLoading] = useState(false);
+  // Bumped by a pull-to-refresh; it is the dependency of the live queries below,
+  // so changing it re-runs each read against the file on disk.
+  const [reread, setReread] = useState(0);
   // Only the listings state renders a list; in the other states this is a no-op.
   const listRef = useRef<FlashListRef<Item>>(null);
   useTabScrollToTop("shop", useCallback(() => {
@@ -70,15 +99,16 @@ export default function ShopScreen() {
     return true;
   }, []));
 
-  const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
+  const { data: entRows } = useLiveQuery(db.select().from(entitlements), [reread]);
   const { data: publishedRows } = useLiveQuery(
     db.select().from(items).where(isNotNull(items.publishedAt)).orderBy(desc(items.publishedAt)),
-    [],
+    [reread],
   );
-  const { data: photoRows } = useLiveQuery(db.select().from(photos), []);
-  const { data: queueRows } = useLiveQuery(db.select().from(publishQueue), []);
+  const { data: photoRows } = useLiveQuery(db.select().from(photos), [reread]);
+  const { data: queueRows } = useLiveQuery(db.select().from(publishQueue), [reread]);
 
   const pro = entRows?.[0]?.pro === true;
+  const queued = (queueRows ?? []).length;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -105,6 +135,18 @@ export default function ShopScreen() {
       if (pro) void load();
     }, [pro, load]),
   );
+
+  // Pull-to-refresh: re-read the listings, drain whatever the outbox is holding,
+  // and re-fetch the shop profile. Offline the drain finds nothing sendable and
+  // the profile falls back to the cached copy — the pull still tells the truth.
+  const { refreshing, onRefresh } = useRefresh(
+    useCallback(async () => {
+      setReread((n) => n + 1);
+      if (queued > 0) kickSync(db); // fire-and-forget by contract; never awaited
+      await Promise.all([pro ? load() : Promise.resolve(), settle()]);
+    }, [pro, load, queued]),
+  );
+  const refreshControl = <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...REFRESH_TINT} />;
 
   const published = publishedRows ?? [];
   const soldCount = published.filter((i) => i.status === "sold").length;
@@ -141,11 +183,11 @@ export default function ShopScreen() {
     return (
       <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
         <AppHead title="Shop" onSettings={() => router.push("/settings")} />
-        <View className="flex-1 justify-center" style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
+        <Centered bottom={insets.bottom + TAB_BAR_CLEARANCE} refreshControl={refreshControl}>
           <ValueCard>
             <PrimaryButton label="Unlock with Pro" onPress={() => setProSheet(true)} />
           </ValueCard>
-        </View>
+        </Centered>
         <GoProSheet visible={proSheet} onClose={() => setProSheet(false)} />
       </View>
     );
@@ -156,7 +198,7 @@ export default function ShopScreen() {
     return (
       <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
         <AppHead title="Shop" onSettings={() => router.push("/settings")} />
-        <View className="flex-1 justify-center" style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
+        <Centered bottom={insets.bottom + TAB_BAR_CLEARANCE} refreshControl={refreshControl}>
           <View className="rounded-card border border-hairline bg-surface1" style={{ padding: 18 }}>
             <Text style={{ fontFamily: FONT.display }} className="text-[17px] text-ink">Couldn&apos;t load your shop</Text>
             <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="mt-2 text-[13px] text-inkdim">
@@ -166,7 +208,7 @@ export default function ShopScreen() {
               <SecondaryButton label="Retry" icon="ArrowsClockwise" busy={loading} onPress={() => { if (!loading) void load(); }} />
             </View>
           </View>
-        </View>
+        </Centered>
       </View>
     );
   }
@@ -176,11 +218,11 @@ export default function ShopScreen() {
     return (
       <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
         <AppHead title="Shop" onSettings={() => router.push("/settings")} />
-        <View className="flex-1 justify-center" style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
+        <Centered bottom={insets.bottom + TAB_BAR_CLEARANCE} refreshControl={refreshControl}>
           <Text style={{ fontFamily: FONT.text, lineHeight: 19 }} className="text-center text-[13px] text-inkfaint">
             Loading your shop…
           </Text>
-        </View>
+        </Centered>
       </View>
     );
   }
@@ -190,11 +232,11 @@ export default function ShopScreen() {
     return (
       <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
         <AppHead title="Shop" onSettings={() => router.push("/settings")} />
-        <View className="flex-1 justify-center" style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
+        <Centered bottom={insets.bottom + TAB_BAR_CLEARANCE} refreshControl={refreshControl}>
           <ValueCard>
             <PrimaryButton label="Set up my shop" icon="Storefront" onPress={() => router.push("/shop/setup")} />
           </ValueCard>
-        </View>
+        </Centered>
       </View>
     );
   }
@@ -212,6 +254,7 @@ export default function ShopScreen() {
         keyExtractor={(i: Item) => i.id}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}
+        refreshControl={refreshControl}
         ListHeaderComponent={
           <View className="mb-4 rounded-card border border-hairline bg-surface1" style={{ padding: 18 }}>
             <Text style={{ fontFamily: FONT.display }} className="text-[18px] text-ink" numberOfLines={1}>

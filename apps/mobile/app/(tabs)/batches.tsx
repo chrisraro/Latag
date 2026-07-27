@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, View, Text, Pressable, FlatList } from "react-native";
+import { AppState, View, Text, Pressable, FlatList, RefreshControl, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -17,6 +17,7 @@ import { showSuccess } from "../../lib/toast";
 import { Badge, Chip, Money, PrimaryButton } from "../../components/ui";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
+import { REFRESH_TINT, settle, useRefresh } from "../../lib/refresh";
 import { AppHead } from "../../components/AppHead";
 import { Icon } from "../../components/Icon";
 
@@ -44,6 +45,9 @@ export default function SessionsScreen() {
   // Countdown clock: re-render every 30s while anything is scheduled so
   // "in 45m" cards stay honest without any data change.
   const [now, setNow] = useState(() => new Date());
+  // Bumped by a pull-to-refresh; it is the dependency of the live queries below,
+  // so changing it re-runs each read against the file on disk.
+  const [reread, setReread] = useState(0);
   const startGuard = useRef(false); // double-tap guard for Start now
   // Only one of the two lists is mounted at a time, so they share one ref. The
   // element type differs between them, hence the loose generic.
@@ -53,9 +57,22 @@ export default function SessionsScreen() {
     listRef.current.scrollToOffset({ offset: 0, animated: true });
     return true;
   }, []));
-  const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(isNull(sessions.scheduledAt)).orderBy(desc(sessions.createdAt)));
-  const { data: scheduledRows } = useLiveQuery(db.select().from(sessions).where(isNotNull(sessions.scheduledAt)));
-  const { data: itemRows } = useLiveQuery(db.select().from(items));
+  const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(isNull(sessions.scheduledAt)).orderBy(desc(sessions.createdAt)), [reread]);
+  const { data: scheduledRows } = useLiveQuery(db.select().from(sessions).where(isNotNull(sessions.scheduledAt)), [reread]);
+  const { data: itemRows } = useLiveQuery(db.select().from(items), [reread]);
+
+  // Pull-to-refresh: re-read the batches and their items, and re-mint the
+  // countdowns so an overdue run flags the moment you pull. Nothing on this tab
+  // has ever needed a network, and a refresh does not change that. There is no
+  // outbox nudge here — nothing on this screen publishes.
+  const { refreshing, onRefresh } = useRefresh(
+    useCallback(async () => {
+      setReread((n) => n + 1);
+      setNow(new Date());
+      await settle();
+    }, []),
+  );
+  const refreshControl = <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...REFRESH_TINT} />;
 
   const hasScheduled = (scheduledRows?.length ?? 0) > 0;
   useEffect(() => {
@@ -153,7 +170,13 @@ export default function SessionsScreen() {
       </View>
       {tab === "batches" ? (
         list.length === 0 ? (
-          <View className="flex-1 items-center justify-center gap-3.5 px-4">
+          // A ScrollView rather than a View so the pull works in the empty state
+          // too — a tab where the gesture only sometimes exists reads as broken.
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 16 }}
+            refreshControl={refreshControl}
+          >
             <View className="h-[92px] w-full items-center justify-center rounded-card border-[1.5px] border-dashed border-hairline">
               <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="text-[13px] text-inkfaint">Your first run will show up here</Text>
             </View>
@@ -163,12 +186,13 @@ export default function SessionsScreen() {
                 Start one when you hit the racks.{"\n"}Everything works in airplane mode.
               </Text>
             </View>
-          </View>
+          </ScrollView>
         ) : (
           <FlatList
             ref={listRef}
             data={list}
             keyExtractor={({ s }) => s.id}
+            refreshControl={refreshControl}
             renderItem={({ item: { s, count, soldCount, pct, money, note, negative } }) => (
               <Pressable onPress={() => router.push(`/session/${s.id}`)} className="mb-3 rounded-card border border-hairline bg-surface1 p-[18px]">
                 <View className="flex-row items-center gap-3">
@@ -198,16 +222,21 @@ export default function SessionsScreen() {
           />
         )
       ) : scheduled.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-4">
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingHorizontal: 16 }}
+          refreshControl={refreshControl}
+        >
           <View className="min-h-[92px] w-full items-center justify-center rounded-card border-[1.5px] border-dashed border-hairline px-6 py-5">
             <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="text-center text-[13px] text-inkfaint">No scheduled batches — plan your next bale run from New Batch</Text>
           </View>
-        </View>
+        </ScrollView>
       ) : (
         <FlatList
           ref={listRef}
           data={scheduled}
           keyExtractor={(s) => s.id}
+          refreshControl={refreshControl}
           renderItem={({ item: s }) => {
             // scheduledAt is non-null by query (IS NOT NULL); overdue keeps the
             // card here (no dashboard nav) but flags it acid until Start now.
