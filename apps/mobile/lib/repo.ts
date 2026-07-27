@@ -96,7 +96,7 @@ function parseNotifIdsText(json: string | null): string[] {
 }
 
 export type AddItemInput = {
-  sessionId: string; brand: string; name?: string | null; department: Department; category: string;
+  sessionId: string | null; brand: string; name?: string | null; department: Department; category: string;
   condition: string; individualCost?: number; targetSellPrice: number; sizeNote?: string | null;
 } & Partial<Record<SpecKey, number | null>>;
 
@@ -154,7 +154,7 @@ export function addItem(db: AnyDb, input: AddItemInput): { item: Item; logsRemai
   });
 }
 
-export function updateItem(db: AnyDb, id: string, patch: Partial<Omit<AddItemInput, "sessionId">>): Item {
+export function updateItem(db: AnyDb, id: string, patch: Partial<Omit<AddItemInput, "sessionId">> & { sessionId?: string | null }): Item {
   const set: Record<string, unknown> = { ...patch };
   if (patch.department) {
     // Explicit department switch: full reset — every spec column (and sizeNote) is

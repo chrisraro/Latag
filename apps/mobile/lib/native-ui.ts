@@ -41,3 +41,28 @@
  * tokens that stock Material cannot, and they are what the user sees today.
  */
 export const NATIVE_UI_ENABLED = false;
+
+/**
+ * The same rule, applied to Reanimated's worklet runtime.
+ *
+ * Reanimated 4.5 and react-native-worklets are autolinked into the v1.1.0
+ * binary, but no JS on `master` imports either — checked with
+ * `git grep -l react-native-reanimated master -- apps/mobile`, which matches
+ * package.json and nothing else. NativeWind's runtime only `require`s it from
+ * inside functions that run when a class carries a transition, so it has never
+ * been reached. Phase G's entrance animations and swipe rows would therefore
+ * be the first code ever to create a shared value or run a worklet on that
+ * phone, and they would arrive by OTA.
+ *
+ * The guarded `require` in `lib/motion.ts` does not cover this. It catches a
+ * module that is MISSING; a worklet runtime that is misconfigured fails on the
+ * UI thread, which is the uncatchable case that took the app down on
+ * 2026-07-27. And the blast radius is launch itself: entrance animations wrap
+ * Home's recent strip and every Inventory row, and Home is the boot screen.
+ *
+ * So the motion and swipe layers ship in a NATIVE build, verified against
+ * logcat on a real device, alongside the Compose components above. With this
+ * off, rows render at rest and swipe rows are ordinary rows — every action
+ * they expose is still reachable from the item screen.
+ */
+export const NATIVE_ANIMATION_ENABLED = false;

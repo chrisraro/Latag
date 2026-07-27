@@ -38,15 +38,29 @@ function unitFor(f: SpecField): string {
   return f.unit === "in" ? `${f.short} "` : f.short;
 }
 
-export default function RapidConsole() {
-  const { id, item: editId } = useLocalSearchParams<{ id: string; item?: string }>();
+/**
+ * The Rapid Console. Mounted two ways:
+ *  - `/session/[id]/add` — inside a batch, the way it has always worked.
+ *  - `/item/new` (`noBatch`) — a loose item that belongs to no batch at all.
+ *
+ * Everything between those two modes is identical: departments, wheels, brand
+ * picker, photo slots, save. Only the header, the batch tally and the cost
+ * wheel (a loose item has no bale cost to allocate) differ.
+ */
+export default function RapidConsole({ noBatch = false }: { noBatch?: boolean } = {}) {
+  const { id, item: editId } = useLocalSearchParams<{ id?: string; item?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // "" can never match a row, so the two batch queries return empty in no-batch
+  // mode instead of being fed an undefined bind parameter.
+  const sessionId = noBatch ? null : id ?? null;
 
-  const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(eq(sessions.id, id)), [id]);
-  const { data: sessionItems } = useLiveQuery(db.select().from(items).where(eq(items.sessionId, id)), [id]);
+  const { data: sessionRows } = useLiveQuery(db.select().from(sessions).where(eq(sessions.id, sessionId ?? "")), [sessionId]);
+  const { data: sessionItems } = useLiveQuery(db.select().from(items).where(eq(items.sessionId, sessionId ?? "")), [sessionId]);
   const { data: existingPhotoRows } = useLiveQuery(db.select().from(photos).where(eq(photos.itemId, editId ?? "")), [editId]);
   const session = sessionRows?.[0];
+  // Bulto/selector allocation is a per-batch idea; a loose item is always cost 0.
+  const withCost = session?.type === "selector";
 
   const [brand, setBrand] = useState("");
   const [brandPicker, setBrandPicker] = useState(false);
@@ -123,8 +137,12 @@ export default function RapidConsole() {
     setMoreSpecs(false);
   };
 
-  if (!session) return null;
+  if (!noBatch && !session) return null;
   const filledSlots = SLOTS.filter((s) => staged[s] ?? existingPhotoMap[s]);
+  // The camera is the same screen either way; only its route differs, because
+  // the batch-less console has no `[id]` segment to hang it off.
+  const cameraRoute = (slot: SlotType) =>
+    `${noBatch ? "/item/new" : `/session/${id}`}/camera?slot=${slot}&filled=${encodeURIComponent(filledSlots.join(","))}`;
 
   const save = () => {
     if (saving) return; // double-tap guard
@@ -139,9 +157,9 @@ export default function RapidConsole() {
       const specValues: Partial<Record<SpecKey, number | null>> = {};
       for (const f of specFields) specValues[f.key] = f.extra ? specs[f.key] ?? null : specs[f.key] ?? wheelDefault(f);
       const input = {
-        sessionId: id, brand: brand.trim(), name, department, category, condition,
+        sessionId, brand: brand.trim(), name, department, category, condition,
         ...specValues, sizeNote: department === "accessories" || department === "footwear" ? sizeNote.trim() || null : null,
-        targetSellPrice: price, individualCost: session.type === "selector" ? cost : 0,
+        targetSellPrice: price, individualCost: withCost ? cost : 0,
       };
       const saved = editId ? { item: updateItem(db, editId, input) } : addItem(db, input);
       const shots = takeStagedPhotos();
@@ -169,10 +187,14 @@ export default function RapidConsole() {
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <AppHead
-        title={session.name}
+        title={noBatch ? (editId ? "Edit item" : "New item") : session!.name}
         size={17}
         onBack={() => router.back()}
-        right={<Badge label={`#${(sessionItems?.length ?? 0) + (editId ? 0 : 1)} · ${formatPeso(selectorProjected(sessionItems ?? []))}`} />}
+        right={
+          noBatch
+            ? <Badge label="No batch" />
+            : <Badge label={`#${(sessionItems?.length ?? 0) + (editId ? 0 : 1)} · ${formatPeso(selectorProjected(sessionItems ?? []))}`} />
+        }
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 12 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2 flex-none" contentContainerStyle={{ flexGrow: 1 }}>
@@ -198,7 +220,7 @@ export default function RapidConsole() {
               key={s}
               label={s.toUpperCase()}
               uri={staged[s] ?? existingPhotoMap[s] ?? null}
-              onPress={() => router.push(`/session/${id}/camera?slot=${s}&filled=${encodeURIComponent(filledSlots.join(","))}`)}
+              onPress={() => router.push(cameraRoute(s) as Parameters<typeof router.push>[0])}
             />
           ))}
         </View>
@@ -266,7 +288,7 @@ export default function RapidConsole() {
             className="h-[52px] rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink"
           />
         </>) : null}
-        {session.type === "selector" ? (<>
+        {withCost ? (<>
           <FieldLabel>{"Cost · Price"}</FieldLabel>
           <View className="flex-row gap-2.5">
             <View className="flex-1"><Wheel values={COST} value={cost} onChange={setCost} unit="COST ₱" allowCustom /></View>

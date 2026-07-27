@@ -1,27 +1,27 @@
 import { useCallback } from "react";
 import { Tabs, useRouter } from "expo-router";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { desc } from "drizzle-orm";
-import { db } from "../../db/client";
-import { sessions } from "../../db/schema";
 import { NativeTabBar } from "../../components/NativeTabBar";
-import { quickAddRoute } from "../../lib/quick-add";
+import { QUICK_ADD_ROUTE } from "../../lib/quick-add";
+import { tabSwitchAnimation, tabTransitionSpec, useReducedMotion } from "../../lib/motion";
 
 export default function TabsLayout() {
   const router = useRouter();
-  // Most recently created batch, for the toolbar FAB (see lib/quick-add.ts —
-  // G2 replaces this lookup once solo items ship).
-  const { data: recentSessions } = useLiveQuery(
-    db.select({ id: sessions.id }).from(sessions).orderBy(desc(sessions.createdAt)).limit(1),
-  );
-  const mostRecentBatchId = recentSessions?.[0]?.id ?? null;
+  const reduced = useReducedMotion();
   const onQuickAdd = useCallback(() => {
-    router.push(quickAddRoute(mostRecentBatchId) as Parameters<typeof router.push>[0]);
-  }, [router, mostRecentBatchId]);
+    router.push(QUICK_ADD_ROUTE as Parameters<typeof router.push>[0]);
+  }, [router]);
 
   return (
     <Tabs
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: "#000" } }}
+      screenOptions={{
+        headerShown: false,
+        sceneStyle: { backgroundColor: "#000" },
+        // Tabs are peers, so they cross over rather than slide — a slide would
+        // imply an order the bar does not have. Reduced motion cuts straight to
+        // the new tab; the tap is never held up by either.
+        animation: tabSwitchAnimation(reduced),
+        transitionSpec: tabTransitionSpec(reduced),
+      }}
       tabBar={(props) => <NativeTabBar {...props} onQuickAdd={onQuickAdd} />}
     >
       {/* `index` is Home (it re-exports `home.tsx`); `home` therefore exists as a
