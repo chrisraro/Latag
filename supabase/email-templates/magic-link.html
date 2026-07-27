@@ -1,0 +1,31 @@
+<!-- Latag — magic link / OTP email. Code-first: the 6-digit token is the primary
+     path (works on any device); the link is the secondary one-tap convenience.
+     Inline styles only — email clients strip <style> blocks and web fonts. -->
+<div style="margin:0;padding:24px 12px;background:#000000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:460px;margin:0 auto;background:#111111;border:1px solid #262626;border-radius:16px;padding:28px 24px;">
+
+    <div style="font-size:26px;font-weight:900;letter-spacing:1px;color:#B8F135;text-transform:uppercase;">Latag</div>
+    <div style="font-size:13px;color:#8A8A8A;margin-top:4px;">The ukay ops console</div>
+
+    <div style="font-size:15px;color:#F2F2F2;margin-top:24px;line-height:22px;">
+      Here's your sign-in code. Type it into the app:
+    </div>
+
+    <div style="margin:18px 0;background:#1A1A1A;border:1px solid #262626;border-radius:14px;padding:18px 12px;text-align:center;">
+      <div style="font-size:34px;font-weight:800;letter-spacing:10px;color:#F2F2F2;font-family:'SF Mono',Menlo,Consolas,monospace;">{{ .Token }}</div>
+    </div>
+
+    <div style="font-size:12.5px;color:#8A8A8A;line-height:19px;">
+      The code expires in 15 minutes. On this phone? You can tap the button instead:
+    </div>
+
+    <a href="{{ .ConfirmationURL }}" style="display:block;margin:16px 0 4px;background:#B8F135;color:#141A05;text-decoration:none;text-align:center;font-size:15px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;padding:15px 20px;border-radius:99px;">Open Latag</a>
+
+    <div style="font-size:11.5px;color:#8A8A8A;line-height:18px;margin-top:20px;border-top:1px solid #262626;padding-top:16px;">
+      Signing in only activates your Pro license — your inventory, photos, and money math never leave your phone.
+      <br><br>
+      Didn't request this? Ignore this email; nothing happens without the code.
+    </div>
+
+  </div>
+</div>
