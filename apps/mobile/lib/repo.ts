@@ -291,7 +291,12 @@ export function markPublished(db: AnyDb, itemId: string, code: string): Item {
 }
 
 /** Takes an item off the storefront locally; the queue carries the removal. */
+/**
+ * Unpublishing clears publishedAt but DELIBERATELY keeps shopCode: a buyer may
+ * still be holding the old code from a screenshot or a message thread, so the
+ * code must identify the same item forever. Republishing reuses it.
+ */
 export function markUnpublished(db: AnyDb, itemId: string): Item {
-  db.update(items).set({ publishedAt: null, shopCode: null }).where(eq(items.id, itemId)).run();
+  db.update(items).set({ publishedAt: null }).where(eq(items.id, itemId)).run();
   return db.select().from(items).where(eq(items.id, itemId)).all()[0];
 }
