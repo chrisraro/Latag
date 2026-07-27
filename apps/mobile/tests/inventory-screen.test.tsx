@@ -155,6 +155,17 @@ function rowBrands(t: ReactTestRenderer): string[] {
   });
 }
 
+/**
+ * Brands in list order, read from what the list was *handed* rather than from
+ * what it rendered: `FlashList` recycles its row components, so the order of
+ * the mounted rows is its own business and does not track `data` after a
+ * re-render. Order-sensitive assertions (sort) must use this; presence
+ * assertions can use `rowBrands`.
+ */
+function listBrands(t: ReactTestRenderer): string[] {
+  return (t.root.findByType(FlashList).props.data as Item[]).map((i) => i.brand);
+}
+
 function seedThree(): void {
   insertItem({ id: "i1", brand: "Carhartt", category: "Jacket" });
   insertItem({ id: "i2", brand: "Nike", name: "Windbreaker", category: "Jacket" });
@@ -218,27 +229,42 @@ test("Loose items chip shows only items with no batch, and clears back to all", 
   expect(rowBrands(t)).toHaveLength(4);
 });
 
-test("sort chip cycles newest -> price-high -> price-low -> oldest -> newest", async () => {
+// G3 turned sort from a one-tap cycle through four hidden modes into a
+// segmented control. Under Jest the platform is iOS, so what renders is the
+// chip fallback — which is exactly the point: every mode is on screen at once
+// and reachable in one tap, whichever half of the control you get.
+test("every sort mode is on screen, with the current one marked", async () => {
   seedThree();
   const t = await render();
+  const all = texts(t);
+  for (const label of ["Newest", "₱ High", "₱ Low", "Oldest"]) expect(all).toContain(label);
+  expect(pressableByText(t, "Newest").props.accessibilityState).toEqual({ selected: true });
+  expect(pressableByText(t, "Oldest").props.accessibilityState).toEqual({ selected: false });
+});
 
-  // Default mode: unselected (acid only once you've moved off it), labelled Newest.
-  expect(pressableByText(t, "Newest").props.accessibilityState).toEqual({ selected: false });
-
-  press(t, "Newest");
-  expect(texts(t)).toContain("₱ High");
-  expect(pressableByText(t, "₱ High").props.accessibilityState).toEqual({ selected: true });
-
-  press(t, "₱ High");
-  expect(texts(t)).toContain("₱ Low");
+test("choosing a sort mode reorders the list and moves the selection", async () => {
+  seedThree(); // Carhartt ₱850, Nike ₱850, Levi's sold ₱700 — all logged the same instant
+  const t = await render();
 
   press(t, "₱ Low");
-  expect(texts(t)).toContain("Oldest");
-
-  // Full cycle: back to Newest, and unselected again.
-  press(t, "Oldest");
-  expect(texts(t)).toContain("Newest");
+  expect(listBrands(t)).toEqual(["Levi's", "Carhartt", "Nike"]);
+  expect(pressableByText(t, "₱ Low").props.accessibilityState).toEqual({ selected: true });
   expect(pressableByText(t, "Newest").props.accessibilityState).toEqual({ selected: false });
+
+  // One tap from any mode to any other — no cycling through the ones between.
+  press(t, "₱ High");
+  expect(listBrands(t)).toEqual(["Carhartt", "Nike", "Levi's"]);
+});
+
+// Status is the other segmented dimension; re-tapping the mode you are already
+// in must not churn the list.
+test("re-tapping the current status leaves the view alone", async () => {
+  seedThree();
+  const t = await render();
+  press(t, "Sold");
+  expect(rowBrands(t)).toEqual(["Levi's"]);
+  press(t, "Sold");
+  expect(rowBrands(t)).toEqual(["Levi's"]);
 });
 
 test("no matches shows the filtered empty copy, not the first-run copy", async () => {

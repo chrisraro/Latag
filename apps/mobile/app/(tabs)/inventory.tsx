@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, View, Text, Pressable, RefreshControl, ScrollView, TextInput } from "react-native";
+import { Alert, View, Text, Pressable, RefreshControl, ScrollView } from "react-native";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -19,18 +19,25 @@ import { cachedShop } from "../../lib/shop-api";
 import { showSuccess } from "../../lib/toast";
 import { Badge, Chip, Money } from "../../components/ui";
 import { AppHead } from "../../components/AppHead";
-import { Icon } from "../../components/Icon";
 import { SwipeRow, type SwipeBinding } from "../../components/SwipeRow";
+import { Segmented, type SegmentedOption } from "../../components/native/Segmented";
+import { SearchField } from "../../components/native/SearchField";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
 import { REFRESH_TINT, settle, useRefresh } from "../../lib/refresh";
 
-const STATUSES: InvStatus[] = ["all", "available", "sold"];
-const STATUS_LABEL: Record<InvStatus, string> = { all: "All", available: "Available", sold: "Sold" };
+const STATUS_OPTIONS: SegmentedOption<InvStatus>[] = [
+  { value: "all", label: "All" },
+  { value: "available", label: "Available" },
+  { value: "sold", label: "Sold" },
+];
 
-/** The sort chip is a cycle, not a menu — one tap moves to the next mode. */
-const SORT_CYCLE: InvSort[] = ["newest", "price-high", "price-low", "oldest"];
-const SORT_LABEL: Record<InvSort, string> = { newest: "Newest", "price-high": "₱ High", "price-low": "₱ Low", oldest: "Oldest" };
+const SORT_OPTIONS: SegmentedOption<InvSort>[] = [
+  { value: "newest", label: "Newest" },
+  { value: "price-high", label: "₱ High" },
+  { value: "price-low", label: "₱ Low" },
+  { value: "oldest", label: "Oldest" },
+];
 
 /**
  * Inventory — every item ever logged, across every batch, searchable and
@@ -96,7 +103,6 @@ export default function InventoryScreen() {
     [photoRows],
   );
   const thumbOf = (itemId: string) => thumbs.get(itemId) ?? null;
-  const cycleSort = () => setFilter((f) => ({ ...f, sort: SORT_CYCLE[(SORT_CYCLE.indexOf(f.sort) + 1) % SORT_CYCLE.length] }));
 
   /**
    * Takes a listing down and makes sure the internet hears about it now, rather
@@ -169,30 +175,15 @@ export default function InventoryScreen() {
           : `${totals.count} ${totals.count === 1 ? "item" : "items"} · ${totals.available} available · ${formatPeso(totals.stockValue)} stock value`}
       </Text>
 
-      <View className="mb-2.5 h-[52px] flex-row items-center gap-2.5 rounded-[14px] border border-hairline bg-surface2 px-4">
-        <Icon name="MagnifyingGlass" size={16} color={COLORS.inkFaint} />
-        <TextInput
+      {/* Custom on purpose — see the rationale in `SearchField`: Material's
+          `SearchBar` takes no colours and no `value`. */}
+      <View className="mb-2.5">
+        <SearchField
           value={filter.query}
-          onChangeText={(query) => setFilter((f) => ({ ...f, query }))}
-          accessibilityLabel="Search inventory"
+          onChange={(query) => setFilter((f) => ({ ...f, query }))}
+          label="Search inventory"
           placeholder="Search brand, name, category"
-          placeholderTextColor={COLORS.inkFaint}
-          autoCorrect={false}
-          returnKeyType="search"
-          style={{ fontFamily: FONT.text }}
-          className="h-full flex-1 text-[15px] text-ink"
         />
-        {filter.query.length > 0 ? (
-          <Pressable
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Clear search"
-            onPress={() => setFilter((f) => ({ ...f, query: "" }))}
-            className="h-6 w-6 items-center justify-center rounded-full bg-surface1"
-          >
-            <Icon name="X" size={12} color={COLORS.inkFaint} />
-          </Pressable>
-        ) : null}
       </View>
 
       <ScrollView
@@ -208,28 +199,25 @@ export default function InventoryScreen() {
         ))}
       </ScrollView>
 
+      {/* Status is one-of-three, so it is a real segmented control (native M3 on
+          Android, the same chips as before everywhere else). The batch facet is
+          a toggle, not a choice among peers, so it stays a chip beside it —
+          tapping it again clears the facet. */}
       <View className="mb-2.5 flex-row items-center gap-2">
-        {/* Status plus the batch facet scroll — four chips plus the sort chip
-            overflow a narrow phone — while sort stays pinned to the right. */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ flexGrow: 0, flexShrink: 1 }}
-          contentContainerStyle={{ gap: 8, paddingRight: 4 }}
-        >
-          {STATUSES.map((s) => (
-            <Chip key={s} label={STATUS_LABEL[s]} selected={filter.status === s} onPress={() => setFilter((f) => ({ ...f, status: s }))} />
-          ))}
-          {/* Items with no batch (G2). Tapping it again clears the facet. */}
-          <Chip
-            label="Loose items"
-            selected={filter.batch === "none"}
-            onPress={() => setFilter((f) => ({ ...f, batch: f.batch === "none" ? "all" : "none" }))}
-          />
-        </ScrollView>
-        <View className="flex-1" />
-        {/* Acid only once you've moved off the default, so the chip reads as state, not decoration. */}
-        <Chip label={SORT_LABEL[filter.sort]} selected={filter.sort !== DEFAULT_FILTER.sort} onPress={cycleSort} />
+        <View className="min-w-0 flex-1">
+          <Segmented label="Status" options={STATUS_OPTIONS} value={filter.status} onChange={(status) => setFilter((f) => ({ ...f, status }))} />
+        </View>
+        <Chip
+          label="Loose items"
+          selected={filter.batch === "none"}
+          onPress={() => setFilter((f) => ({ ...f, batch: f.batch === "none" ? "all" : "none" }))}
+        />
+      </View>
+
+      {/* Sort was a one-tap cycle through four hidden modes; as a segmented row
+          all four are visible and one tap reaches any of them. */}
+      <View className="mb-2.5">
+        <Segmented label="Sort" options={SORT_OPTIONS} value={filter.sort} onChange={(sort) => setFilter((f) => ({ ...f, sort }))} />
       </View>
 
       <FlashList
