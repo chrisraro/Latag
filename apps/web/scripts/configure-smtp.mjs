@@ -25,39 +25,51 @@ if (!RESEND_KEY.startsWith("re_")) throw new Error("RESEND_API_KEY does not look
 // Swap SENDER to noreply@<your-domain> once a domain is verified in Resend.
 const SENDER = "onboarding@resend.dev";
 
-const body = {
-  // --- SMTP transport ---
+/** PATCH the auth config. Server errors are surfaced with the key redacted —
+ *  hiding them entirely makes 400s undebuggable. */
+async function patchAuth(label, body) {
+  const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/config/auth`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = (await res.text()).split(RESEND_KEY).join("re_***REDACTED***");
+    throw new Error(`${label} failed (HTTP ${res.status}): ${detail.slice(0, 400)}`);
+  }
+  console.log(`${label}: ok`);
+}
+
+// Step 1 — SMTP transport. Must land FIRST and on its own: Supabase gates
+// rate-limit and template edits on custom SMTP already being stored.
+// smtp_port is a STRING in this API; a number is rejected with a 400.
+await patchAuth("smtp transport", {
   smtp_host: "smtp.resend.com",
-  smtp_port: 465,
+  smtp_port: "465",
   smtp_user: "resend",
   smtp_pass: RESEND_KEY,
   smtp_admin_email: SENDER,
   smtp_sender_name: "Latag",
+});
 
+// Step 2 — now unlocked: limits + code-first templates for BOTH mail paths
+// (new addresses get "confirmation", returning ones get "magic link").
+await patchAuth("limits + templates", {
   // Shared-mailer cap was 2/hour, which throttles real sign-ins. Resend free
   // allows 100/day; 30/hour leaves generous headroom without risking the quota.
   rate_limit_email_sent: 30,
-
   // 15 minutes: long enough to fetch the code, short enough to limit exposure.
   mailer_otp_exp: 900,
-
-  // --- Code-first templates (both paths: new signup AND returning magic link) ---
+  // Supabase now defaults EMAIL otp to 8 digits (sms stays 6). The mobile
+  // sign-in renders exactly six boxes and validates /^\d{6}$/, so an 8-digit
+  // code is literally unenterable. Keep these two in lockstep: changing this
+  // requires changing OtpBoxes + CODE_RE in app/auth/sign-in.tsx.
+  mailer_otp_length: 6,
   mailer_subjects_magic_link: "{{ .Token }} is your Latag sign-in code",
   mailer_templates_magic_link_content: readFileSync(join(TEMPLATES, "magic-link.html"), "utf8"),
   mailer_subjects_confirmation: "{{ .Token }} — confirm your Latag account",
   mailer_templates_confirmation_content: readFileSync(join(TEMPLATES, "confirm-signup.html"), "utf8"),
-};
-
-const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/config/auth`, {
-  method: "PATCH",
-  headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-  body: JSON.stringify(body),
 });
-
-if (!res.ok) {
-  // Never echo the response verbatim — it can contain the submitted secret.
-  throw new Error(`Config update failed with HTTP ${res.status}. Check the key's "Sending access" permission and try again.`);
-}
 
 // Read back the non-secret fields to prove the change landed.
 const verify = await fetch(`https://api.supabase.com/v1/projects/${REF}/config/auth`, {
