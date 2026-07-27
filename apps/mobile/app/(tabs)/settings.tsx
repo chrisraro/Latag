@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
+import { Host, Switch } from "@expo/ui";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -85,6 +86,59 @@ function SettingsRow({
       </View>
       {chevron ? <Icon name="CaretRight" size={16} color={COLORS.inkFaint} /> : null}
     </Wrapper>
+  );
+}
+
+// --- Phase G probe (Task 0) -------------------------------------------------
+// Proves @expo/ui renders on the already-shipped v1.1.0 binary before G1
+// builds real screens on that assumption (docs/superpowers/plans/
+// 2026-07-27-mobile-g1-shell.md). Controls nothing. Removed once G1 Task 5
+// ships (or the whole phase is re-planned, if this probe fails on-device).
+// A broken native view must never white-screen Settings, hence the boundary.
+class NativeUiErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="text-[12px] text-inkfaint">
+          Native UI unavailable
+        </Text>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function NativeUiProbeRow({ last }: { last?: boolean }) {
+  // Uncontrolled by anything else on the screen — this switch exists only to
+  // prove a universal @expo/ui component mounts and responds to touch.
+  const [checked, setChecked] = useState(false);
+  return (
+    <View className={`flex-row items-center gap-3 px-3 py-3.5 ${last ? "" : "border-b border-hairline"}`}>
+      <View className="h-9 w-9 items-center justify-center rounded-[10px] bg-surface2">
+        <Icon name="Target" size={18} color={COLORS.inkDim} />
+      </View>
+      <View className="flex-1">
+        <Text style={{ fontFamily: FONT.semibold }} className="text-[15px] text-ink" numberOfLines={1}>
+          Native UI check
+        </Text>
+        <Text style={{ fontFamily: FONT.text, lineHeight: 17 }} className="mt-1 text-[12px] text-inkfaint">
+          Phase G probe — @expo/ui on the shipped binary
+        </Text>
+      </View>
+      <NativeUiErrorBoundary>
+        {/* Explicit size so a zero-size native view can't be mistaken for a
+            crash. SwitchProps (build/universal/Switch/types.d.ts) has no
+            direct colour prop — only a platform-specific `modifiers` escape
+            hatch — so this stays stock rather than reaching for that. */}
+        <Host style={{ width: 51, height: 31 }}>
+          <Switch value={checked} onValueChange={setChecked} testID="native-ui-probe-switch" />
+        </Host>
+      </NativeUiErrorBoundary>
+    </View>
   );
 }
 
@@ -259,8 +313,9 @@ export default function SettingsScreen() {
           title="Check for updates"
           subtitle={checkingUpdate ? "Checking…" : "Get the latest fixes and features"}
           onPress={() => void checkForUpdates()}
-          last={!session}
         />
+
+        <NativeUiProbeRow last={!session} />
 
         {session ? (
           <SettingsRow
