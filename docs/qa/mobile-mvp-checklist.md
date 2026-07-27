@@ -65,3 +65,12 @@
 - [ ] Share to IG (export + item detail): photos land in gallery, caption pastes from clipboard, Instagram opens (or web fallback)
 - [ ] Deny photos permission then Share to IG → permission toast, no partial state
 - [ ] Mid-batch save failure (storage full) → no orphan photos in camera roll, honest error toast
+
+## Phase F1 — inventory-first + floating tab bar (device)
+- [ ] Floating bar: sits above the gesture nav, all 4 tabs switch, active tab is acid, nothing clipped behind it at the end of long lists (Inventory, Batches, Settings)
+- [ ] Inventory tab: search narrows across brand/name/category; department chips filter; status chips filter; sort chip cycles Newest → ₱High → ₱Low → Oldest; totals line matches reality; row tap opens item detail
+- [ ] Batches tab: every pre-F1 flow intact — create batch, bale cost, capital recovery, map pin, schedule + reminder fires with alarm, Start now, edit, delete, export/IG share, albums
+- [ ] Free tier: log 25+ items on a Free account — NO paywall appears; Settings shows "Unlimited local inventory"
+- [ ] First run (clear app data): Welcome → onboarding → lands on Inventory tab
+- [ ] Notification tap on a scheduled batch (app killed) still opens that batch; email sign-in link still returns to the app
+- [ ] Vocabulary: no screen says "session" anywhere in user-visible copy

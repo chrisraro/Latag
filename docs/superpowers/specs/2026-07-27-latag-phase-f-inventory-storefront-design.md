@@ -27,7 +27,9 @@ Latag currently promises 8 times across app, landing, and policy that data "neve
 
 Cost, profit, margins, supplier locations, batch data, and unsold stock stay local **permanently**. Only published items go up, carrying only buyer-relevant fields. This is enforced structurally: `shop_items` has **no columns** for cost, profit, location, or batch. Copy on the landing page, privacy page, data page, onboarding, and Settings must be updated to the sharpened promise — no stale absolutes left anywhere.
 
-## 2. F1 — Inventory-first + floating tab bar
+## 2. F1 — Inventory-first + floating tab bar (SHIPPED 2026-07-27)
+
+> DB mapping: the `sessions` table keeps its name; UI copy says "Batches". Android notification channel id stays `session-reminders` (renaming it would orphan the channel on installed devices); only its display name changed.
 
 **No schema change.** Vocabulary + navigation refactor only; the `sessions` table keeps its name (documented mapping: DB `sessions` = UI "Batches"). Migration risk ~zero.
 
