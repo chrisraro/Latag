@@ -87,3 +87,24 @@
 - [ ] INQUIRY (real handsets, one Android + one iPhone): Messenger opens WITH the message pre-filled and un-sent · Instagram opens the DM with the message on the clipboard + toast · Email opens a pre-drafted mail
 - [ ] Desktop: Instagram button shows copyable text instead of dead-ending; shop link pasted into Messenger/FB shows the OG preview card
 - [ ] Privacy copy: no screen or page claims "never uploaded" without the publish caveat
+
+## Phase G2+G3 — solo items + pull-to-refresh (device, THIS OTA)
+- [ ] Quick-add (+ button on the floating tab bar, from any tab): opens "New item" with a "No batch" badge — no batch picker, no invented batch. Departments, wheels, brand picker and photos behave exactly as they do inside a batch
+- [ ] Save that item → returns to the tab you launched from → the item is in Inventory immediately, with its price and photo
+- [ ] Inventory "Loose items" chip: shows only items with no batch; tap again to clear. Batch-logged items are excluded; totals line matches what is on screen
+- [ ] Open a loose item's detail: the Batch row reads "No batch" in faint ink and is NOT tappable (no dead navigation). Edit reopens the same batch-less console; sell, publish, export and delete all work on it
+- [ ] Batch items logged AFTER this update still show their batch name and open the batch when tapped
+- [ ] ~~Pre-update items survive the nullable-batch migration with every field intact~~ — **NOT VERIFIABLE ON THE OWNER'S DEVICE.** App data was cleared during the 2026-07-27 crash recovery, so there is no pre-migration local inventory left to migrate. The zero-loss proof is `tests/schema.test.ts` (fully-populated item + photo + publish_queue child rows round-trip through migration 0005) and the generated SQL was read line by line. Published `shop_items` live on Supabase and are unaffected by any local migration. Run this line on the FIRST device that updates carrying real pre-0005 data — check a published item's LT- code and its photos specifically
+- [ ] Pull-to-refresh on ALL FOUR tabs (Home, Inventory, Batches, Shop): spinner is acid, appears and always clears — including a refresh that finds nothing new
+- [ ] Pull-to-refresh in AIRPLANE MODE on all four tabs: still refreshes (local re-read), spinner clears, no error toast, nothing hangs. Repeat: pull twice in quick succession → no double spinner, no stuck state
+- [ ] Pull-to-refresh on Shop while ONLINE with pending publishes → queue drains, listing state catches up
+- [ ] Tappable toast fires ONCE: Shop setup while signed out → "Sign in first to set up your shop" sticky toast → tap it twice fast → sign-in opens once and the toast dismisses
+- [ ] Vocabulary/regression sweep: nothing on Home, Inventory, Batches or Shop crashes or renders empty after the update; the tab bar is the acid floating bar that shipped before (see deferred note below)
+
+### DEFERRED TO THE NEXT NATIVE BUILD — do NOT QA on this OTA
+A crash inside a Compose or Reanimated view is a native exception on the UI thread: no JS error boundary can catch it and an OTA that crashes on launch cannot be recalled by the device it is crashing (2026-07-27 incident). So `NATIVE_UI_ENABLED` and `NATIVE_ANIMATION_ENABLED` in `apps/mobile/lib/native-ui.ts` are both `false` — the code below is written and unit-tested but never renders over the air. It ships, and gets QA'd, in a native build verified against logcat on a real device.
+- [ ] Native floating toolbar (`HorizontalFloatingToolbar`) — the custom `FloatingTabBar` renders instead today
+- [ ] Native segmented status/sort controls on Inventory — the custom `Chip` row renders instead today
+- [ ] Swipe actions on inventory and batch rows (mark sold, publish/unpublish) — rows are plain rows today; every one of those actions is still reachable from the item screen
+- [ ] "Sold — tap to undo" / "Publishing — tap to undo" toasts — these are raised only by the swipe handlers, so they are unreachable until swipe ships
+- [ ] Entrance stagger, FAB→composer transition, tab cross-fade, and the reduced-motion path — lists render at rest today

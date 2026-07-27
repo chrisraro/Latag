@@ -12,6 +12,7 @@ import {
 } from "@maplibre/maplibre-react-native";
 import type { NativeSyntheticEvent } from "react-native";
 import { FONT, COLORS } from "../lib/theme";
+import { durationFor, useReducedMotion } from "../lib/motion";
 import { resolvePin, searchPlaces, type PickedLocation, type Place } from "../lib/geocode";
 import { showError } from "../lib/toast";
 import { Icon } from "./Icon";
@@ -74,6 +75,7 @@ function PickerModal({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
 
@@ -108,7 +110,9 @@ function PickerModal({
   const flyTo = (lng: number, lat: number) => {
     centerRef.current = [lng, lat];
     pinnedRef.current = true; // a search hit or locate-me IS a deliberate placement
-    cameraRef.current?.flyTo({ center: [lng, lat], zoom: 15, duration: 600 });
+    // Reduced motion turns the flight into a cut: the camera is simply already
+    // there, which is what someone who cannot tolerate a moving map needs.
+    cameraRef.current?.flyTo({ center: [lng, lat], zoom: 15, duration: durationFor("fly", reduced) });
   };
 
   const pickResult = (p: Place) => {

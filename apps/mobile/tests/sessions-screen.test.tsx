@@ -25,17 +25,22 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 jest.mock("../lib/repo", () => ({
   startScheduledSession: jest.fn(() => ({ session: { id: "sch1" }, notificationIds: ["n1", "n2"] })),
+  deleteSession: jest.fn(() => ({ photoUris: ["file://front.jpg"], reminderNotificationIds: ["n7"] })),
 }));
 jest.mock("../lib/notifications", () => ({ cancelReminders: jest.fn(async () => {}) }));
+jest.mock("../lib/media", () => ({ deleteFiles: jest.fn(async () => {}) }));
 jest.mock("../lib/toast", () => ({ showError: jest.fn(), showSuccess: jest.fn() }));
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AppState, type AppStateStatus } from "react-native";
+import { Alert, AppState, type AppStateStatus } from "react-native";
 import { db } from "../db/client";
 import { sessions, items } from "../db/schema";
-import { startScheduledSession } from "../lib/repo";
+import { deleteSession, startScheduledSession } from "../lib/repo";
 import { cancelReminders } from "../lib/notifications";
+import { deleteFiles } from "../lib/media";
 import { showSuccess } from "../lib/toast";
+import { SwipeRow, type SwipeBinding } from "../components/SwipeRow";
+import type { BatchActionKey } from "../lib/swipe-actions";
 import SessionsScreen from "../app/(tabs)/batches";
 
 const MIN = 60_000;
@@ -223,6 +228,78 @@ test("countdowns refresh the moment the app returns to the foreground", async ()
     expect(texts(t)).toContain("in 15m");
   } finally {
     jest.useRealTimers();
+    spy.mockRestore();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Swipe actions (G3)
+//
+// `SwipeRow` falls back to a plain card under Jest — Reanimated's native side
+// isn't there to require — so the drag itself can't be performed here. What
+// matters anyway is the wiring: which actions a card is handed, and that the
+// destructive one cannot fire without an answer to a dialog.
+// ---------------------------------------------------------------------------
+
+const swipeBindings = (t: ReactTestRenderer, index = 0) =>
+  t.root.findAllByType(SwipeRow as any)[index].props.actions as SwipeBinding<BatchActionKey>[];
+
+function swipe(t: ReactTestRenderer, key: BatchActionKey, index = 0): void {
+  const action = swipeBindings(t, index).find((a) => a.key === key);
+  if (!action) throw new Error(`card ${index} has no ${key} action`);
+  act(() => { action.onPress(); });
+}
+
+/** Answers the most recent Alert by pressing the button with this label. */
+function confirmAlert(label: string): void {
+  const alertMock = Alert.alert as unknown as jest.Mock;
+  expect(alertMock).toHaveBeenCalled();
+  const buttons = alertMock.mock.calls[alertMock.mock.calls.length - 1][2] as { text: string; onPress?: () => void }[];
+  const button = buttons.find((b) => b.text === label);
+  expect(button).toBeDefined();
+  act(() => { button!.onPress?.(); });
+}
+
+test("a live batch card carries an Add item and a Delete action", async () => {
+  insertSession();
+  const t = await render();
+  expect(swipeBindings(t).map((a) => a.key)).toEqual(["addItem", "deleteBatch"]);
+});
+
+test("swiping Add item opens the batch's console", async () => {
+  insertSession();
+  const t = await render();
+  swipe(t, "addItem");
+  expect(mockPush).toHaveBeenCalledWith("/session/s1/add");
+});
+
+// A stray drag must never take a batch — and its items and photos — with it.
+test("swiping Delete asks first and does nothing if you cancel", async () => {
+  const spy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  try {
+    insertSession();
+    const t = await render();
+    swipe(t, "deleteBatch");
+    expect(deleteSession).not.toHaveBeenCalled();
+    confirmAlert("Cancel");
+    expect(deleteSession).not.toHaveBeenCalled();
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test("confirming the delete removes the batch, its photo files and its reminders", async () => {
+  const spy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  try {
+    insertSession();
+    const t = await render();
+    swipe(t, "deleteBatch");
+    confirmAlert("Delete");
+    expect(deleteSession).toHaveBeenCalledWith(expect.anything(), "s1");
+    expect(deleteFiles).toHaveBeenCalledWith(["file://front.jpg"]);
+    expect(cancelReminders).toHaveBeenCalledWith(["n7"]);
+    expect(showSuccess).toHaveBeenCalledWith("Batch deleted");
+  } finally {
     spy.mockRestore();
   }
 });

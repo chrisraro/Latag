@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, Pressable, ScrollView, Text, View } from "react-native";
+import { AppState, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,7 +12,7 @@ import { entitlements, items, photos, publishQueue, sessions, type Item, type Se
 import { nextScheduled, recentItems, snapshot } from "../../lib/overview";
 import { formatPeso } from "../../lib/format";
 import { formatCountdown, formatScheduleStamp } from "../../lib/schedule";
-import { MAX_ATTEMPTS, pendingLabel } from "../../lib/shop-sync";
+import { MAX_ATTEMPTS, kickSync, pendingLabel } from "../../lib/shop-sync";
 import { cacheShop, cachedShop, getMyShop, shopUrl, shopUrlLabel, type ShopProfile } from "../../lib/shop-api";
 import { startScheduledSession } from "../../lib/repo";
 import { cancelReminders } from "../../lib/notifications";
@@ -24,6 +24,8 @@ import { Icon, type IconName } from "../../components/Icon";
 import { GoProSheet } from "../../components/GoProSheet";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
+import { REFRESH_TINT, settle, useRefresh } from "../../lib/refresh";
+import { EnterView } from "../../lib/motion";
 
 /**
  * Home — the business snapshot you open every morning, not a feed.
@@ -90,6 +92,9 @@ export default function HomeScreen() {
   // Countdown clock: re-render every 30s while something is scheduled, so
   // "in 45m" stays honest without any data change.
   const [now, setNow] = useState(() => new Date());
+  // Bumped by a pull-to-refresh; it is the dependency of every live query below,
+  // so changing it re-runs each read against the file on disk.
+  const [reread, setReread] = useState(0);
 
   useTabScrollToTop("index", useCallback(() => {
     if (!scrollRef.current) return false;
@@ -97,15 +102,15 @@ export default function HomeScreen() {
     return true;
   }, []));
 
-  const { data: itemRows } = useLiveQuery(db.select().from(items).orderBy(desc(items.createdAt)), []);
-  const { data: photoRows } = useLiveQuery(db.select().from(photos), []);
-  const { data: scheduledRows } = useLiveQuery(db.select().from(sessions).where(isNotNull(sessions.scheduledAt)), []);
+  const { data: itemRows } = useLiveQuery(db.select().from(items).orderBy(desc(items.createdAt)), [reread]);
+  const { data: photoRows } = useLiveQuery(db.select().from(photos), [reread]);
+  const { data: scheduledRows } = useLiveQuery(db.select().from(sessions).where(isNotNull(sessions.scheduledAt)), [reread]);
   const { data: liveSessionRows } = useLiveQuery(
     db.select().from(sessions).where(isNull(sessions.scheduledAt)).orderBy(desc(sessions.createdAt)),
-    [],
+    [reread],
   );
-  const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
-  const { data: queueRows } = useLiveQuery(db.select().from(publishQueue), []);
+  const { data: entRows } = useLiveQuery(db.select().from(entitlements), [reread]);
+  const { data: queueRows } = useLiveQuery(db.select().from(publishQueue), [reread]);
 
   const all = useMemo(() => itemRows ?? [], [itemRows]);
   const snap = useMemo(() => snapshot(all, now), [all, now]);
@@ -119,6 +124,7 @@ export default function HomeScreen() {
   const pro = entRows?.[0]?.pro === true;
   const published = all.filter((i) => i.publishedAt !== null);
   const queue = queueRows ?? [];
+  const queued = queue.length; // a row can only exist once a shop does
   const pending = queue.filter((q) => q.attempts < MAX_ATTEMPTS).length;
   const latestBatch: Session | undefined = liveSessionRows?.[0];
 
@@ -158,6 +164,18 @@ export default function HomeScreen() {
   // Refetch on focus so a save in /shop/setup shows here the moment it closes.
   useFocusEffect(useCallback(() => { if (pro) void loadShop(); }, [pro, loadShop]));
 
+  // Pull-to-refresh: re-read the local tables, re-mint the countdowns, nudge the
+  // outbox if anything is waiting, and re-fetch the shop card. All of it works
+  // offline — the queue finds nothing sendable and the shop falls back to cache.
+  const { refreshing, onRefresh } = useRefresh(
+    useCallback(async () => {
+      setReread((n) => n + 1);
+      setNow(new Date());
+      if (queued > 0) kickSync(db); // fire-and-forget by contract; never awaited
+      await Promise.all([pro ? loadShop() : Promise.resolve(), settle()]);
+    }, [pro, loadShop, queued]),
+  );
+
   const startNow = (s: Session) => {
     if (startGuard.current) return;
     startGuard.current = true;
@@ -189,6 +207,7 @@ export default function HomeScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...REFRESH_TINT} />}
       >
         {/* --- Snapshot ------------------------------------------------- */}
         <View className="mt-1 border border-hairline bg-surface1" style={CARD}>
@@ -321,22 +340,25 @@ export default function HomeScreen() {
               style={{ flexGrow: 0 }}
               contentContainerStyle={{ gap: 10, paddingRight: 4 }}
             >
-              {recent.map((item: Item) => {
+              {/* `recentItems` caps this at 8, which is the stagger's cap too —
+                  the whole strip arrives inside a third of a second. */}
+              {recent.map((item: Item, index: number) => {
                 const uri = thumbs.get(item.id) ?? null;
                 return (
-                  <Pressable
-                    key={item.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={item.brand}
-                    onPress={() => router.push(`/item/${item.id}`)}
-                    className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}
-                  >
-                    {uri ? (
-                      <Image source={{ uri }} recyclingKey={uri} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
-                    ) : (
-                      <Text style={{ fontFamily: FONT.bold }} className="text-[20px] text-inkfaint">{item.brand[0]}</Text>
-                    )}
-                  </Pressable>
+                  <EnterView key={item.id} index={index}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={item.brand}
+                      onPress={() => router.push(`/item/${item.id}`)}
+                      className={`h-16 w-16 items-center justify-center rounded-[10px] border border-hairline bg-surface2 ${item.status === "sold" ? "opacity-45" : ""}`}
+                    >
+                      {uri ? (
+                        <Image source={{ uri }} recyclingKey={uri} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" />
+                      ) : (
+                        <Text style={{ fontFamily: FONT.bold }} className="text-[20px] text-inkfaint">{item.brand[0]}</Text>
+                      )}
+                    </Pressable>
+                  </EnterView>
                 );
               })}
             </ScrollView>

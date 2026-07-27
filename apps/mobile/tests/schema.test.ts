@@ -195,3 +195,112 @@ test("migration rebuild preserves pre-existing item rows (zero data loss)", () =
   expect(queued.last_error).toBeNull();
   sqlite.close();
 });
+
+test("G2 T1: session_id-nullable rebuild preserves a fully populated item + child rows (zero data loss)", () => {
+  const drizzleDir = path.join(__dirname, "..", "drizzle");
+  const journal = JSON.parse(fs.readFileSync(path.join(drizzleDir, "meta/_journal.json"), "utf8")) as { entries: { tag: string }[] };
+  const tags: string[] = journal.entries.map((e) => e.tag);
+  // Today's head is 0000..0004 (5 migrations). G2 T1 adds the session_id-nullable
+  // rebuild as a 6th — this assertion is the RED: it fails until that migration exists.
+  expect(tags.length).toBeGreaterThanOrEqual(6);
+
+  const sqlite = new Database(":memory:");
+  // Apply every migration up to today's head — i.e. the shape the item table has
+  // on a real device right now, BEFORE the session_id rebuild.
+  const headTags = tags.slice(0, 5);
+  for (const tag of headTags) {
+    sqlite.exec(fs.readFileSync(path.join(drizzleDir, `${tag}.sql`), "utf8"));
+  }
+
+  const createdAt = 1700000000;
+  const soldAt = 1700000100;
+  const publishedAt = 1700000200;
+  const queuedAt = 1700000300;
+
+  sqlite.prepare(
+    "INSERT INTO sessions (id, name, type, total_bale_cost, location, created_at) VALUES ('s1', 'Naga Run', 'bulto', 10000, 'Naga', ?)"
+  ).run(createdAt);
+
+  // Every column that exists at today's head, fully populated — nothing left null
+  // except columns that are mutually exclusive by department (n/a here, all set).
+  sqlite.prepare(`
+    INSERT INTO items (
+      id, session_id, brand, name, department, category,
+      ptp_inches, length_inches, sleeve_inches, waist_inches, inseam_inches, rise_inches,
+      leg_opening_inches, shoe_size_us, insole_cm, width_inches, height_inches, depth_inches,
+      strap_drop_inches, size_note, condition, individual_cost, target_sell_price, status,
+      sold_price, sold_at, created_at, published_at, shop_code, photo_sync
+    ) VALUES (
+      'i1', 's1', 'Carhartt', 'Detroit Jacket', 'tops', 'Jacket',
+      24.5, 29, 25.5, 40, 31, 11,
+      20, 10.5, 27.5, 12, 8, 4,
+      1.5, 'Wide fit', '9/10', 120, 950, 'sold',
+      900, ?, ?, ?, 'LT-7K2Q9', '{"k":["file:///a.jpg"],"u":["https://x/a.jpg"]}'
+    )
+  `).run(soldAt, createdAt, publishedAt);
+
+  sqlite.prepare(
+    "INSERT INTO photos (id, item_id, local_uri, type) VALUES ('p1', 'i1', 'file:///x/a.jpg', 'front')"
+  ).run();
+  sqlite.prepare(
+    "INSERT INTO publish_queue (id, item_id, op, attempts, last_error, created_at) VALUES ('q1', 'i1', 'upsert', 2, 'timeout', ?)"
+  ).run(queuedAt);
+
+  // Apply the remaining migrations, including the session_id-nullable rebuild.
+  for (const tag of tags.slice(5)) {
+    sqlite.exec(fs.readFileSync(path.join(drizzleDir, `${tag}.sql`), "utf8"));
+  }
+
+  const row = sqlite.prepare("SELECT * FROM items WHERE id = 'i1'").get() as Record<string, unknown>;
+  expect(row.session_id).toBe("s1");
+  expect(row.brand).toBe("Carhartt");
+  expect(row.name).toBe("Detroit Jacket");
+  expect(row.department).toBe("tops");
+  expect(row.category).toBe("Jacket");
+  expect(row.ptp_inches).toBe(24.5);
+  expect(row.length_inches).toBe(29);
+  expect(row.sleeve_inches).toBe(25.5);
+  expect(row.waist_inches).toBe(40);
+  expect(row.inseam_inches).toBe(31);
+  expect(row.rise_inches).toBe(11);
+  expect(row.leg_opening_inches).toBe(20);
+  expect(row.shoe_size_us).toBe(10.5);
+  expect(row.insole_cm).toBe(27.5);
+  expect(row.width_inches).toBe(12);
+  expect(row.height_inches).toBe(8);
+  expect(row.depth_inches).toBe(4);
+  expect(row.strap_drop_inches).toBe(1.5);
+  expect(row.size_note).toBe("Wide fit");
+  expect(row.condition).toBe("9/10");
+  expect(row.individual_cost).toBe(120);
+  expect(row.target_sell_price).toBe(950);
+  expect(row.status).toBe("sold");
+  expect(row.sold_price).toBe(900);
+  expect(row.sold_at).toBe(soldAt);
+  expect(row.created_at).toBe(createdAt);
+  expect(row.published_at).toBe(publishedAt);
+  expect(row.shop_code).toBe("LT-7K2Q9");
+  expect(row.photo_sync).toBe('{"k":["file:///a.jpg"],"u":["https://x/a.jpg"]}');
+
+  const photoRow = sqlite.prepare("SELECT * FROM photos WHERE id = 'p1'").get() as Record<string, unknown>;
+  expect(photoRow.item_id).toBe("i1");
+  expect(photoRow.local_uri).toBe("file:///x/a.jpg");
+  expect(photoRow.type).toBe("front");
+
+  const queueRow = sqlite.prepare("SELECT * FROM publish_queue WHERE id = 'q1'").get() as Record<string, unknown>;
+  expect(queueRow.item_id).toBe("i1");
+  expect(queueRow.op).toBe("upsert");
+  expect(queueRow.attempts).toBe(2);
+  expect(queueRow.last_error).toBe("timeout");
+  expect(queueRow.created_at).toBe(queuedAt);
+
+  // The rebuilt table must still accept a NULL session_id — that's the entire
+  // point of this migration.
+  sqlite.prepare(
+    "INSERT INTO items (id, session_id, brand, department, category, condition, individual_cost, target_sell_price, status, created_at) VALUES ('i2', NULL, 'Loose Brand', 'tops', 'Tee', '9/10', 0, 200, 'available', ?)"
+  ).run(createdAt);
+  const looseRow = sqlite.prepare("SELECT * FROM items WHERE id = 'i2'").get() as Record<string, unknown>;
+  expect(looseRow.session_id).toBeNull();
+
+  sqlite.close();
+});

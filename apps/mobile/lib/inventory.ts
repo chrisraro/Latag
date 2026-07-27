@@ -6,11 +6,19 @@ export type InvStatus = "all" | "available" | "sold";
 /** Sort modes the inventory sort chip cycles through. */
 export type InvSort = "newest" | "oldest" | "price-high" | "price-low";
 
+/**
+ * Batch facet. `none` is the **Loose items** chip: rows logged straight into
+ * inventory with no batch behind them (G2 made `items.sessionId` nullable).
+ * There is deliberately no "in a batch" value — Batches already answers that.
+ */
+export type InvBatch = "all" | "none";
+
 /** The complete filter state of the Inventory screen. */
 export type InvFilter = {
   query: string;
   department: Department | "all";
   status: InvStatus;
+  batch: InvBatch;
   sort: InvSort;
 };
 
@@ -26,6 +34,7 @@ type InvItem = {
   status: "available" | "sold";
   targetSellPrice: number;
   soldPrice: number | null;
+  sessionId: string | null;
   createdAt: Date;
 };
 
@@ -33,6 +42,7 @@ export const DEFAULT_FILTER: InvFilter = {
   query: "",
   department: "all",
   status: "all",
+  batch: "all",
   sort: "newest",
 };
 
@@ -54,7 +64,8 @@ export function filterItems<T extends InvItem>(items: T[], f: InvFilter): T[] {
     (i) =>
       (needle === "" || matchesQuery(i, needle)) &&
       (f.department === "all" || i.department === f.department) &&
-      (f.status === "all" || i.status === f.status),
+      (f.status === "all" || i.status === f.status) &&
+      (f.batch === "all" || i.sessionId == null),
   );
   return filtered.sort((a, b) => {
     switch (f.sort) {
