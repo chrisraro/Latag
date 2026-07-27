@@ -19,7 +19,6 @@ import { forgetUploadedPhotos } from "../../lib/shop-sync";
 import { FONT, COLORS } from "../../lib/theme";
 import { FieldLabel } from "../../components/ui";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
-import { useTabScrollToTop } from "../../lib/tab-scroll";
 import { AppHead } from "../../components/AppHead";
 import { Icon, type IconName } from "../../components/Icon";
 
@@ -150,11 +149,6 @@ export default function SettingsScreen() {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [usage, setUsage] = useState({ count: 0, bytes: 0, label: "0 B" });
   const scrollRef = useRef<ScrollView>(null);
-  useTabScrollToTop("settings", useCallback(() => {
-    if (!scrollRef.current) return false;
-    scrollRef.current.scrollTo({ y: 0, animated: true });
-    return true;
-  }, []));
   const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
   const ent = entRows?.[0];
 
