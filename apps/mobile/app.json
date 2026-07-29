@@ -12,7 +12,6 @@
     },
     "updates": {
       "url": "https://u.expo.dev/465e3d82-c739-4bf8-ab14-8cb7869b4535",
-      "checkAutomatically": "ALWAYS",
       "fallbackToCacheTimeout": 0
     },
     "ios": {
