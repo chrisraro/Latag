@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { db } from "../db/client";
 import { items } from "../db/schema";
 import { fetchLicense, applyLicense, clearLicense } from "./license";
+import { ensureEntitlements } from "./entitlements";
 import { loginRevenueCat, checkProStatus, isRevenueCatConfigured } from "./purchases";
 import { showSuccess } from "./toast";
 import { restorePublishedItems } from "./shop-restore";
@@ -88,11 +89,11 @@ async function fallbackLicenseFetch(accessToken: string): Promise<void> {
     applyLicense(db, { receipt: res.receipt, expiresAt: res.expiresAt });
     showSuccess("Pro active — yours while subscribed");
   } else if (res.kind === "none") {
-    // If RevenueCat is configured but the SDK was unavailable (embedded
-    // build may not have the native module), don't wipe the cached
-    // license — the subscription lives in RC, not the licenses table.
-    if (isRevenueCatConfigured()) {
-      showSuccess("Signed in — checking Pro status via Apple/Google…");
+    // Don't wipe a cached Pro license — the user may have a RevenueCat
+    // subscription that hasn't synced to the licenses table yet.
+    const existing = ensureEntitlements(db);
+    if (existing.pro) {
+      showSuccess("Signed in — couldn't verify Pro with the server, but your existing license is preserved.");
     } else {
       clearLicense(db);
       showSuccess("Signed in — no Pro subscription on this account yet");
