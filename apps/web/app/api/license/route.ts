@@ -2,10 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { issueReceipt } from "@/lib/licensing";
+import { PRO_SKUS } from "@latag/licensing";
 
 export const dynamic = "force-dynamic";
-
-const PRO_SKU = "latag-pro-lifetime";
 
 /**
  * GET /api/license — the mobile app's source of truth for its Pro unlock.
@@ -49,10 +48,10 @@ export async function GET(request: NextRequest) {
 
   const { data: license, error: licenseError } = await admin
     .from("licenses")
-    .select("sku,status,granted_at")
+    .select("sku,status,granted_at,expires_at")
     .eq("user_id", userId)
-    .eq("sku", PRO_SKU)
-    .eq("status", "active")
+    .in("sku", PRO_SKUS)
+    .in("status", ["active", "past_due"])
     .maybeSingle();
 
   if (licenseError) {
@@ -69,10 +68,24 @@ export async function GET(request: NextRequest) {
   }
 
   const grantedAt = new Date(license.granted_at).toISOString();
+  const expiresAt = license.expires_at ? new Date(license.expires_at).toISOString() : null;
   const receipt = issueReceipt({ userId, sku: license.sku, grantedAt }, secret);
 
+  // Check if the subscription has expired (expires_at in the past while still in DB as "active")
+  const isExpired = expiresAt && Date.parse(expiresAt) < Date.now();
+  if (isExpired && license.status === "active") {
+    // Update status to expired in background (fire-and-forget)
+    admin.from("licenses").update({ status: "expired" }).eq("id", license.id).catch(() => {});
+    return NextResponse.json({ license: null }, { status: 404 });
+  }
+
   return NextResponse.json({
-    license: { sku: license.sku, status: license.status, grantedAt },
+    license: {
+      sku: license.sku,
+      status: license.status,
+      grantedAt,
+      expiresAt,
+    },
     receipt,
   });
 }

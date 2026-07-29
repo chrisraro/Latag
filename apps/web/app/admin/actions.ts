@@ -4,10 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-gate";
+import { PRO_SKUS } from "@latag/licensing";
 
 type ActionResult = { error: string } | { error?: undefined };
-
-const PRO_SKU = "latag-pro-lifetime";
 
 const FEEDBACK_STATUSES = ["new", "reviewed", "done"] as const;
 type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
@@ -58,7 +57,7 @@ export async function grantPro(userId: string): Promise<ActionResult> {
   const admin = createAdminSupabase();
   const { error } = await admin
     .from("licenses")
-    .insert({ user_id: userId, sku: PRO_SKU, status: "active" });
+    .insert({ user_id: userId, sku: PRO_SKUS[0], status: "active" });
 
   if (error && error.code !== "23505") {
     return toUserFacingError("grantPro", "Couldn't grant Pro access — try again", error);
@@ -78,7 +77,7 @@ export async function revokePro(userId: string): Promise<ActionResult> {
     .from("licenses")
     .update({ status: "revoked" })
     .eq("user_id", userId)
-    .eq("sku", PRO_SKU)
+    .in("sku", PRO_SKUS)
     .eq("status", "active");
 
   if (error) return toUserFacingError("revokePro", "Couldn't revoke Pro access — try again", error);
