@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View, Text, Pressable, ScrollView } from "react-native";
-import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import * as DocumentPicker from "expo-document-picker";
-import Constants from "expo-constants";
-import * as Updates from "expo-updates";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
 import { db } from "../../db/client";
 import { entitlements } from "../../db/schema";
@@ -15,10 +11,7 @@ import { fetchLicense, applyLicense, clearLicense } from "../../lib/license";
 import { ensureEntitlements } from "../../lib/entitlements";
 import { checkProStatus, loginRevenueCat, isRevenueCatConfigured, restorePurchases } from "../../lib/purchases";
 import type { ProStatus } from "../../lib/purchases";
-import { getMediaUsage } from "../../lib/storage-usage";
-import { exportBackup, readBackupFile, restoreBackup } from "../../lib/backup";
 import { showSuccess, showError } from "../../lib/toast";
-import { runUpdateCheck, versionLabel } from "../../lib/updates";
 import { forgetUploadedPhotos } from "../../lib/shop-sync";
 import { FONT, COLORS } from "../../lib/theme";
 import { FieldLabel } from "../../components/ui";
@@ -125,7 +118,14 @@ export default function SettingsScreen() {
   }, []);
 
   useEffect(() => {
-    getMediaUsage().then(setUsage);
+    (async () => {
+      try {
+        const { getMediaUsage } = await import("../../lib/storage-usage");
+        setUsage(await getMediaUsage());
+      } catch {
+        // Native module not available (OTA before rebuild)
+      }
+    })();
   }, []);
 
   // --- License refresh ---
@@ -195,7 +195,12 @@ export default function SettingsScreen() {
 
   // --- Restore purchases ---
   const handleRestore = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const Haptics = await import("expo-haptics");
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {
+      // expo-haptics not in build yet
+    }
     const result = await restorePurchases();
     if (result.kind === "restored") {
       const pro = result.customerInfo.entitlements.active["pro"];
@@ -216,12 +221,15 @@ export default function SettingsScreen() {
     if (exporting) return;
     setExporting(true);
     try {
+      const { exportBackup } = await import("../../lib/backup");
       const result = await exportBackup();
       if (result.ok) {
         showSuccess("Backup exported — share it to save to another device");
       } else {
         showError(`Export failed: ${result.error}`);
       }
+    } catch {
+      showError("Export not available — upgrade the app to enable backup");
     } finally {
       setExporting(false);
     }
@@ -242,6 +250,7 @@ export default function SettingsScreen() {
           onPress: async () => {
             setImporting(true);
             try {
+              const DocumentPicker = await import("expo-document-picker");
               const result = await DocumentPicker.getDocumentAsync({
                 type: "application/json",
                 copyToCacheDirectory: true,
@@ -252,6 +261,7 @@ export default function SettingsScreen() {
                 return;
               }
 
+              const { readBackupFile, restoreBackup } = await import("../../lib/backup");
               const readResult = await readBackupFile(result.assets[0].uri);
               if (!readResult.ok) {
                 showError(`Invalid backup: ${readResult.error}`);
@@ -264,11 +274,12 @@ export default function SettingsScreen() {
                   .map(([k, v]) => `${v} ${k}`)
                   .join(", ");
                 showSuccess(`Restored: ${counts}`);
-                // Refresh the screen to reflect new data
                 setReread((n) => n + 1);
               } else {
                 showError(`Restore failed: ${restoreResult.error}`);
               }
+            } catch {
+              showError("Import not available — upgrade the app to enable backup");
             } finally {
               setImporting(false);
             }
@@ -283,6 +294,8 @@ export default function SettingsScreen() {
     if (checkingUpdate) return;
     setCheckingUpdate(true);
     try {
+      const { runUpdateCheck, versionLabel } = await import("../../lib/updates");
+      const Updates = await import("expo-updates");
       const phase = await runUpdateCheck({
         isDev: __DEV__,
         check: () => Updates.checkForUpdateAsync(),
@@ -295,6 +308,8 @@ export default function SettingsScreen() {
       } else if (phase === "error") {
         showError("Couldn't check — are you online?");
       }
+    } catch {
+      showError("Version check unavailable");
     } finally {
       setCheckingUpdate(false);
     }
@@ -302,8 +317,23 @@ export default function SettingsScreen() {
 
   if (!ent) return null;
 
-  const version = Constants.expoConfig?.version ?? "1.0.0";
-  const currentVersionLabel = versionLabel(version, Updates.isEmbeddedLaunch ? null : Updates.updateId);
+  // --- Version string (lazy — expo-constants may not be in old builds) ---
+  const [version, setVersion] = useState("1.0.0");
+  const [currentVersionLabel, setCurrentVersionLabel] = useState("v1.0.0 · embedded");
+  useEffect(() => {
+    (async () => {
+      try {
+        const Constants = await import("expo-constants");
+        const Updates = await import("expo-updates");
+        const { versionLabel } = await import("../../lib/updates");
+        const ver = Constants.default.expoConfig?.version ?? "1.0.0";
+        setVersion(ver);
+        setCurrentVersionLabel(versionLabel(ver, Updates.default.isEmbeddedLaunch ? null : Updates.default.updateId));
+      } catch {
+        // Keep defaults
+      }
+    })();
+  }, []);
 
   // Build the Pro subtitle based on cached entitlement + subscription label
   const proSubtitle = ent.pro
@@ -316,7 +346,7 @@ export default function SettingsScreen() {
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
       <AppHead title="Settings" />
 
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} className="flex-1">
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} className="flex-1" key={reread}>
         <FieldLabel>Account</FieldLabel>
         <SettingsRow
           icon="EnvelopeSimple"
