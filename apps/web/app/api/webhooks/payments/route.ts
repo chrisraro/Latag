@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       amount: 499,
       currency: "PHP",
       status: "paid",
-    }).catch(() => {});
+    });
   }
 
   return NextResponse.json({ received: true });

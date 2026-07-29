@@ -132,8 +132,7 @@ export async function POST(request: NextRequest) {
             amount: price,
             currency: "PHP",
             status: "paid",
-          })
-          .catch(() => {});
+          });
 
         break;
       }
