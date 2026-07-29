@@ -3,17 +3,16 @@ import { notFound } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-gate";
-import { Badge, SectionTitle } from "@/components/ui";
-import { GrantRevokeForm } from "./GrantRevokeForm";
+import { SectionTitle } from "@/components/ui";
+import { UsersTable } from "./UsersTable";
 import { PriceRow } from "./PriceRow";
 import { FeedbackRow } from "./FeedbackRow";
 import { FlagRow } from "./FlagRow";
 import { AddFlagForm } from "./AddFlagForm";
+import { PRO_SKUS } from "@latag/licensing";
 
 export const metadata: Metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
-
-const PRO_SKU = "latag-pro-lifetime";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
@@ -53,7 +52,7 @@ export default async function AdminPage() {
   const flags = flagsResult.data ?? [];
 
   const activeProUserIds = new Set(
-    licenses.filter((license) => license.sku === PRO_SKU && license.status === "active").map((license) => license.user_id)
+    licenses.filter((license) => PRO_SKUS.includes(license.sku) && license.status === "active").map((license) => license.user_id)
   );
 
   return (
@@ -62,41 +61,8 @@ export default async function AdminPage() {
 
       <section aria-labelledby="users-heading" className="mt-10">
         <SectionTitle id="users-heading">Users</SectionTitle>
-        <div className="mt-5 overflow-x-auto rounded-2xl border border-hairline bg-surface1">
-          <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-hairline text-xs uppercase tracking-wide text-inkfaint">
-                <th className="px-5 py-4 font-normal">Email</th>
-                <th className="px-5 py-4 font-normal">Created</th>
-                <th className="px-5 py-4 font-normal">License</th>
-                <th className="px-5 py-4 text-right font-normal">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => {
-                const isPro = activeProUserIds.has(u.id);
-                return (
-                  <tr key={u.id} className="border-b border-hairline last:border-0">
-                    <td className="px-5 py-4 text-ink">{u.email ?? "—"}</td>
-                    <td className="tnum px-5 py-4 text-inkdim">{formatDate(u.created_at)}</td>
-                    <td className="px-5 py-4">
-                      {isPro ? <Badge>PRO</Badge> : <span className="text-inkfaint">Free</span>}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <GrantRevokeForm userId={u.id} isPro={isPro} />
-                    </td>
-                  </tr>
-                );
-              })}
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-5 py-6 text-center text-inkfaint">
-                    No users yet.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+        <div className="mt-5">
+          <UsersTable users={users} activeProUserIds={activeProUserIds} />
         </div>
       </section>
 
