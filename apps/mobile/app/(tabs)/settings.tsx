@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { Alert, View, Text, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
+import * as DocumentPicker from "expo-document-picker";
 import Constants from "expo-constants";
 import * as Updates from "expo-updates";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
@@ -11,7 +12,9 @@ import { entitlements } from "../../db/schema";
 import { supabase } from "../../lib/supabase";
 import { fetchLicense, applyLicense, clearLicense } from "../../lib/license";
 import { ensureEntitlements } from "../../lib/entitlements";
+import { checkProStatus, loginRevenueCat, isRevenueCatConfigured, restorePurchases, type ProStatus } from "../../lib/purchases";
 import { getMediaUsage } from "../../lib/storage-usage";
+import { exportBackup, readBackupFile, restoreBackup } from "../../lib/backup";
 import { showSuccess, showError } from "../../lib/toast";
 import { runUpdateCheck, versionLabel } from "../../lib/updates";
 import { forgetUploadedPhotos } from "../../lib/shop-sync";
@@ -22,12 +25,6 @@ import { AppHead } from "../../components/AppHead";
 import { Icon, type IconName } from "../../components/Icon";
 
 type Tone = "default" | "acid" | "danger";
-
-function toneClass(tone: Tone | undefined, base: string): string {
-  if (tone === "acid") return "text-acid";
-  if (tone === "danger") return "text-danger";
-  return base;
-}
 
 function toneColor(tone: Tone | undefined): string {
   if (tone === "acid") return COLORS.acid;
@@ -57,9 +54,6 @@ function SettingsRow({
   onPress?: () => void;
   chevron?: boolean;
   last?: boolean;
-  /** Suppress the row's own vertical padding — for callers that wrap the row
-   * (plus extra content, e.g. a link below it) in their own padded/bordered
-   * container, so the two don't stack into double padding. */
   noPadding?: boolean;
 }) {
   const Wrapper = (onPress ? Pressable : View) as typeof Pressable;
@@ -72,7 +66,7 @@ function SettingsRow({
         <Icon name={icon} size={18} color={toneColor(iconTone)} />
       </View>
       <View className="flex-1">
-        <Text style={{ fontFamily: FONT.semibold }} className={`text-[15px] ${toneClass(titleTone, "text-ink")}`} numberOfLines={1}>{title}</Text>
+        <Text style={{ fontFamily: FONT.semibold }} className={`text-[15px] ${titleTone === "acid" ? "text-acid" : titleTone === "danger" ? "text-danger" : "text-ink"}`} numberOfLines={1}>{title}</Text>
         {subtitle ? (
           <Text
             style={{ fontFamily: FONT.text, fontVariant: subtitleTnum ? ["tabular-nums"] : undefined, lineHeight: 17 }}
@@ -87,11 +81,37 @@ function SettingsRow({
   );
 }
 
-// The Phase G native-UI probe lived here. It is gone along with its
-// `import { Host, Switch } from "@expo/ui"` — a module-scope import of that
-// package runs `requireNativeView` while the route is being registered, which
-// is both the earliest and the least catchable moment it could fail. See
-// lib/native-ui.ts for the crash that made this rule non-negotiable.
+/** Restore purchases — looks up the user's App Store / Play Store history. */
+const handleRestore = async () => {
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const result = await restorePurchases();
+  if (result.kind === "restored") {
+    const pro = result.customerInfo.entitlements.active["pro"];
+    if (pro) {
+      applyLicense(db, { receipt: "rc_restored", expiresAt: pro.expirationDate ?? null });
+      setSubscriptionLabel(formatExpiry(pro.expirationDate ?? null));
+    }
+    showSuccess("Purchases restored — Pro is active again");
+  } else if (result.kind === "nothing") {
+    showSuccess("No previous purchases to restore on this account");
+  } else {
+    showError("Couldn't restore purchases — check your internet and try again");
+  }
+};
+
+/** Format a date for the subscription status display. */
+function formatExpiry(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const now = Date.now();
+  const diff = d.getTime() - now;
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const dateStr = d.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+  if (days > 30) return `Renews ${dateStr}`;
+  if (days > 0) return `${days} day${days === 1 ? "" : "s"} left · ${dateStr}`;
+  if (days === 0) return "Expires today";
+  return "Expired";
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -100,20 +120,20 @@ export default function SettingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [usage, setUsage] = useState({ count: 0, bytes: 0, label: "0 B" });
+  const [subscriptionLabel, setSubscriptionLabel] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [reread, setReread] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
   const ent = entRows?.[0];
 
-  // ensureEntitlements is a write; it must never run during render (React may
-  // call render more than once per commit). Do it as a post-render effect —
-  // the live query then picks up the newly-inserted row on its own.
+  // ensureEntitlements is a write; it must never run during render.
   useEffect(() => {
     if (entRows && !entRows[0]) ensureEntitlements(db);
   }, [entRows]);
 
-  // Keep the account row fresh across sign-in/out without a manual poll — the
-  // initial getSession() covers a cold mount, onAuthStateChange covers changes
-  // made elsewhere (e.g. the sign-in screen) while Settings stays mounted.
+  // Keep the account row fresh across sign-in/out.
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
@@ -124,15 +144,11 @@ export default function SettingsScreen() {
     getMediaUsage().then(setUsage);
   }, []);
 
-  // Mirrors completeSignIn's three-branch license handling (lib/auth-complete.ts)
-  // minus the navigation — this is a manual refresh, not a post-sign-in step.
+  // --- License refresh ---
   const refreshLicense = useCallback(async () => {
     if (refreshing || !session) return;
     setRefreshing(true);
     try {
-      // Always resolve a fresh session here rather than trusting the token in
-      // component state — getSession() transparently refreshes an expired
-      // access token, so a manual refresh tap can't fail on a stale token.
       const {
         data: { session: freshSession },
       } = await supabase.auth.getSession();
@@ -140,13 +156,39 @@ export default function SettingsScreen() {
         showError("Sign in first to check your license");
         return;
       }
+
+      // 1. Try RevenueCat entitlement first
+      if (isRevenueCatConfigured()) {
+        await loginRevenueCat(freshSession.user.id);
+        const rcPro = await checkProStatus();
+        if (rcPro && (rcPro.kind === "active" || rcPro.kind === "trial")) {
+          applyLicense(db, { receipt: "rc_entitlement", expiresAt: rcPro.expiresAt });
+          const label = rcPro.kind === "trial"
+            ? formatExpiry(rcPro.expiresAt)
+            : formatExpiry(rcPro.expiresAt);
+          setSubscriptionLabel(label);
+          showSuccess("Pro active — yours while subscribed");
+          return;
+        }
+        if (rcPro && rcPro.kind === "none") {
+          clearLicense(db);
+          setSubscriptionLabel(null);
+          showSuccess("No Pro subscription on this account");
+          return;
+        }
+        // rcPro === { kind: "error" } — fall through to HTTP
+      }
+
+      // 2. Fallback: HTTP license API
       const res = await fetchLicense(freshSession.access_token);
       if (res.kind === "pro") {
-        applyLicense(db, { receipt: res.receipt });
-        showSuccess("Pro activated — yours forever, even offline");
+        applyLicense(db, { receipt: res.receipt, expiresAt: res.expiresAt });
+        setSubscriptionLabel(formatExpiry(res.expiresAt));
+        showSuccess("Pro active — yours while subscribed");
       } else if (res.kind === "none") {
         clearLicense(db);
-        showSuccess("No Pro license on this account");
+        setSubscriptionLabel(null);
+        showSuccess("No Pro subscription on this account");
       } else {
         showError("Couldn't check license — check your connection and try again");
       }
@@ -155,9 +197,86 @@ export default function SettingsScreen() {
     }
   }, [refreshing, session]);
 
-  // Manual check mirrors the launch effect's state machine but always toasts
-  // its outcome — launch is silent-by-design, a manual tap is a deliberate
-  // question that deserves an honest answer either way.
+  // --- Sign out ---
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      showError("Couldn't sign out — check your connection and try again");
+      return;
+    }
+    forgetUploadedPhotos(db);
+    setSubscriptionLabel(null);
+    showSuccess("Signed out — your data stays on this phone");
+  };
+
+  // --- Export backup ---
+  const handleExportBackup = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const result = await exportBackup();
+      if (result.ok) {
+        showSuccess("Backup exported — share it to save to another device");
+      } else {
+        showError(`Export failed: ${result.error}`);
+      }
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // --- Import backup ---
+  const handleImportBackup = async () => {
+    if (importing) return;
+
+    Alert.alert(
+      "Import Backup",
+      "This will replace ALL current data with the backup. This cannot be undone. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Import",
+          style: "destructive",
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const result = await DocumentPicker.getDocumentAsync({
+                type: "application/json",
+                copyToCacheDirectory: true,
+              });
+
+              if (result.canceled || !result.assets?.[0]) {
+                setImporting(false);
+                return;
+              }
+
+              const readResult = await readBackupFile(result.assets[0].uri);
+              if (!readResult.ok) {
+                showError(`Invalid backup: ${readResult.error}`);
+                return;
+              }
+
+              const restoreResult = await restoreBackup(readResult.data);
+              if (restoreResult.ok) {
+                const counts = Object.entries(restoreResult.counts)
+                  .map(([k, v]) => `${v} ${k}`)
+                  .join(", ");
+                showSuccess(`Restored: ${counts}`);
+                // Refresh the screen to reflect new data
+                setReread((n) => n + 1);
+              } else {
+                showError(`Restore failed: ${restoreResult.error}`);
+              }
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // --- Check for updates ---
   const checkForUpdates = useCallback(async () => {
     if (checkingUpdate) return;
     setCheckingUpdate(true);
@@ -179,26 +298,17 @@ export default function SettingsScreen() {
     }
   }, [checkingUpdate]);
 
-  const signOut = async () => {
-    // Deliberately does NOT clearLicense — Pro stays cached on this phone
-    // per offline-first; the toast copy carries that promise.
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      showError("Couldn't sign out — check your connection and try again");
-      return;
-    }
-    // The recorded photo uploads live in the signed-out account's storage
-    // folder; whoever signs in next must upload their own copies.
-    forgetUploadedPhotos(db);
-    showSuccess("Signed out — your data and Pro stay on this phone");
-  };
-
-  if (!ent) return null; // brief frame before ensureEntitlements' effect resolves
+  if (!ent) return null;
 
   const version = Constants.expoConfig?.version ?? "1.0.0";
-  // isEmbeddedLaunch: in production the factory bundle has its own updateId,
-  // so updateId alone can't distinguish "embedded" from "OTA applied".
   const currentVersionLabel = versionLabel(version, Updates.isEmbeddedLaunch ? null : Updates.updateId);
+
+  // Build the Pro subtitle based on cached entitlement + subscription label
+  const proSubtitle = ent.pro
+    ? subscriptionLabel
+      ? `Active · ${subscriptionLabel}`
+      : "Active — refresh to see expiry"
+    : "Start free trial · ₱199/month after";
 
   return (
     <View className="flex-1 bg-bg px-5" style={{ paddingTop: insets.top + 8 }}>
@@ -209,7 +319,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon="EnvelopeSimple"
           title={session ? (session.user.email ?? "Signed in") : "Sign in once — inventory stays offline after"}
-          subtitle={session ? "Signed in" : "Activate Pro or restore it on a new phone"}
+          subtitle={session ? "Signed in" : "Activate Pro or restore on a new phone"}
           onPress={session ? undefined : () => router.push("/auth/sign-in")}
           chevron={!session}
         />
@@ -220,7 +330,7 @@ export default function SettingsScreen() {
             iconTone={ent.pro ? "acid" : "default"}
             title={ent.pro ? "PRO — Active" : "Free"}
             titleTone={ent.pro ? "acid" : "default"}
-            subtitle={ent.pro ? "Unlimited item logs, works offline forever" : "Unlimited local inventory · Pro unlocks your shop"}
+            subtitle={proSubtitle}
             last
             noPadding
           />
@@ -231,7 +341,14 @@ export default function SettingsScreen() {
                 {refreshing ? "Refreshing…" : "Refresh license"}
               </Text>
             </Pressable>
-          ) : null}
+          ) : (
+            <Pressable hitSlop={8} onPress={() => router.push("/pro/paywall")} className="ml-[60px] mt-2 flex-row items-center gap-1.5">
+              <Icon name="CaretRight" size={12} color={COLORS.inkDim} />
+              <Text style={{ fontFamily: FONT.semibold, lineHeight: 17 }} className="text-[12.5px] text-inkdim">
+                Start 14-day free trial
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         <FieldLabel>App</FieldLabel>
@@ -240,6 +357,20 @@ export default function SettingsScreen() {
           title="Storage"
           subtitle={`${usage.count.toLocaleString("en-PH")} photos · ${usage.label} on device`}
           subtitleTnum
+        />
+
+        <SettingsRow
+          icon="Export"
+          title={exporting ? "Exporting…" : "Export backup"}
+          subtitle="Save your inventory to a file you can share or restore later"
+          onPress={() => void handleExportBackup()}
+        />
+
+        <SettingsRow
+          icon="Import"
+          title={importing ? "Importing…" : "Import backup"}
+          subtitle="Restore inventory from a backup file (replaces current data)"
+          onPress={() => void handleImportBackup()}
         />
 
         <SettingsRow
@@ -259,6 +390,13 @@ export default function SettingsScreen() {
           title="Check for updates"
           subtitle={checkingUpdate ? "Checking…" : "Get the latest fixes and features"}
           onPress={() => void checkForUpdates()}
+        />
+
+        <SettingsRow
+          icon="ArrowsClockwise"
+          title="Restore purchases"
+          subtitle="Recover Pro if you signed in on a new device"
+          onPress={() => void handleRestore()}
           last={!session}
         />
 
@@ -268,14 +406,13 @@ export default function SettingsScreen() {
             iconTone="danger"
             title="Sign out"
             titleTone="danger"
-            subtitle="Your data and Pro stay on this phone"
+            subtitle="Your data stays on this phone"
             onPress={() => void signOut()}
             last
           />
         ) : null}
       </ScrollView>
 
-      {/* paddingBottom clears the absolutely-positioned floating tab bar. */}
       <Text
         style={{ fontFamily: FONT.text, lineHeight: 16, paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}
         className="pt-3 text-center text-[11.5px] text-inkfaint"
