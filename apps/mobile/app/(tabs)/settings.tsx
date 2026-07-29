@@ -2,10 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View, Text, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
 import { db } from "../../db/client";
-import { entitlements } from "../../db/schema";
+import { type Entitlements } from "../../db/schema";
 import { supabase } from "../../lib/supabase";
 import { fetchLicense, applyLicense, clearLicense } from "../../lib/license";
 import { ensureEntitlements } from "../../lib/entitlements";
@@ -102,13 +101,21 @@ export default function SettingsScreen() {
   const [importing, setImporting] = useState(false);
   const [reread, setReread] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
-  const { data: entRows } = useLiveQuery(db.select().from(entitlements), []);
-  const ent = entRows?.[0];
+  const [ent, setEnt] = useState<Entitlements | null>(null);
 
-  // ensureEntitlements is a write; it must never run during render.
+  // Read entitlements on mount (sync query — avoids useLiveQuery's subscription
+  // setup which was throwing on mounts unique to this screen and causing a
+  // recurring crash).  ensureEntitlements is idempotent: INSERT ON CONFLICT DO
+  // NOTHING + SELECT, so it is safe to call repeatedly.
   useEffect(() => {
-    if (entRows && !entRows[0]) ensureEntitlements(db);
-  }, [entRows]);
+    try {
+      setEnt(ensureEntitlements(db));
+    } catch {
+      // If even the entitlements table is unreachable the app still works in
+      // Free tier — the JSX handles null via the early return below.
+      setEnt(null);
+    }
+  }, []);
 
   // Keep the account row fresh across sign-in/out.
   useEffect(() => {
@@ -147,6 +154,7 @@ export default function SettingsScreen() {
         const rcPro = await checkProStatus();
         if (rcPro && (rcPro.kind === "active" || rcPro.kind === "trial")) {
           applyLicense(db, { receipt: "rc_entitlement", expiresAt: rcPro.expiresAt });
+          setEnt(ensureEntitlements(db));
           const label = rcPro.kind === "trial"
             ? formatExpiry(rcPro.expiresAt)
             : formatExpiry(rcPro.expiresAt);
@@ -156,6 +164,7 @@ export default function SettingsScreen() {
         }
         if (rcPro && rcPro.kind === "none") {
           clearLicense(db);
+          setEnt(ensureEntitlements(db));
           setSubscriptionLabel(null);
           showSuccess("No Pro subscription on this account");
           return;
@@ -167,10 +176,12 @@ export default function SettingsScreen() {
       const res = await fetchLicense(freshSession.access_token);
       if (res.kind === "pro") {
         applyLicense(db, { receipt: res.receipt, expiresAt: res.expiresAt });
+        setEnt(ensureEntitlements(db));
         setSubscriptionLabel(formatExpiry(res.expiresAt));
         showSuccess("Pro active — yours while subscribed");
       } else if (res.kind === "none") {
         clearLicense(db);
+        setEnt(ensureEntitlements(db));
         setSubscriptionLabel(null);
         showSuccess("No Pro subscription on this account");
       } else {
@@ -206,6 +217,7 @@ export default function SettingsScreen() {
       const pro = result.customerInfo.entitlements.active["pro"];
       if (pro) {
         applyLicense(db, { receipt: "rc_restored", expiresAt: pro.expirationDate ?? null });
+        setEnt(ensureEntitlements(db));
         setSubscriptionLabel(formatExpiry(pro.expirationDate ?? null));
       }
       showSuccess("Purchases restored — Pro is active again");
@@ -315,9 +327,7 @@ export default function SettingsScreen() {
     }
   }, [checkingUpdate]);
 
-  if (!ent) return null;
-
-  // --- Version string (lazy — expo-constants may not be in old builds) ---
+  // --- Version string (must be BEFORE the early return — Rules of Hooks) ---
   const [version, setVersion] = useState("1.0.0");
   const [currentVersionLabel, setCurrentVersionLabel] = useState("v1.0.0 · embedded");
   useEffect(() => {
@@ -334,6 +344,8 @@ export default function SettingsScreen() {
       }
     })();
   }, []);
+
+  if (!ent) return null;
 
   // Build the Pro subtitle based on cached entitlement + subscription label
   const proSubtitle = ent.pro
