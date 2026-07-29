@@ -5,11 +5,10 @@ import { Badge } from "@/components/ui";
 import { signOut } from "./actions";
 import { FeedbackForm } from "./FeedbackForm";
 import { DeleteAccountForm } from "./DeleteAccountForm";
+import { PRO_SKUS } from "@latag/licensing";
 
 export const metadata: Metadata = { title: "Account" };
 export const dynamic = "force-dynamic";
-
-const PRO_SKU = "latag-pro-lifetime";
 
 function formatGrantedDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
@@ -28,11 +27,11 @@ export default async function AccountPage() {
   const [{ data: license }, { data: pricing }, { data: feedbackRows }] = await Promise.all([
     supabase
       .from("licenses")
-      .select("sku,status,granted_at")
-      .eq("sku", PRO_SKU)
-      .eq("status", "active")
+      .select("sku,status,granted_at,expires_at")
+      .in("sku", PRO_SKUS)
+      .in("status", ["active", "past_due"])
       .maybeSingle(),
-    supabase.from("pricing").select("price,currency").eq("sku", PRO_SKU).maybeSingle(),
+    supabase.from("pricing").select("price,currency").in("sku", PRO_SKUS).limit(1).maybeSingle(),
     supabase
       .from("feedback")
       .select("id,type,status,created_at")
@@ -69,7 +68,15 @@ export default async function AccountPage() {
             <div className="mt-3">
               <Badge>PRO — Active</Badge>
             </div>
-            <p className="tnum mt-3 text-sm text-inkdim">Granted {formatGrantedDate(license.granted_at)}</p>
+            <p className="tnum mt-3 text-sm text-inkdim">Subscribed {formatGrantedDate(license.granted_at)}</p>
+            {license.expires_at ? (
+              <p className="tnum mt-1 text-sm text-inkfaint">
+                Current period ends{" "}
+                {new Date(license.expires_at).toLocaleDateString("en-PH", {
+                  month: "long", day: "numeric", year: "numeric",
+                })}
+              </p>
+            ) : null}
           </>
         ) : (
           <>
@@ -77,10 +84,10 @@ export default async function AccountPage() {
               <Badge>Free — unlimited inventory</Badge>
             </div>
             {pricing ? (
-              <p className="tnum mt-3 text-lg text-ink">Pro: ₱{pricing.price.toLocaleString("en-PH")} one-time</p>
+              <p className="tnum mt-3 text-lg text-ink">Pro: ₱{pricing.price.toLocaleString("en-PH")}/month</p>
             ) : null}
             <p className="mt-3 text-sm text-inkfaint">
-              Purchases open soon. Pro unlocks are granted from this site — sign in once in the app afterward.
+              First 14 days free. Subscribe inside the app — no web payment, no paperwork.
             </p>
           </>
         )}

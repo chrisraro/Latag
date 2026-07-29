@@ -14,7 +14,7 @@
  * the app degrades to `never` rather than pointing at this file.
  */
 
-export type LicenseStatus = "active" | "revoked";
+export type LicenseStatus = "active" | "revoked" | "expired" | "past_due";
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 export type FeedbackType = "feedback" | "suggestion" | "feature_request";
 export type FeedbackStatus = "new" | "reviewed" | "done";
@@ -89,6 +89,7 @@ export interface Database {
           sku: string;
           status: LicenseStatus;
           granted_at: string;
+          expires_at: string | null;
           payment_id: string | null;
         };
         Insert: {
@@ -97,6 +98,7 @@ export interface Database {
           sku: string;
           status?: LicenseStatus;
           granted_at?: string;
+          expires_at?: string | null;
           payment_id?: string | null;
         };
         Update: Partial<{
@@ -105,6 +107,7 @@ export interface Database {
           sku: string;
           status: LicenseStatus;
           granted_at: string;
+          expires_at: string | null;
           payment_id: string | null;
         }>;
         Relationships: [];

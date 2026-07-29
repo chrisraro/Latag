@@ -2,21 +2,12 @@ import { PhoneDemo } from "@/components/PhoneDemo";
 import { Pricing } from "@/components/Pricing";
 import { Showcase } from "@/components/Showcase";
 import { Badge, CheckItem, CtaButton, SectionTitle } from "@/components/ui";
+import { DEPARTMENTS_DISPLAY } from "@latag/catalog";
 
 /** Shared card surface. Hover physics live here so every grid on the page
  *  responds identically — lift, warm the border, brighten the fill. */
 const CARD =
   "rounded-2xl border border-hairline bg-surface1 p-6 transition-[transform,border-color,background-color] duration-300 hover:-translate-y-1 hover:border-acid/35 hover:bg-surface2";
-
-/** Mirrors apps/mobile lib/catalog.ts — each department's own measurements. */
-const DEPARTMENTS = [
-  { name: "Tops", specs: "Pit-to-pit, length, sleeve", types: "Tee, polo, jersey, crewneck, sweater, hoodie, jacket" },
-  { name: "Bottoms", specs: "Waist, inseam, rise, leg opening", types: "Jeans, trousers, cargo, shorts, skirt" },
-  { name: "Dresses", specs: "Pit-to-pit, length, waist", types: "Dress, jumpsuit" },
-  { name: "Footwear", specs: "US size, insole in cm", types: "Sneakers, boots, sandals, leather" },
-  { name: "Bags", specs: "Width, height, depth, strap drop", types: "Backpack, shoulder, tote, sling, duffel" },
-  { name: "Accessories", specs: "Condition and price — no invented sizes", types: "Cap, belt, scarf, beanie, watch, eyewear" },
-];
 
 const SHOP_STEPS = [
   {
@@ -102,7 +93,7 @@ export default function Home() {
           </p>
 
           <div className="mt-12 grid grid-flow-dense gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {DEPARTMENTS.map((d) => (
+            {DEPARTMENTS_DISPLAY.map((d) => (
               <div key={d.name} className={CARD}>
                 <h3 className="display text-lg text-ink">{d.name}</h3>
                 <p className="mt-2 text-sm text-acid">{d.specs}</p>
