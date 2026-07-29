@@ -183,15 +183,13 @@ export default function SettingsScreen() {
         setSubscriptionLabel(formatExpiry(res.expiresAt));
         showSuccess("Pro active — yours while subscribed");
       } else if (res.kind === "none") {
-        // RevenueCat is configured but may be unavailable in this native
-        // build. Don't clear a cached Pro license the user already had.
-        if (isRevenueCatConfigured()) {
-          const existing = ensureEntitlements(db);
-          if (existing.pro) {
-            showError("Couldn't verify Pro with the server — your existing license is preserved. If you just subscribed, it may take a few minutes to sync.");
-          } else {
-            showSuccess("No Pro subscription on this account");
-          }
+        // The server returned "no subscription" but the user may have a
+        // RevenueCat-managed subscription that the licenses table doesn't
+        // know about (webhook not configured, or still syncing).  Preserve
+        // any cached Pro license to avoid locking paying users out.
+        const existing = ensureEntitlements(db);
+        if (existing.pro) {
+          showError("Couldn't verify Pro with the server — your existing license is preserved. If you just subscribed, it may take a few minutes to sync.");
         } else {
           clearLicense(db);
           setEnt(ensureEntitlements(db));
