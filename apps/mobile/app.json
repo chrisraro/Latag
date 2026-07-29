@@ -2,7 +2,7 @@
   "expo": {
     "name": "Latag",
     "slug": "latag",
-    "version": "1.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "latag",

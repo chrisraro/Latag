@@ -16,7 +16,10 @@ import { FONT, COLORS } from "../../lib/theme";
 import { FieldLabel } from "../../components/ui";
 import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { AppHead } from "../../components/AppHead";
+import Constants from "expo-constants";
+import * as Updates from "expo-updates";
 import { Icon, type IconName } from "../../components/Icon";
+import { versionLabel } from "../../lib/updates";
 
 type Tone = "default" | "acid" | "danger";
 
@@ -180,10 +183,21 @@ export default function SettingsScreen() {
         setSubscriptionLabel(formatExpiry(res.expiresAt));
         showSuccess("Pro active — yours while subscribed");
       } else if (res.kind === "none") {
-        clearLicense(db);
-        setEnt(ensureEntitlements(db));
-        setSubscriptionLabel(null);
-        showSuccess("No Pro subscription on this account");
+        // RevenueCat is configured but may be unavailable in this native
+        // build. Don't clear a cached Pro license the user already had.
+        if (isRevenueCatConfigured()) {
+          const existing = ensureEntitlements(db);
+          if (existing.pro) {
+            showError("Couldn't verify Pro with the server — your existing license is preserved. If you just subscribed, it may take a few minutes to sync.");
+          } else {
+            showSuccess("No Pro subscription on this account");
+          }
+        } else {
+          clearLicense(db);
+          setEnt(ensureEntitlements(db));
+          setSubscriptionLabel(null);
+          showSuccess("No Pro subscription on this account");
+        }
       } else {
         showError("Couldn't check license — check your connection and try again");
       }
@@ -328,21 +342,13 @@ export default function SettingsScreen() {
   }, [checkingUpdate]);
 
   // --- Version string (must be BEFORE the early return — Rules of Hooks) ---
-  const [version, setVersion] = useState("1.0.0");
-  const [currentVersionLabel, setCurrentVersionLabel] = useState("v1.0.0 · embedded");
+  const appVersion = Constants.expoConfig?.version ?? "1.0.0";
+  const updateLabel = versionLabel(appVersion, Updates.isEmbeddedLaunch ? null : Updates.updateId);
+  const [currentVersionLabel, setCurrentVersionLabel] = useState(updateLabel);
   useEffect(() => {
-    (async () => {
-      try {
-        const Constants = await import("expo-constants");
-        const Updates = await import("expo-updates");
-        const { versionLabel } = await import("../../lib/updates");
-        const ver = Constants.default.expoConfig?.version ?? "1.0.0";
-        setVersion(ver);
-        setCurrentVersionLabel(versionLabel(ver, Updates.default.isEmbeddedLaunch ? null : Updates.default.updateId));
-      } catch {
-        // Keep defaults
-      }
-    })();
+    // Re-read after mount in case the async updates module hasn't resolved yet
+    const ver = Constants.expoConfig?.version ?? "1.0.0";
+    setCurrentVersionLabel(versionLabel(ver, Updates.isEmbeddedLaunch ? null : Updates.updateId));
   }, []);
 
   if (!ent) return null;
@@ -411,7 +417,7 @@ export default function SettingsScreen() {
         />
 
         <SettingsRow
-          icon="Import"
+          icon="FileArrowDown"
           title={importing ? "Importing…" : "Import backup"}
           subtitle="Restore inventory from a backup file (replaces current data)"
           onPress={() => void handleImportBackup()}
@@ -461,7 +467,7 @@ export default function SettingsScreen() {
         style={{ fontFamily: FONT.text, lineHeight: 16, paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}
         className="pt-3 text-center text-[11.5px] text-inkfaint"
       >
-        Latag {version} · Made for the ukay grind
+        Latag {appVersion} · Made for the ukay grind
       </Text>
     </View>
   );

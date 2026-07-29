@@ -68,7 +68,7 @@ export async function completeSignIn(router?: BackableRouter): Promise<boolean> 
       if (localCount === 0) {
         const restored = await restorePublishedItems(db);
         if (restored.restored > 0) {
-          showSuccess(`Restored ${restored.restored} published listing${restored.restored === 1 ? "" : "s"} from your shop`);
+          showSuccess(`Restored ${restored.restored} published listing${restored.restored === 1 ? "" : "s"} — check your Shop tab`);
         }
       }
     } catch {
@@ -88,8 +88,15 @@ async function fallbackLicenseFetch(accessToken: string): Promise<void> {
     applyLicense(db, { receipt: res.receipt, expiresAt: res.expiresAt });
     showSuccess("Pro active — yours while subscribed");
   } else if (res.kind === "none") {
-    clearLicense(db);
-    showSuccess("Signed in — no Pro subscription on this account yet");
+    // If RevenueCat is configured but the SDK was unavailable (embedded
+    // build may not have the native module), don't wipe the cached
+    // license — the subscription lives in RC, not the licenses table.
+    if (isRevenueCatConfigured()) {
+      showSuccess("Signed in — checking Pro status via Apple/Google…");
+    } else {
+      clearLicense(db);
+      showSuccess("Signed in — no Pro subscription on this account yet");
+    }
   } else {
     showSuccess("Signed in — couldn't check license (offline?). Refresh from Settings when online.");
   }

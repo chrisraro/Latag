@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy"; // SDK 57: legacy submodule
 import * as Sharing from "expo-sharing";
 import { db } from "../db/client";
 import { sessions, items, photos, userBrands, entitlements } from "../db/schema";
