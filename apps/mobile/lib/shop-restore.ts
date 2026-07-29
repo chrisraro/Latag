@@ -5,13 +5,16 @@ import { specRowsFor, SPEC_LABEL_TO_KEY, parseSpecValue, type CatalogItem, type 
 import { supabase } from "./supabase";
 
 /**
- * Shop restore — pulls published items from Supabase back into local SQLite
+ * Shop restore — pulls published items back into local SQLite
  * after a data wipe (clear data / uninstall).
  *
  * PRIVACY NOTE: shop_items intentionally excludes cost, profit, location and
  * batch data. Those fields were never uploaded, so they cannot be recovered.
  * The user gets back their listings with photos and pricing; cost/profit
  * history is gone by design.
+ *
+ * Call this when a user wants to "restore from published" — i.e. re-download
+ * their shop listings after losing local data.
  */
 
 type ShopItemRow = {

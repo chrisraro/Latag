@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from "react";
-import { View, Text, Pressable, RefreshControl, ScrollView, type ScrollViewProps } from "react-native";
+import { View, Text, Pressable, RefreshControl, ScrollView, Alert, type ScrollViewProps } from "react-native";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { db } from "../../db/client";
 import { type Item } from "../../db/schema";
 import { shopUrlLabel } from "../../lib/shop-api";
 import { pendingLabel } from "../../lib/shop-sync";
@@ -16,6 +17,8 @@ import { TAB_BAR_CLEARANCE } from "../../components/FloatingTabBar";
 import { useTabScrollToTop } from "../../lib/tab-scroll";
 import { REFRESH_TINT } from "../../lib/refresh";
 import { useShopViewModel, type Listing } from "../../hooks/useShopViewModel";
+import { restorePublishedItems } from "../../lib/shop-restore";
+import { showSuccess, showError } from "../../lib/toast";
 
 /**
  * Shop — three honest states and no dead end in any of them:
@@ -70,9 +73,43 @@ export default function ShopScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [proSheet, setProSheet] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const listRef = useRef<FlashListRef<Listing>>(null);
 
   const vm = useShopViewModel();
+
+  // --- Restore from published shop listings ---
+  const handleSyncFromPublished = useCallback(() => {
+    if (syncing) return;
+    Alert.alert(
+      "Restore from your shop",
+      "Pull your published listings back from your shop? This adds any items that aren't already on this phone. Photos will need re-taking — only listing info (brand, name, price, code) is restored.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Restore",
+          onPress: async () => {
+            setSyncing(true);
+            try {
+              const result = await restorePublishedItems(db);
+              if (result.restored > 0) {
+                showSuccess(`Restored ${result.restored} listing${result.restored === 1 ? "" : "s"} from your shop`);
+                vm.refresh();
+              } else if (result.skipped > 0) {
+                showSuccess("All your listings are already on this phone");
+              } else {
+                showError("No published listings found — publish items first");
+              }
+            } catch {
+              showError("Couldn't restore — check your connection and try again");
+            } finally {
+              setSyncing(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [syncing, vm]);
 
   useTabScrollToTop("shop", useCallback(() => {
     if (!listRef.current) return false;
@@ -218,6 +255,14 @@ export default function ShopScreen() {
             ) : null}
             <View className={`${vm.profile.isPublished ? "mt-2" : "mt-4"} flex-row`}>
               <SecondaryButton label="Edit shop" icon="PencilSimple" onPress={() => router.push("/shop/setup?edit=1")} />
+            </View>
+            <View className="mt-2 flex-row">
+              <SecondaryButton
+                label={syncing ? "Restoring…" : "Restore from published"}
+                icon="CloudArrowDown"
+                busy={syncing}
+                onPress={() => handleSyncFromPublished()}
+              />
             </View>
           </View>
         }
