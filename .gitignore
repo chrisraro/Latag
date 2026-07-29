@@ -5,3 +5,9 @@ dist/
 .DS_Store
 apps/mobile/ios
 apps/mobile/android
+*_TODO.md
+.env
+.env.local
+.env.*.local
+.claude/
+skills-lock.json
