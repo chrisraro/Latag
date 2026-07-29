@@ -82,7 +82,6 @@ export const userBrands = sqliteTable("user_brands", {
 
 export const entitlements = sqliteTable("entitlements", {
   id: integer("id").primaryKey(),               // always 1 — single row
-  logsUsed: integer("logs_used").default(0).notNull(),
   pro: integer("pro", { mode: "boolean" }).default(false).notNull(),
   licenseReceipt: text("license_receipt"),
 });
