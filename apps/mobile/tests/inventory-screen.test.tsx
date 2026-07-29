@@ -69,7 +69,7 @@ beforeEach(async () => {
   db.delete(sessions).run();
   db.delete(publishQueue).run();
   db.delete(entitlements).run();
-  db.insert(entitlements).values({ id: 1, logsUsed: 0, pro: false }).run();
+  db.insert(entitlements).values({ id: 1, pro: false }).run();
   mockedCachedShop.mockResolvedValue(null);
   db.insert(sessions).values({ id: "s1", name: "Naga Run", type: "bulto", totalBaleCost: 1000, createdAt: new Date() }).run();
   // Past the first-run gate: welcomed + onboarded → no redirect, screen renders.

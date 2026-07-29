@@ -1,9 +1,9 @@
 import { makeTestDb } from "./helpers/testDb";
-import { ensureEntitlements, consumeLog, logsRemaining, FREE_LOG_LIMIT } from "../lib/entitlements";
+import { ensureEntitlements } from "../lib/entitlements";
 import { applyLicense, clearLicense, fetchLicense } from "../lib/license";
 
 describe("applyLicense", () => {
-  test("sets pro + receipt on the entitlements row, and consumeLog returns Infinity after", () => {
+  test("sets pro + receipt on the entitlements row", () => {
     const { db } = makeTestDb();
     ensureEntitlements(db);
     applyLicense(db, { receipt: "latag1.abc.def" });
@@ -11,7 +11,6 @@ describe("applyLicense", () => {
     const e = ensureEntitlements(db);
     expect(e.pro).toBe(true);
     expect(e.licenseReceipt).toBe("latag1.abc.def");
-    expect(consumeLog(db)).toBe(Infinity);
   });
 
   test("is idempotent when called twice with the same receipt", () => {
@@ -36,13 +35,9 @@ describe("applyLicense", () => {
 });
 
 describe("clearLicense", () => {
-  test("flips pro back to free and nulls the receipt, leaving logsUsed untouched", () => {
+  test("flips pro back to free and nulls the receipt", () => {
     const { db } = makeTestDb();
     ensureEntitlements(db);
-    // Consume 3 logs as a free user first.
-    consumeLog(db);
-    consumeLog(db);
-    consumeLog(db);
 
     applyLicense(db, { receipt: "latag1.abc.def" });
     clearLicense(db);
@@ -50,9 +45,6 @@ describe("clearLicense", () => {
     const e = ensureEntitlements(db);
     expect(e.pro).toBe(false);
     expect(e.licenseReceipt).toBeNull();
-    // The free counter resumes from the logsUsed count accrued before applyLicense.
-    expect(logsRemaining(e)).toBe(FREE_LOG_LIMIT - 3);
-    expect(logsRemaining(e)).toBe(17);
   });
 });
 
@@ -72,7 +64,7 @@ describe("fetchLicense", () => {
   test("200 with active status and non-empty receipt -> pro", async () => {
     const { impl } = mockFetch(200, { license: { status: "active" }, receipt: "latag1.abc.def" });
     const result = await fetchLicense("token-123", impl as unknown as typeof fetch);
-    expect(result).toEqual({ kind: "pro", receipt: "latag1.abc.def" });
+    expect(result).toEqual({ kind: "pro", receipt: "latag1.abc.def", expiresAt: null });
   });
 
   test("200 with non-active status -> error (defensive, should never happen per API contract)", async () => {

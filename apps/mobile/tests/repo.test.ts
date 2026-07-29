@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { makeTestDb } from "./helpers/testDb";
 import { createSession, addItem, updateItem, addPhoto, replacePhoto, markSold, unmarkSold, deleteItem, updateSession, startScheduledSession, deleteSession, enqueuePublish, dequeuePublish, listPublishQueue, bumpAttempt, markPublished, markUnpublished, generateShopCode } from "../lib/repo";
-import { ensureEntitlements, FREE_LOG_LIMIT } from "../lib/entitlements";
+import { ensureEntitlements } from "../lib/entitlements";
 import { parseOffsets } from "../lib/schedule";
 import { entitlements, items, photos, sessions } from "../db/schema";
 import { kickSync } from "../lib/shop-sync";
@@ -16,20 +16,20 @@ beforeEach(() => {
 
 const base = { brand: "Nike", department: "tops" as const, category: "Tee", ptpInches: 21.5, lengthInches: 27, condition: "9/10", targetSellPrice: 350 };
 
-test("create session → add item reports remaining logs without spending one", () => {
+test("create session → add item reports Infinity remaining logs (uncapped)", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);
   const s = createSession(db, { name: "Run", type: "selector" });
   const { item, logsRemaining } = addItem(db, { sessionId: s.id, ...base, individualCost: 60 });
   expect(item.status).toBe("available");
-  expect(logsRemaining).toBe(FREE_LOG_LIMIT);
-  expect(db.select().from(entitlements).all()[0].logsUsed).toBe(0);
+  expect(logsRemaining).toBe(Infinity);
+  expect(db.select().from(entitlements).all()[0].logsUsed).toBeUndefined(); // logsUsed column was removed
 });
-test("addItem reports remaining logs WITHOUT writing an entitlements row", () => {
+test("addItem reports Infinity remaining WITHOUT writing an entitlements row", () => {
   const { db } = makeTestDb();
   const s = createSession(db, { name: "Run", type: "selector" });
   const { logsRemaining } = addItem(db, { sessionId: s.id, ...base });
-  expect(logsRemaining).toBe(FREE_LOG_LIMIT);
+  expect(logsRemaining).toBe(Infinity);
   expect(db.select().from(entitlements).all()).toHaveLength(0); // no INSERT in the hot path
 });
 test("addItem still reports Pro's uncounted logs when the row says pro", () => {
@@ -39,10 +39,9 @@ test("addItem still reports Pro's uncounted logs when the row says pro", () => {
   const s = createSession(db, { name: "Run", type: "selector" });
   expect(addItem(db, { sessionId: s.id, ...base }).logsRemaining).toBe(Infinity);
 });
-test("a free account with an exhausted counter can still log items", () => {
+test("a free account can always log items (no cap)", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);
-  db.update(entitlements).set({ logsUsed: FREE_LOG_LIMIT, pro: false }).where(eq(entitlements.id, 1)).run();
   const s = createSession(db, { name: "Run", type: "bulto", totalBaleCost: 10000 });
   const { item } = addItem(db, { sessionId: s.id, ...base });
   expect(item.id).toBeTruthy();
@@ -63,7 +62,7 @@ test("edits are free; sold flow records and clears price+date", () => {
   expect(undone.status).toBe("available");
   expect(undone.soldPrice).toBeNull();
 });
-test("deleteItem removes rows, returns photo uris, never moves the log counter", () => {
+test("deleteItem removes rows and returns photo uris", () => {
   const { db } = makeTestDb();
   ensureEntitlements(db);
   const s = createSession(db, { name: "Run", type: "selector" });

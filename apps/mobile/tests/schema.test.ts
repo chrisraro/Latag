@@ -13,7 +13,7 @@ test("schema round-trips a session, item, photo, entitlements", () => {
   const item = db.select().from(s.items).all()[0];
   expect(item.status).toBe("available");
   expect(item.individualCost).toBe(0);
-  expect(db.select().from(s.entitlements).all()[0].logsUsed).toBe(0);
+  expect(db.select().from(s.entitlements).all()[0].pro).toBe(false);
 });
 
 test("old-shape item (no department/name/specs) gets department 'tops', null name and spec cols, ptp/length intact", () => {
