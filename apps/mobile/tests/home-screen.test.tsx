@@ -91,7 +91,7 @@ afterEach(() => {
 });
 
 function setPro(pro: boolean): void {
-  db.insert(entitlements).values({ id: 1, pro, logsUsed: 0 }).run();
+  db.insert(entitlements).values({ id: 1, pro }).run();
 }
 
 function insertItem(over: Partial<typeof items.$inferInsert> = {}): void {
