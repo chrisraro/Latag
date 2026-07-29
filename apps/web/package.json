@@ -9,6 +9,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@latag/catalog": "workspace:*",
+    "@latag/licensing": "workspace:*",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.3",
     "next": "16.2.10",
