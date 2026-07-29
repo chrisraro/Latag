@@ -14,7 +14,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { db } from "../db/client";
 import migrations from "../drizzle/migrations";
 import { ensureEntitlements } from "../lib/entitlements";
-import { configureRevenueCat, isRevenueCatConfigured } from "../lib/purchases";
+import { configureRevenueCat, isRevenueCatConfigured, checkProStatus } from "../lib/purchases";
+import { syncLicense } from "../lib/license-sync";
+import { fetchLicense, applyLicense, clearLicense } from "../lib/license";
 import { sweepOrphans } from "../lib/media";
 import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
@@ -27,6 +29,27 @@ import { composerAnimation, durationFor, useReducedMotion } from "../lib/motion"
 import { AppToast } from "../components/AppToast";
 
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * Binds the licence-sync ports to the real Supabase / RevenueCat / SQLite
+ * implementations. Kept at module scope so the effect below stays a one-liner
+ * and the decision logic itself remains unit-testable in isolation.
+ */
+function runLicenceSync() {
+  return syncLicense({
+    getSession: async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      return session ? { accessToken: session.access_token, userId: session.user.id } : null;
+    },
+    getRcStatus: () => (isRevenueCatConfigured() ? checkProStatus() : Promise.resolve(null)),
+    fetchServerLicense: (token) => fetchLicense(token),
+    readCachedPro: () => Boolean(ensureEntitlements(db)?.pro),
+    applyPro: (receipt, expiresAt) => applyLicense(db, { receipt, expiresAt }),
+    clearPro: () => clearLicense(db),
+  });
+}
 
 // Session reminders must still alert (banner + alarm sound) when the app is
 // already in the foreground — the default is to silently drop them.
@@ -149,6 +172,23 @@ export default function RootLayout() {
     void syncPublishQueue(db);
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") void syncPublishQueue(db);
+    });
+    return () => sub.remove();
+  }, [migrated]);
+
+  // Pro licence: reconcile with the server on launch and on every foreground.
+  // Without this a licence granted from the admin console never reaches an
+  // already-signed-in device — the only other refresh points are sign-in, the
+  // auth deep link, and the manual button in Settings, so a comped user would
+  // sit on "Free" until they went looking for it.
+  //
+  // Silent and fire-and-forget: syncLicense never throws and raises no toasts,
+  // because the user did not ask for this check.
+  useEffect(() => {
+    if (!migrated) return;
+    void runLicenceSync();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void runLicenceSync();
     });
     return () => sub.remove();
   }, [migrated]);
