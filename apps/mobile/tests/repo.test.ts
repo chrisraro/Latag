@@ -23,7 +23,10 @@ test("create session → add item reports Infinity remaining logs (uncapped)", (
   const { item, logsRemaining } = addItem(db, { sessionId: s.id, ...base, individualCost: 60 });
   expect(item.status).toBe("available");
   expect(logsRemaining).toBe(Infinity);
-  expect(db.select().from(entitlements).all()[0].logsUsed).toBeUndefined(); // logsUsed column was removed
+  // ensureEntitlements wrote the row, but logsUsed was removed — no usage counter on it
+  const ent = db.select().from(entitlements).all()[0];
+  expect(ent).toBeDefined();
+  expect(ent).not.toHaveProperty("logsUsed");
 });
 test("addItem reports Infinity remaining WITHOUT writing an entitlements row", () => {
   const { db } = makeTestDb();

@@ -10,6 +10,7 @@ import { fetchLicense, applyLicense, clearLicense } from "../../lib/license";
 import { ensureEntitlements } from "../../lib/entitlements";
 import { checkProStatus, loginRevenueCat, isRevenueCatConfigured, restorePurchases } from "../../lib/purchases";
 import type { ProStatus } from "../../lib/purchases";
+import { resolveLicenseAction } from "../../lib/license-policy";
 import { showSuccess, showError } from "../../lib/toast";
 import { forgetUploadedPhotos } from "../../lib/shop-sync";
 import { FONT, COLORS } from "../../lib/theme";
@@ -151,53 +152,37 @@ export default function SettingsScreen() {
         return;
       }
 
-      // 1. Try RevenueCat entitlement first
+      // Consult BOTH sources before touching the cache. RevenueCat knows about
+      // subscriptions; only the server knows about admin comps and
+      // grandfathered grants. Deciding on RevenueCat alone revoked Pro from
+      // every comped user, so the server call is unconditional.
+      let rc: ProStatus | null = null;
       if (isRevenueCatConfigured()) {
         await loginRevenueCat(freshSession.user.id);
-        const rcPro = await checkProStatus();
-        if (rcPro && (rcPro.kind === "active" || rcPro.kind === "trial")) {
-          applyLicense(db, { receipt: "rc_entitlement", expiresAt: rcPro.expiresAt });
-          setEnt(ensureEntitlements(db));
-          const label = rcPro.kind === "trial"
-            ? formatExpiry(rcPro.expiresAt)
-            : formatExpiry(rcPro.expiresAt);
-          setSubscriptionLabel(label);
-          showSuccess("Pro active — yours while subscribed");
-          return;
-        }
-        if (rcPro && rcPro.kind === "none") {
-          clearLicense(db);
-          setEnt(ensureEntitlements(db));
-          setSubscriptionLabel(null);
-          showSuccess("No Pro subscription on this account");
-          return;
-        }
-        // rcPro === { kind: "error" } — fall through to HTTP
+        rc = await checkProStatus();
       }
+      const server = await fetchLicense(freshSession.access_token);
+      const cached = ensureEntitlements(db);
 
-      // 2. Fallback: HTTP license API
-      const res = await fetchLicense(freshSession.access_token);
-      if (res.kind === "pro") {
-        applyLicense(db, { receipt: res.receipt, expiresAt: res.expiresAt });
-        setEnt(ensureEntitlements(db));
-        setSubscriptionLabel(formatExpiry(res.expiresAt));
-        showSuccess("Pro active — yours while subscribed");
-      } else if (res.kind === "none") {
-        // The server returned "no subscription" but the user may have a
-        // RevenueCat-managed subscription that the licenses table doesn't
-        // know about (webhook not configured, or still syncing).  Preserve
-        // any cached Pro license to avoid locking paying users out.
-        const existing = ensureEntitlements(db);
-        if (existing.pro) {
-          showError("Couldn't verify Pro with the server — your existing license is preserved. If you just subscribed, it may take a few minutes to sync.");
-        } else {
+      const action = resolveLicenseAction({ rc, server, cachedPro: Boolean(cached.pro) });
+
+      switch (action.kind) {
+        case "apply":
+          applyLicense(db, { receipt: action.receipt, expiresAt: action.expiresAt });
+          setEnt(ensureEntitlements(db));
+          setSubscriptionLabel(action.expiresAt ? formatExpiry(action.expiresAt) : "No expiry");
+          showSuccess(action.message);
+          break;
+        case "clear":
           clearLicense(db);
           setEnt(ensureEntitlements(db));
           setSubscriptionLabel(null);
-          showSuccess("No Pro subscription on this account");
-        }
-      } else {
-        showError("Couldn't check license — check your connection and try again");
+          showSuccess(action.message);
+          break;
+        case "keep":
+        case "unverified":
+          showError(action.message);
+          break;
       }
     } finally {
       setRefreshing(false);
@@ -390,7 +375,7 @@ export default function SettingsScreen() {
               </Text>
             </Pressable>
           ) : (
-            <Pressable hitSlop={8} onPress={() => router.push("/pro/paywall")} className="ml-[60px] mt-2 flex-row items-center gap-1.5">
+            <Pressable hitSlop={8} onPress={() => router.push("/pro/paywall" as any)} className="ml-[60px] mt-2 flex-row items-center gap-1.5">
               <Icon name="CaretRight" size={12} color={COLORS.inkDim} />
               <Text style={{ fontFamily: FONT.semibold, lineHeight: 17 }} className="text-[12.5px] text-inkdim">
                 Start 14-day free trial

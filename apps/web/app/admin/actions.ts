@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-gate";
-import { PRO_SKUS } from "@latag/licensing";
+import { PRO_COMP, ENTITLING_SKUS } from "@latag/licensing";
 
 type ActionResult = { error: string } | { error?: undefined };
 
@@ -45,10 +45,14 @@ async function requireAdmin(): Promise<boolean> {
 }
 
 /**
- * Grants the Pro lifetime license. Idempotent: the partial unique index
+ * Comps a user into Pro. Idempotent: the partial unique index
  * (`user_id, sku` where `status = 'active'`) means a second grant for an
  * already-active license conflicts on insert — Postgres error 23505 is
  * treated as success rather than surfaced as a failure.
+ *
+ * Issues the dedicated comp SKU rather than a purchasable one so a free grant
+ * is never mistaken for a sale in pricing or revenue data, and so it cannot
+ * collide with a real subscription the same user later buys.
  */
 export async function grantPro(userId: string): Promise<ActionResult> {
   if (!(await requireAdmin())) return { error: "forbidden" };
@@ -57,7 +61,7 @@ export async function grantPro(userId: string): Promise<ActionResult> {
   const admin = createAdminSupabase();
   const { error } = await admin
     .from("licenses")
-    .insert({ user_id: userId, sku: PRO_SKUS[0], status: "active" });
+    .insert({ user_id: userId, sku: PRO_COMP, status: "active" });
 
   if (error && error.code !== "23505") {
     return toUserFacingError("grantPro", "Couldn't grant Pro access — try again", error);
@@ -67,7 +71,11 @@ export async function grantPro(userId: string): Promise<ActionResult> {
   return {};
 }
 
-/** Revokes any active Pro license row(s) for the user (normally exactly one). */
+/**
+ * Revokes every active Pro row for the user — subscription, comp, or
+ * grandfathered alike. Scoping this to purchasable SKUs would silently no-op
+ * on a legacy or comped grant while still reporting success to the admin.
+ */
 export async function revokePro(userId: string): Promise<ActionResult> {
   if (!(await requireAdmin())) return { error: "forbidden" };
   if (typeof userId !== "string" || !UUID_RE.test(userId)) return { error: "invalid user id" };
@@ -77,7 +85,7 @@ export async function revokePro(userId: string): Promise<ActionResult> {
     .from("licenses")
     .update({ status: "revoked" })
     .eq("user_id", userId)
-    .in("sku", PRO_SKUS)
+    .in("sku", ENTITLING_SKUS)
     .eq("status", "active");
 
   if (error) return toUserFacingError("revokePro", "Couldn't revoke Pro access — try again", error);

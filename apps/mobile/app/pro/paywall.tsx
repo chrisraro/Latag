@@ -120,7 +120,7 @@ export default function ProPaywall() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pb-2 pt-2">
         <Pressable
-          hitSloc={8}
+          hitSlop={8}
           onPress={() => { Haptics.selectionAsync(); router.back(); }}
           accessibilityRole="button"
           accessibilityLabel="Close"
@@ -280,7 +280,7 @@ export default function ProPaywall() {
               Haptics.selectionAsync();
               router.back();
             }}
-            hitSloc={8}
+            hitSlop={8}
             className="flex-row items-center gap-1.5"
           >
             <Icon name="EnvelopeSimple" size={14} color={COLORS.inkFaint} />

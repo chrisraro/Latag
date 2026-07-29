@@ -29,6 +29,7 @@ test("revenuecat verifyWebhook with unknown event type returns acknowledged", as
 test("revenuecat verifyWebhook with non-RC payload returns error", async () => {
   const verdict = await revenuecatProvider.verifyWebhook("invalid json", null);
   expect(verdict.ok).toBe(false);
+  if (verdict.ok) throw new Error("expected a rejected verdict");
   expect(verdict.reason).toContain("invalid");
 });
 
@@ -112,6 +113,7 @@ test("revenuecat verifyWebhook with EXPIRATION returns rejected verdict", async 
   });
   const verdict = await revenuecatProvider.verifyWebhook(body, null);
   expect(verdict.ok).toBe(false);
+  if (verdict.ok) throw new Error("expected a rejected verdict");
   expect(verdict.reason).toContain("entitlement ended");
 });
 
@@ -128,6 +130,7 @@ test("revenuecat verifyWebhook with BILLING_ISSUE returns rejected verdict", asy
   });
   const verdict = await revenuecatProvider.verifyWebhook(body, null);
   expect(verdict.ok).toBe(false);
+  if (verdict.ok) throw new Error("expected a rejected verdict");
   expect(verdict.reason).toContain("entitlement ended");
 });
 
@@ -142,6 +145,7 @@ test("revenuecat verifyWebhook rejects incorrect Authorization header", async ()
   });
   const verdict = await revenuecatProvider.verifyWebhook(body, "Bearer wrong-secret");
   expect(verdict.ok).toBe(false);
+  if (verdict.ok) throw new Error("expected a rejected verdict");
   expect(verdict.reason).toContain("invalid authorization");
 });
 

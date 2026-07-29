@@ -35,7 +35,7 @@ export type ShopViewModel = {
   // --- Actions ---
   copyLink: () => Promise<void>;
   shareLink: () => Promise<void>;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<void> | void;
 };
 
 export function useShopViewModel(): ShopViewModel {

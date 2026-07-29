@@ -6,24 +6,39 @@ on:
   pull_request:
     branches: [master, main]
 
+# A newer push to the same branch makes an in-flight run obsolete. PRs are
+# cancelled; master runs are not, so every commit on the default branch keeps
+# a durable pass/fail record.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # No `version:` here on purpose — the pnpm version comes from the
+      # `packageManager` field in package.json, so CI can never drift from
+      # local. It previously pinned pnpm 9 while pnpm-workspace.yaml uses
+      # `allowBuilds` / `minimumReleaseAgeExclude`, which are pnpm 10+ keys
+      # that pnpm 9 cannot honour.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
+      # better-sqlite3 is a native dependency the mobile DB tests link
+      # against. It is allow-listed in pnpm-workspace.yaml; if that allow-list
+      # is not honoured the binding is never built and every DB test fails on
+      # import rather than on an assertion.
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

@@ -4,6 +4,8 @@ import { items } from "../db/schema";
 import { fetchLicense, applyLicense, clearLicense } from "./license";
 import { ensureEntitlements } from "./entitlements";
 import { loginRevenueCat, checkProStatus, isRevenueCatConfigured } from "./purchases";
+import type { ProStatus } from "./purchases";
+import { resolveLicenseAction } from "./license-policy";
 import { showSuccess } from "./toast";
 import { restorePublishedItems } from "./shop-restore";
 
@@ -29,35 +31,26 @@ export async function completeSignIn(router?: BackableRouter): Promise<boolean> 
     } = await supabase.auth.getSession();
     if (!session) return false;
 
-    // --- RevenueCat integration ---
+    // --- License check ---
+    // Both sources are consulted every time. RevenueCat covers subscriptions;
+    // the server covers admin comps and grandfathered grants, which
+    // RevenueCat cannot see. Deciding on RevenueCat alone signed comped users
+    // straight out of Pro.
+    let rc: ProStatus | null = null;
     if (isRevenueCatConfigured()) {
       await loginRevenueCat(session.user.id);
+      rc = await checkProStatus();
     }
+    const server = await fetchLicense(session.access_token);
+    const cached = ensureEntitlements(db);
 
-    // --- License check ---
-    if (isRevenueCatConfigured()) {
-      const rcPro = await checkProStatus();
-      if (rcPro && (rcPro.kind === "active" || rcPro.kind === "trial")) {
-        applyLicense(db, {
-          receipt: "rc_entitlement",
-          expiresAt: rcPro.expiresAt,
-        });
-        const label =
-          rcPro.kind === "trial"
-            ? "Pro trial activated — enjoy!"
-            : "Pro active — yours while subscribed";
-        showSuccess(label);
-      } else if (rcPro && rcPro.kind === "none") {
-        clearLicense(db);
-        showSuccess("Signed in — no Pro subscription on this account yet");
-      } else {
-        // RC SDK unavailable — fall through to HTTP
-        await fallbackLicenseFetch(session.access_token);
-      }
-    } else {
-      // RevenueCat not configured — use HTTP license API
-      await fallbackLicenseFetch(session.access_token);
+    const action = resolveLicenseAction({ rc, server, cachedPro: Boolean(cached.pro) });
+    if (action.kind === "apply") {
+      applyLicense(db, { receipt: action.receipt, expiresAt: action.expiresAt });
+    } else if (action.kind === "clear") {
+      clearLicense(db);
     }
+    showSuccess(action.kind === "clear" ? `Signed in — ${action.message.toLowerCase()}` : action.message);
 
     router?.back();
 
@@ -79,26 +72,5 @@ export async function completeSignIn(router?: BackableRouter): Promise<boolean> 
     return true;
   } catch {
     return false;
-  }
-}
-
-/** Fallback license check via the HTTP /api/license endpoint. */
-async function fallbackLicenseFetch(accessToken: string): Promise<void> {
-  const res = await fetchLicense(accessToken);
-  if (res.kind === "pro") {
-    applyLicense(db, { receipt: res.receipt, expiresAt: res.expiresAt });
-    showSuccess("Pro active — yours while subscribed");
-  } else if (res.kind === "none") {
-    // Don't wipe a cached Pro license — the user may have a RevenueCat
-    // subscription that hasn't synced to the licenses table yet.
-    const existing = ensureEntitlements(db);
-    if (existing.pro) {
-      showSuccess("Signed in — couldn't verify Pro with the server, but your existing license is preserved.");
-    } else {
-      clearLicense(db);
-      showSuccess("Signed in — no Pro subscription on this account yet");
-    }
-  } else {
-    showSuccess("Signed in — couldn't check license (offline?). Refresh from Settings when online.");
   }
 }

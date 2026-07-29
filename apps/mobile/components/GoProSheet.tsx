@@ -12,7 +12,7 @@ export function GoProSheet({ visible, onClose }: { visible: boolean; onClose: ()
   const showPaywall = () => {
     onClose();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    InteractionManager.runAfterInteractions(() => router.push("/pro/paywall"));
+    InteractionManager.runAfterInteractions(() => router.push("/pro/paywall" as any));
   };
 
   return (
