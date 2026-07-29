@@ -1,3 +1,5 @@
+"use client";
+
 import { CtaButton, CheckItem } from "./ui";
 
 const MONTHLY_SKU = "latag-pro-monthly";
