@@ -9,7 +9,7 @@ import { PriceRow } from "./PriceRow";
 import { FeedbackRow } from "./FeedbackRow";
 import { FlagRow } from "./FlagRow";
 import { AddFlagForm } from "./AddFlagForm";
-import { PRO_SKUS } from "@latag/licensing";
+import { activeProUserIds as selectActiveProUserIds } from "@/lib/pro-users";
 
 export const metadata: Metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
@@ -51,9 +51,7 @@ export default async function AdminPage() {
   const feedback = feedbackResult.data ?? [];
   const flags = flagsResult.data ?? [];
 
-  const activeProUserIds = new Set(
-    licenses.filter((license) => PRO_SKUS.includes(license.sku) && license.status === "active").map((license) => license.user_id)
-  );
+  const activeProUserIds = selectActiveProUserIds(licenses);
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-14">

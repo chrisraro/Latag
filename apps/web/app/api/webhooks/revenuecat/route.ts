@@ -1,9 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { revenuecatProvider } from "@/lib/payments/revenuecat";
-import { PRO_SKUS } from "@latag/licensing";
+import { PRO_MONTHLY, PRO_YEARLY, normalizeRcProductId } from "@latag/licensing";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Peso price booked against each purchasable SKU. Only SKUs we can positively
+ * identify appear here — an unrecognised product books no payment at all
+ * rather than inventing an amount.
+ */
+const SKU_PRICES: Record<string, number> = {
+  [PRO_MONTHLY]: 199,
+  [PRO_YEARLY]: 1799,
+};
 
 /**
  * POST /api/webhooks/revenuecat — RevenueCat webhook endpoint.
@@ -61,8 +71,12 @@ export async function POST(request: NextRequest) {
     const productId: string | undefined = ev.product_id;
     const entitlementIds: string[] = ev.entitlement_ids ?? [];
 
-    const isProEvent =
-      entitlementIds.includes("pro") || (productId ? PRO_SKUS.includes(productId) : false);
+    // Store product ids arrive in App Store / Play form (underscores, and on
+    // Android a `:base-plan` suffix); our SKUs are hyphenated. Translate once,
+    // here, so every downstream write and price lookup uses the real SKU.
+    const normalizedSku = normalizeRcProductId(productId);
+
+    const isProEvent = entitlementIds.includes("pro") || normalizedSku !== null;
 
     if (!appUserId || !isProEvent) {
       return NextResponse.json({ received: true });
@@ -76,8 +90,9 @@ export async function POST(request: NextRequest) {
       ? new Date(expirationMs).toISOString()
       : null;
     const isTrial: boolean = ev.is_trial_period ?? ev.period_type === "trial";
-    const resolvedSku =
-      productId && PRO_SKUS.includes(productId) ? productId : PRO_SKUS[0];
+    // RC's entitlement is authoritative for *access*, so an unrecognised
+    // product still grants Pro — it just cannot be priced (see below).
+    const resolvedSku = normalizedSku ?? PRO_MONTHLY;
     const transactionId: string =
       ev.transaction_id ?? ev.original_transaction_id ?? "rc_" + Date.now();
 
@@ -85,8 +100,9 @@ export async function POST(request: NextRequest) {
       case "INITIAL_PURCHASE":
       case "RENEWAL":
       case "UNCANCELLATION": {
-        // Determine price for payment record
-        const price = isTrial ? 0 : resolvedSku === "latag-pro-yearly" ? 1799 : 199;
+        // A trial books ₱0. Anything we could not identify books nothing at
+        // all — guessing an amount would fabricate revenue.
+        const price = isTrial ? 0 : normalizedSku ? SKU_PRICES[normalizedSku] ?? null : null;
 
         // Upsert: insert if new, update if existing active license for this SKU
         const existing = await admin
@@ -123,16 +139,23 @@ export async function POST(request: NextRequest) {
         }
 
         // Record payment (non-critical)
-        await admin
-          .from("payments")
-          .insert({
-            user_id: appUserId,
-            provider: "revenuecat",
-            provider_ref: transactionId,
-            amount: price,
-            currency: "PHP",
-            status: "paid",
-          });
+        if (price !== null) {
+          await admin
+            .from("payments")
+            .insert({
+              user_id: appUserId,
+              provider: "revenuecat",
+              provider_ref: transactionId,
+              amount: price,
+              currency: "PHP",
+              status: "paid",
+            });
+        } else {
+          console.warn(
+            "[webhooks/revenuecat] unrecognised product_id, Pro granted but no payment booked:",
+            productId,
+          );
+        }
 
         break;
       }

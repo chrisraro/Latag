@@ -5,7 +5,8 @@ import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 import * as schema from "../../db/schema";
 import path from "node:path";
 
-export type DB = BaseSQLiteDatabase<"sync", any, typeof schema>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DB = BaseSQLiteDatabase<"sync", any, typeof schema> & { $client: any };
 
 export function makeTestDb(): { db: DB } {
   const sqlite = new Database(":memory:");

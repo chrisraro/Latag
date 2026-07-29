@@ -1,3 +1,10 @@
+// lib/supabase.ts calls createClient at module scope, which throws
+// "supabaseUrl is required" the moment any test imports a screen that reaches
+// it. Jest does not load .env, so any suite touching the shop tab failed to
+// load. These are inert placeholders — no test performs a real network call.
+process.env.EXPO_PUBLIC_SUPABASE_URL ??= "https://test.supabase.co";
+process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??= "test-anon-key";
+
 jest.mock("expo-crypto", () => ({
   randomUUID: () => require("node:crypto").randomUUID(),
   getRandomBytes: (n: number) => new Uint8Array(require("node:crypto").randomBytes(n)),

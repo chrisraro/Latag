@@ -1,6 +1,10 @@
 {
   "name": "latag",
   "private": true,
+  "packageManager": "pnpm@11.12.0",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "mobile": "pnpm -C apps/mobile start",
     "test": "pnpm -C apps/mobile test",

@@ -46,7 +46,7 @@ export type Refresh = {
   /** Drives `RefreshControl`'s `refreshing`. */
   refreshing: boolean;
   /** Drives `RefreshControl`'s `onRefresh`. Safe to fire repeatedly. */
-  onRefresh: () => void;
+  onRefresh: () => Promise<void> | void;
 };
 
 /**

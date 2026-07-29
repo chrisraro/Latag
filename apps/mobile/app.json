@@ -2,14 +2,12 @@
   "expo": {
     "name": "Latag",
     "slug": "latag",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "latag",
     "userInterfaceStyle": "dark",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.1.0",
     "updates": {
       "url": "https://u.expo.dev/465e3d82-c739-4bf8-ab14-8cb7869b4535",
       "fallbackToCacheTimeout": 0

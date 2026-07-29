@@ -28,7 +28,7 @@ export type HomeViewModel = {
   // --- Derived state ---
   snap: ReturnType<typeof snapshot>;
   recent: Item[];
-  next: ReturnType<typeof nextScheduled>;
+  next: Session | null;
   thumbs: Map<string, string>;
   pro: boolean;
   published: Item[];
@@ -40,7 +40,7 @@ export type HomeViewModel = {
   // --- Actions ---
   startNow: (s: Session) => void;
   copyLink: () => Promise<void>;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<void> | void;
   reread: number;
 };
 
