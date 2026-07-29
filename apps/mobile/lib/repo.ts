@@ -2,7 +2,6 @@ import { eq, and, asc } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { sessions, items, photos, publishQueue, type Session, type Item, type Photo, type PublishQueueRow } from "../db/schema";
 import { specFieldsFor, type Department, type SpecKey } from "./catalog";
-import { readLogsRemaining as remainingLogs } from "./entitlements";
 // No cycle: shop-sync imports only db/schema, lib/catalog and lib/shop-api —
 // never lib/repo — so this stays a plain static import.
 import { kickSync } from "./shop-sync";
@@ -135,13 +134,11 @@ function trimmedName(name: string | null | undefined): string | null {
   return t ? t : null;
 }
 
-/** Logging is uncapped since F1 — `logsRemaining` is reported, never enforced.
- *  The entitlements row is neither written nor created here (the launch effect
- *  in app/_layout owns that); `consumeLog` stays in lib/entitlements for the
- *  Pro gates F2 introduces. */
+/** Logging is uncapped — free-tier users can log unlimited items.
+ *  The returned `logsRemaining` is always `Infinity` (the old 20-item cap
+ *  was never enforced and has been removed). */
 export function addItem(db: AnyDb, input: AddItemInput): { item: Item; logsRemaining: number } {
   return db.transaction((tx: AnyDb) => {
-    const logsRemaining = remainingLogs(tx);
     const row = {
       id: newId(), sessionId: input.sessionId, brand: input.brand, name: trimmedName(input.name),
       department: input.department, category: input.category,
@@ -150,7 +147,7 @@ export function addItem(db: AnyDb, input: AddItemInput): { item: Item; logsRemai
       targetSellPrice: input.targetSellPrice, createdAt: new Date(),
     };
     tx.insert(items).values(row).run();
-    return { item: tx.select().from(items).where(eq(items.id, row.id)).all()[0], logsRemaining };
+    return { item: tx.select().from(items).where(eq(items.id, row.id)).all()[0], logsRemaining: Infinity };
   });
 }
 

@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { db } from "../db/client";
 import migrations from "../drizzle/migrations";
 import { ensureEntitlements } from "../lib/entitlements";
+import { configureRevenueCat, isRevenueCatConfigured } from "../lib/purchases";
 import { sweepOrphans } from "../lib/media";
 import { supabase } from "../lib/supabase";
 import { completeSignIn } from "../lib/auth-complete";
@@ -67,7 +68,13 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (migrated) { ensureEntitlements(db); sweepOrphans(db).catch(() => {}); }
+    if (migrated) {
+      ensureEntitlements(db);
+      sweepOrphans(db).catch(() => {});
+      // Configure RevenueCat SDK for entitlement checking.  Safe to call
+      // even if the package is not installed (no-op internally).
+      if (isRevenueCatConfigured()) configureRevenueCat();
+    }
   }, [migrated]);
   useEffect(() => {
     if ((migrated || migrationError) && fontsLoaded && startRoute !== undefined) SplashScreen.hideAsync();
@@ -213,6 +220,7 @@ export default function RootLayout() {
         <Stack.Screen name="item/[id]/sold" options={{ presentation: "modal" }} />
         <Stack.Screen name="shop/setup" options={{ presentation: "modal" }} />
         <Stack.Screen name="auth/sign-in" options={{ presentation: "modal" }} />
+        <Stack.Screen name="pro/paywall" options={{ presentation: "fullScreenModal" }} />
       </Stack>
       <AppToast />
     </GestureHandlerRootView>
