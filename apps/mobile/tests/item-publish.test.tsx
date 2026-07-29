@@ -106,7 +106,7 @@ afterEach(() => {
 });
 
 function setup(opts: { pro: boolean; shop: boolean; item?: Partial<typeof items.$inferInsert> }): void {
-  db.insert(entitlements).values({ id: 1, pro: opts.pro, logsUsed: 0 }).run();
+  db.insert(entitlements).values({ id: 1, pro: opts.pro }).run();
   if (opts.shop) mockedGetMyShop.mockResolvedValue({ ok: true, data: PROFILE });
   db.insert(items).values({
     id: "i1", sessionId: "s1", brand: "Carhartt", name: "Detroit Jacket", department: "tops",
