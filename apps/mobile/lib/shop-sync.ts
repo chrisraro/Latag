@@ -1,5 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import { items, photos, publishQueue, type Item, type Photo, type PublishQueueRow } from "../db/schema";
+import type { LatagDb } from "../db/client";
 import { specRowsFor, type CatalogItem } from "./catalog";
 import {
   deleteShopItem,
@@ -180,16 +181,14 @@ export function writePhotoSync(s: PhotoSync): string {
 // Real deps
 // ---------------------------------------------------------------------------
 
-type AnyDb = any;
-
-function orderedLocalUris(db: AnyDb, itemId: string): string[] {
+function orderedLocalUris(db: LatagDb, itemId: string): string[] {
   const rows = db.select().from(photos).where(eq(photos.itemId, itemId)).all() as Photo[];
   return [...rows]
     .sort((a, b) => (SLOT_ORDER[a.type] ?? 9) - (SLOT_ORDER[b.type] ?? 9))
     .map((p) => p.localUri);
 }
 
-function setPhotoSync(db: AnyDb, itemId: string, value: string | null): void {
+function setPhotoSync(db: LatagDb, itemId: string, value: string | null): void {
   try {
     db.update(items).set({ photoSync: value }).where(eq(items.id, itemId)).run();
   } catch {
@@ -202,7 +201,7 @@ function setPhotoSync(db: AnyDb, itemId: string, value: string | null): void {
  * folder, so after a sign-out they may no longer be ours to reuse — the next
  * publish must upload afresh rather than point buyers at someone else's bytes.
  */
-export function forgetUploadedPhotos(db: AnyDb): void {
+export function forgetUploadedPhotos(db: LatagDb): void {
   try {
     db.update(items).set({ photoSync: null }).run();
   } catch {
@@ -210,7 +209,7 @@ export function forgetUploadedPhotos(db: AnyDb): void {
   }
 }
 
-export function makeSyncDeps(db: AnyDb): DrainDeps {
+export function makeSyncDeps(db: LatagDb): DrainDeps {
   return {
     list: () => db.select().from(publishQueue).orderBy(asc(publishQueue.createdAt)).all(),
 
@@ -264,7 +263,7 @@ export function makeSyncDeps(db: AnyDb): DrainDeps {
 }
 
 /** Fire-and-forget entry point for app/_layout: drain whatever is pending. */
-export async function syncPublishQueue(db: AnyDb): Promise<DrainSummary> {
+export async function syncPublishQueue(db: LatagDb): Promise<DrainSummary> {
   try {
     return await drainQueue(makeSyncDeps(db));
   } catch {
@@ -286,7 +285,7 @@ let inFlight: Promise<DrainSummary> | null = null;
  * Overlap-guarded so rapid toggles can't stack drains; never throws, never
  * blocks the caller — same offline-first contract as syncPublishQueue.
  */
-export function kickSync(db: AnyDb): void {
+export function kickSync(db: LatagDb): void {
   if (inFlight) return;
   // Deferred onto a microtask, NOT started inline. repo.ts enqueues from
   // inside db.transaction(...), and drainQueue reads the queue synchronously

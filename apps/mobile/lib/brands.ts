@@ -1,11 +1,11 @@
 import * as Crypto from "expo-crypto";
 import { userBrands, type UserBrand } from "../db/schema";
+import type { LatagDb } from "../db/client";
 import seedBrands from "../data/brands.json";
 
 export type BrandSuggestion = { name: string; source: "recent" | "custom" | "seed" };
 
 type SeedEntry = { name: string; tier: "core" | "common" };
-type AnyDb = any;
 
 const newId = () => Crypto.randomUUID();
 /** Case- and diacritic-insensitive key: trims, strips accents (NFD + combining-mark strip), lowercases. */
@@ -65,7 +65,7 @@ export function suggestBrands(
  * bundled seed — returns the existing casing when a duplicate is found, so
  * callers can pick the canonical name instead of creating a variant.
  */
-export function addUserBrand(db: AnyDb, name: string): { created: boolean; name: string } {
+export function addUserBrand(db: LatagDb, name: string): { created: boolean; name: string } {
   const trimmed = name.trim();
   if (!trimmed) return { created: false, name: "" };
   const key = nocase(trimmed);
@@ -77,6 +77,6 @@ export function addUserBrand(db: AnyDb, name: string): { created: boolean; name:
   return { created: true, name: trimmed };
 }
 
-export function listUserBrands(db: AnyDb): string[] {
+export function listUserBrands(db: LatagDb): string[] {
   return (db.select().from(userBrands).all() as UserBrand[]).map((b) => b.name).sort(az);
 }

@@ -1,22 +1,24 @@
 import { eq } from "drizzle-orm";
 import { entitlements } from "../db/schema";
 import { ensureEntitlements } from "./entitlements";
+import type { LatagDb } from "../db/client";
 
-const LICENSE_URL = "https://latag.vercel.app/api/license";
-
-// db is any sync drizzle sqlite database that includes the entitlements table.
-type AnyDb = any;
+const LICENSE_URL =
+  process.env.EXPO_PUBLIC_LICENSE_URL ?? "https://latag.vercel.app/api/license";
 
 export type FetchLicenseResult =
-  | { kind: "pro"; receipt: string }
+  | { kind: "pro"; receipt: string; expiresAt: string | null }
   | { kind: "none" }
   | { kind: "error" };
 
 /**
- * Caches a verified license locally: pro=true + the opaque receipt.
+ * Caches a verified license locally: pro=true, receipt, and optional expiry.
  * Idempotent — safe to call repeatedly with the same receipt.
  */
-export function applyLicense(db: AnyDb, input: { receipt: string }): void {
+export function applyLicense(
+  db: LatagDb,
+  input: { receipt: string; expiresAt?: string | null },
+): void {
   ensureEntitlements(db);
   db.update(entitlements)
     .set({ pro: true, licenseReceipt: input.receipt })
@@ -25,10 +27,9 @@ export function applyLicense(db: AnyDb, input: { receipt: string }): void {
 }
 
 /**
- * Reverts the cached license to the free tier. logsUsed is left untouched
- * so the free counter resumes from wherever it was before Pro.
+ * Reverts the cached license to the free tier.
  */
-export function clearLicense(db: AnyDb): void {
+export function clearLicense(db: LatagDb): void {
   ensureEntitlements(db);
   db.update(entitlements)
     .set({ pro: false, licenseReceipt: null })
@@ -37,14 +38,13 @@ export function clearLicense(db: AnyDb): void {
 }
 
 /**
- * Fetches license status from the backend. Never throws — network errors,
- * non-2xx statuses (other than 404), and malformed 200 bodies all resolve
- * to { kind: "error" } so callers can safely no-op on failure (offline-first:
- * cached Pro survives forever; only a definitive 404 clears it).
+ * Fetches license status from the backend. Returns the receipt + expiry info.
+ * Never throws — network errors, non-2xx statuses, and malformed bodies all
+ * resolve to { kind: "error" } so callers can safely no-op on failure.
  */
 export async function fetchLicense(
   accessToken: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
 ): Promise<FetchLicenseResult> {
   try {
     const res = await fetchImpl(LICENSE_URL, {
@@ -58,8 +58,16 @@ export async function fetchLicense(
     const status = body?.license?.status;
     const receipt = body?.receipt;
 
-    if (status === "active" && typeof receipt === "string" && receipt.length > 0) {
-      return { kind: "pro", receipt };
+    if (
+      (status === "active" || status === "past_due") &&
+      typeof receipt === "string" &&
+      receipt.length > 0
+    ) {
+      return {
+        kind: "pro",
+        receipt,
+        expiresAt: body?.license?.expiresAt ?? null,
+      };
     }
     return { kind: "error" };
   } catch {
