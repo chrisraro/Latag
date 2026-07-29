@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
   const isExpired = expiresAt && Date.parse(expiresAt) < Date.now();
   if (isExpired && license.status === "active") {
     // Update status to expired in background (fire-and-forget)
-    admin.from("licenses").update({ status: "expired" }).eq("id", license.id).catch(() => {});
+    void admin.from("licenses").update({ status: "expired" }).eq("id", license.id);
     return NextResponse.json({ license: null }, { status: 404 });
   }
 
