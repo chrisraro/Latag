@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
           amount: 499,
           currency: "PHP",
           status: "paid",
-        }).catch(() => {});
+        });
       } else if (["CANCELLATION", "BILLING_ISSUE", "EXPIRATION"].includes(eventType)) {
         await admin
           .from("licenses")

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View, Text, Pressable, ScrollView } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -80,24 +81,6 @@ function SettingsRow({
     </Wrapper>
   );
 }
-
-/** Restore purchases — looks up the user's App Store / Play Store history. */
-const handleRestore = async () => {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  const result = await restorePurchases();
-  if (result.kind === "restored") {
-    const pro = result.customerInfo.entitlements.active["pro"];
-    if (pro) {
-      applyLicense(db, { receipt: "rc_restored", expiresAt: pro.expirationDate ?? null });
-      setSubscriptionLabel(formatExpiry(pro.expirationDate ?? null));
-    }
-    showSuccess("Purchases restored — Pro is active again");
-  } else if (result.kind === "nothing") {
-    showSuccess("No previous purchases to restore on this account");
-  } else {
-    showError("Couldn't restore purchases — check your internet and try again");
-  }
-};
 
 /** Format a date for the subscription status display. */
 function formatExpiry(iso: string | null): string {
@@ -207,6 +190,24 @@ export default function SettingsScreen() {
     forgetUploadedPhotos(db);
     setSubscriptionLabel(null);
     showSuccess("Signed out — your data stays on this phone");
+  };
+
+  // --- Restore purchases ---
+  const handleRestore = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const result = await restorePurchases();
+    if (result.kind === "restored") {
+      const pro = result.customerInfo.entitlements.active["pro"];
+      if (pro) {
+        applyLicense(db, { receipt: "rc_restored", expiresAt: pro.expirationDate ?? null });
+        setSubscriptionLabel(formatExpiry(pro.expirationDate ?? null));
+      }
+      showSuccess("Purchases restored — Pro is active again");
+    } else if (result.kind === "nothing") {
+      showSuccess("No previous purchases to restore on this account");
+    } else {
+      showError("Couldn't restore purchases — check your internet and try again");
+    }
   };
 
   // --- Export backup ---
