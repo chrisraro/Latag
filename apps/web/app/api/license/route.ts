@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
   const { data: license, error: licenseError } = await admin
     .from("licenses")
-    .select("sku,status,granted_at,expires_at")
+    .select("id,sku,status,granted_at,expires_at")
     .eq("user_id", userId)
     .in("sku", PRO_SKUS)
     .in("status", ["active", "past_due"])
