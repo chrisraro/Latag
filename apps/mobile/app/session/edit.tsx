@@ -112,7 +112,7 @@ export default function EditSessionScreen() {
   const inputCls = "mb-3 h-[52px] rounded-[14px] border border-hairline bg-surface2 px-4 text-[15px] text-ink";
   return (
     <View className="flex-1 bg-surface1 px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
-      <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
+      <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-handle" />
       <Text style={{ fontFamily: FONT.display }} className="mb-4 text-[19px] text-ink">Edit Batch</Text>
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" className="flex-1">
         <TextInput value={name} onChangeText={setName} placeholder="Batch name" placeholderTextColor="#8A8A8A" style={{ fontFamily: FONT.text }} className={inputCls} />

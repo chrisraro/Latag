@@ -20,8 +20,8 @@ export function Chip({ label, selected, onPress }: { label: string; selected?: b
 
 export function Badge({ label, tone = "default" }: { label: string; tone?: "default" | "sold" }) {
   return (
-    <View className={`flex-none rounded-full border px-2.5 py-1 ${tone === "sold" ? "border-inkfaint" : "border-hairline"}`}>
-      <Text style={{ fontFamily: FONT.display, letterSpacing: 0.42, lineHeight: 14 }} className={`text-[10.5px] ${tone === "sold" ? "text-inkfaint" : "text-inkdim"}`}>{label}</Text>
+    <View className={`flex-none rounded-full border px-2.5 py-1 ${tone === "sold" ? "border-sold" : "border-hairline"}`}>
+      <Text style={{ fontFamily: FONT.display, letterSpacing: 0.42, lineHeight: 14 }} className={`text-[10.5px] ${tone === "sold" ? "text-sold" : "text-inkdim"}`}>{label}</Text>
     </View>
   );
 }

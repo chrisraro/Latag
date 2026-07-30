@@ -75,7 +75,7 @@ Rules:
 - Rhythm rule: tight within groups (8–12px: label→control, icon→text), generous between groups (16–24px: section→section, content→primary action). Never uniform spacing everywhere.
 - Screen gutter: 16px. Card padding: 16px.
 - Safe areas: sheets get ≥28px bottom padding (home indicator); content respects status-bar top inset.
-- Radii: chips & buttons **pill**; cards 14px; modal sheets 20px top corners; photo slots 10px. (Was documented as 12px pre-Wave-2; the app has used 14px at every card call site since inception, so the spec was corrected to match the app rather than the other way around — see `packages/tokens/src/index.ts`.)
+- Radii: chips & buttons **pill**; cards 12px; modal sheets 20px top corners; photo slots 10px. (The app also has ~25 arbitrary `rounded-[14px]` call sites alongside the 12 that use the `rounded-card` token — a pre-existing two-radii inconsistency, not something Wave 2 Task 1 is authorized to resolve either direction. `rounded-card` stays at its documented 12px; reconciling the arbitrary 14px sites is a real design decision left to the owner. See `packages/tokens/src/index.ts`.)
 - Touch targets ≥ 48×48px. Primary action buttons: full-width, 56px tall, bottom-anchored in thumb zone.
 - Z-scale: `base(0) < sticky-header(10) < sheet-backdrop(20) < sheet(30) < toast(40)`.
 
