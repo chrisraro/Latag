@@ -6,13 +6,15 @@ export const metadata: Metadata = { title: "Terms of Use" };
 
 export default function TermsPage() {
   return (
-    <Prose title="Terms of Use" updated="July 27, 2026">
+    <Prose title="Terms of Use" updated="July 30, 2026">
       <p>These terms keep things fair and short. By using Latag you agree to them.</p>
       <h2>The app</h2>
       <p>
         Latag is an offline inventory and pricing tool for clothing resellers. Logging items is free and
-        unlimited. Latag Pro is a one-time purchase that unlocks your public storefront, activated by signing
-        in once inside the app.
+        unlimited. Latag Pro is a recurring subscription — ₱199/month or ₱1,799/year, with a 14-day free
+        trial — that unlocks your public storefront, activated by signing in once inside the app. A small
+        number of accounts hold a legacy lifetime grant issued before the subscription model existed; that
+        grant is not for sale and keeps working, but it is not a plan you can buy today.
       </p>
       <h2>Your data, your responsibility</h2>
       <p>
@@ -29,11 +31,21 @@ export default function TermsPage() {
         or the law; see our <Link href="/privacy" className="underline">Privacy Policy</Link> for exactly what
         publishing uploads and how to remove it.
       </p>
-      <h2>Purchases and refunds</h2>
+      <h2>Subscription, auto-renewal and cancellation</h2>
       <p>
-        Pro is sold on this website as a one-time payment. If Pro fails to activate on your device and we
-        cannot fix it within a reasonable time, we will refund you in full. Refund requests: hello@latag.ph
-        within 14 days of purchase.
+        Pro is billed and processed by the App Store or Play Store, not by us. Your first 14 days are free;
+        unless you cancel before the trial ends, the subscription auto-renews at ₱199/month or ₱1,799/year
+        and your payment method is charged by Apple or Google at the start of each new period. Subscriptions
+        renew automatically until cancelled. To cancel, use your Apple ID or Google Play subscription
+        settings — we have no ability to cancel a subscription on your behalf, and cancelling stops future
+        renewals but does not end your current paid period early.
+      </p>
+      <h2>Refunds</h2>
+      <p>
+        Because Apple and Google process the payment, they also handle refunds — request one through the
+        App Store or Play Store, not from us. If Pro fails to activate on your device after a successful
+        purchase and we cannot fix it within a reasonable time, contact hello@latag.ph and we will help you
+        get a refund through the store or make it right another way.
       </p>
       <h2>Fair use</h2>
       <ul>

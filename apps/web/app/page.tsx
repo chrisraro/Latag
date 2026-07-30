@@ -75,7 +75,7 @@ export default function Home() {
               </div>
             </dl>
             <p className="mt-8 text-sm text-inkfaint">
-              Latag for Android is in final QA — downloads and Pro purchases open together.
+              Latag is live on Android, version 1.2.0, shipping to subscribers now.
             </p>
           </div>
           <PhoneDemo />
@@ -276,10 +276,10 @@ latag.vercel.app/shop/thriftlord/LT-7K2Q9`}
       {/* PRICING */}
       <section aria-labelledby="pricing-title" className="border-t border-hairline">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-28">
-          <SectionTitle id="pricing-title">Free forever. Pay once for the shop.</SectionTitle>
+          <SectionTitle id="pricing-title">Free forever. Low monthly for the shop.</SectionTitle>
           <p className="mt-5 max-w-[64ch] text-lg text-inkdim">
-            Unlimited inventory on the free tier — no item cap, no trial clock, no subscription. Pro is a
-            one-time unlock, and what it buys you is the storefront.
+            Unlimited inventory on the free tier — no item cap, no trial clock. Pro is a subscription that
+            unlocks the storefront: 14 days free, then ₱199/month or ₱1,799/year. Cancel anytime.
           </p>
           <div className="mt-12">
             <Pricing />
