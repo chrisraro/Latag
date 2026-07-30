@@ -83,7 +83,9 @@ export async function checkProStatus(): Promise<ProStatus | null> {
   if (!RC_API_KEY) return null;
   try {
     const Purchases = await import("react-native-purchases");
-    const { customerInfo } = await Purchases.default.getCustomerInfo();
+    // Unlike purchaseProduct/restorePurchases (which resolve to a wrapper
+    // object), getCustomerInfo resolves to the CustomerInfo itself.
+    const customerInfo = await Purchases.default.getCustomerInfo();
     return parseProStatus(customerInfo);
   } catch {
     return { kind: "error" };
@@ -152,7 +154,9 @@ export async function getOfferings(): Promise<RCProduct[] | null> {
           ? {
               price: prod.introPrice.price,
               priceString: prod.introPrice.priceString,
-              period: prod.introPrice.subscriptionPeriod,
+              // The real SDK's PurchasesIntroPrice field is `period` (ISO 8601,
+              // e.g. "P1W"), not `subscriptionPeriod` — the stub guessed wrong.
+              period: prod.introPrice.period,
               periodUnit: prod.introPrice.periodUnit,
             }
           : null,
@@ -206,7 +210,8 @@ export async function restorePurchases(): Promise<RestoreResult> {
   if (!RC_API_KEY) return { kind: "error", message: "RevenueCat not configured" };
   try {
     const Purchases = await import("react-native-purchases");
-    const { customerInfo } = await Purchases.default.restorePurchases();
+    // restorePurchases resolves to the CustomerInfo itself, not a wrapper.
+    const customerInfo = await Purchases.default.restorePurchases();
     const hasPro = customerInfo.entitlements.active["pro"];
     if (hasPro) {
       return { kind: "restored", customerInfo };
