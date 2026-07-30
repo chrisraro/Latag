@@ -15,6 +15,7 @@ jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn(async () => true) }
 const mockShopVM = {
   pro: false,
   queued: 0,
+  stuck: 0,
   profile: undefined as any,
   stale: false,
   failed: false,
@@ -226,6 +227,7 @@ describe("Shop tab — free user", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.stuck = 0;
     mockShopVM.listings = [];
     mockShopVM.refreshing = false;
   });
@@ -263,6 +265,7 @@ describe("Shop tab — Pro, no shop yet", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.stuck = 0;
     mockShopVM.listings = [];
     mockShopVM.refreshing = false;
   });
@@ -306,6 +309,7 @@ describe("Shop tab — Pro, shop exists", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.stuck = 0;
     mockShopVM.listings = [];
     mockShopVM.refreshing = false;
     mockShopVM.copyLink.mockClear();
@@ -409,17 +413,59 @@ describe("Shop tab — Pro, shop exists", () => {
   });
 
   test("a row that gave up after five tries is called out separately", async () => {
-    // The view-model should return stuck items, but for now the view doesn't
-    // have that logic yet — it's in the hook. For this test we verify the
-    // current behavior (shows pending count).
     mockShopVM.queued = 1;
     mockShopVM.listings = [
       { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
     ];
     const t = await render(ShopScreen);
     const all = texts(t);
-    // Current behavior: shows pending count (stuck detection is a TODO in the hook)
+    // stuck defaults to 0 in the mock, so only the pending banner shows —
+    // this preserves the original assertion for a queue that is merely
+    // waiting its turn, not one that has given up.
     expect(all).toContain("1 change pending");
+  });
+
+  test("a row that has exhausted its retries gets its own honest banner, singular", async () => {
+    mockShopVM.stuck = 1;
+    mockShopVM.listings = [
+      { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
+    ];
+    const t = await render(ShopScreen);
+    const all = texts(t);
+    expect(all).toContain("1 change couldn't sync — open the item and switch Publish off, then on");
+  });
+
+  test("a row that has exhausted its retries gets its own honest banner, plural", async () => {
+    mockShopVM.stuck = 3;
+    mockShopVM.listings = [
+      { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
+    ];
+    const t = await render(ShopScreen);
+    const all = texts(t);
+    expect(all).toContain("3 changes couldn't sync — open those items and switch Publish off, then on");
+  });
+
+  test("no stuck rows means no give-up banner at all", async () => {
+    mockShopVM.stuck = 0;
+    mockShopVM.queued = 2;
+    mockShopVM.listings = [
+      { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
+    ];
+    const t = await render(ShopScreen);
+    const all = texts(t).join(" | ");
+    expect(all).not.toContain("couldn't sync");
+  });
+
+  test("a still-retrying queue and a permanently-failed row both surface at once", async () => {
+    mockShopVM.queued = 3;
+    mockShopVM.stuck = 1;
+    mockShopVM.listings = [
+      { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
+    ];
+    const t = await render(ShopScreen);
+    const all = texts(t);
+    expect(all).toContain("3 changes pending");
+    expect(all).toContain("1 change couldn't sync — open the item and switch Publish off, then on");
   });
 });
 
@@ -439,6 +485,7 @@ describe("Shop tab — pull to refresh", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.stuck = 0;
     mockShopVM.listings = [];
   });
 
@@ -480,6 +527,7 @@ describe("Shop tab — restore from published", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.stuck = 0;
     mockShopVM.listings = [];
     mockShopVM.refreshing = false;
     alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
