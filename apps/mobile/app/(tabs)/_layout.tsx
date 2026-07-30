@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { Tabs, useRouter } from "expo-router";
 import { NativeTabBar } from "../../components/NativeTabBar";
+import { EdgeSwipeNav } from "../../components/EdgeSwipeNav";
 import { QUICK_ADD_ROUTE } from "../../lib/quick-add";
 import { tabSwitchAnimation, tabTransitionSpec, useReducedMotion } from "../../lib/motion";
 
@@ -12,27 +13,34 @@ export default function TabsLayout() {
   }, [router]);
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        sceneStyle: { backgroundColor: "#000" },
-        // Tabs are peers, so they cross over rather than slide — a slide would
-        // imply an order the bar does not have. Reduced motion cuts straight to
-        // the new tab; the tap is never held up by either.
-        animation: tabSwitchAnimation(reduced),
-        transitionSpec: tabTransitionSpec(reduced),
-      }}
-      tabBar={(props) => <NativeTabBar {...props} onQuickAdd={onQuickAdd} />}
-    >
-      {/* `index` is Home (it re-exports `home.tsx`); `home` therefore exists as a
-          route too, but the bar's destination allowlist keeps it off the bar. */}
-      <Tabs.Screen name="index" options={{ title: "Home" }} />
-      <Tabs.Screen name="inventory" options={{ title: "Inventory" }} />
-      <Tabs.Screen name="batches" options={{ title: "Batches" }} />
-      <Tabs.Screen name="shop" options={{ title: "Shop" }} />
-      {/* Registered so `/settings` keeps resolving (deep links, and the gear in
-          every screen's header) — the allowlist keeps it off the bar. */}
-      <Tabs.Screen name="settings" options={{ title: "Settings" }} />
-    </Tabs>
+    // Edge-swipe shortcut between bar tabs (see components/EdgeSwipeNav.tsx) —
+    // wrapped once here so every tab screen gets it without touching four
+    // separate files. The bar itself is unchanged and remains the only
+    // *required* way to reach a tab; this is a shortcut, never a replacement.
+    <EdgeSwipeNav>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: "#000" },
+          // Tabs are peers, so they cross over rather than slide — a slide would
+          // imply an order the bar does not have. Reduced motion cuts straight to
+          // the new tab; the tap is never held up by either. A swipe navigates
+          // through this same `Tabs` state, so it rides this exact animation.
+          animation: tabSwitchAnimation(reduced),
+          transitionSpec: tabTransitionSpec(reduced),
+        }}
+        tabBar={(props) => <NativeTabBar {...props} onQuickAdd={onQuickAdd} />}
+      >
+        {/* `index` is Home (it re-exports `home.tsx`); `home` therefore exists as a
+            route too, but the bar's destination allowlist keeps it off the bar. */}
+        <Tabs.Screen name="index" options={{ title: "Home" }} />
+        <Tabs.Screen name="inventory" options={{ title: "Inventory" }} />
+        <Tabs.Screen name="batches" options={{ title: "Batches" }} />
+        <Tabs.Screen name="shop" options={{ title: "Shop" }} />
+        {/* Registered so `/settings` keeps resolving (deep links, and the gear in
+            every screen's header) — the allowlist keeps it off the bar. */}
+        <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+      </Tabs>
+    </EdgeSwipeNav>
   );
 }
