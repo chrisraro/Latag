@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Legacy entry keeps parity with lib/albums — the v57 main-entry classic API is deprecated.
 import * as MediaLibrary from "expo-media-library/legacy";
 import * as Location from "expo-location";
+import * as Haptics from "expo-haptics";
 import { FONT, COLORS } from "../lib/theme";
 import { ensureNotifPermission } from "../lib/notifications";
 import { PrimaryButton } from "../components/ui";
@@ -14,15 +15,21 @@ import { Icon, type IconName } from "../components/Icon";
 
 const PANES = 3;
 
-/** Sets the first-run flags and lands on the inventory. Shared by both exits (Skip and Start logging). */
-async function finishOnboarding(router: ReturnType<typeof useRouter>) {
+/** Sets the first-run flags and lands on the inventory. Shared by both exits (Skip and Start logging).
+ *  `mode` is whatever pane 1's radio group holds at the time of exit — Selector by
+ *  default, so Skip without touching a card still persists a sane default rather
+ *  than nothing at all. */
+async function finishOnboarding(router: ReturnType<typeof useRouter>, mode: "selector" | "bulto") {
   // Navigate even if the flag writes fail — worst case, onboarding shows again.
   // Also sets `latag.welcomed` — covers users who reach onboarding directly
   // (pre-welcome-era navigation, or the "start offline" welcome exit already
   // set it) so the welcome screen never reappears after this point.
+  // `latag.defaultMode` is read back by session/new.tsx as the New Batch default —
+  // the whole point of making this pick real instead of decorative.
   await AsyncStorage.multiSet([
     ["latag.onboarded", "1"],
     ["latag.welcomed", "1"],
+    ["latag.defaultMode", mode],
   ]).catch(() => {});
   router.replace("/");
 }
@@ -38,21 +45,59 @@ function Dots({ active }: { active: number }) {
 }
 
 /** Mockup .obcard: radius 14, gap 14 items-start, 44px icon tile (surface2, acid icon), title 16px display, body 13px inkdim lh19.
- * Spacing polish pass: padding 16→18 and title→body gap 3→6 for breathing room. */
-function ModeCard({ icon, title, body, accent }: { icon: IconName; title: string; body: string; accent?: boolean }) {
-  return (
-    <View
-      style={{ borderRadius: 14 }}
-      className={`mb-3 flex-row items-start gap-3.5 border bg-surface1 p-[18px] ${accent ? "border-acid" : "border-hairline"}`}
-    >
+ * Spacing polish pass: padding 16→18 and title→body gap 3→6 for breathing room.
+ *
+ * Two roles, one component:
+ *  - No `onPress` → a plain informational card (pane 2's privacy blurb). Never
+ *    shows a selected style; it isn't part of any choice.
+ *  - `onPress` present → one option in pane 1's mode radio group. Selected
+ *    treatment matches the app's one existing selected-state pattern (Chip /
+ *    session/new.tsx's mode toggle): acid bg + acid-ink text + haptic on change.
+ *    Deliberately NOT the border-only "accent" look the false-affordance bug
+ *    shipped with — that look is exactly what made an inert card read as chosen. */
+function ModeCard({
+  icon,
+  title,
+  body,
+  selected,
+  onPress,
+  accessibilityLabel,
+}: {
+  icon: IconName;
+  title: string;
+  body: string;
+  selected?: boolean;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+}) {
+  const content = (
+    <>
       <View className="h-11 w-11 flex-none items-center justify-center rounded-xl bg-surface2">
         <Icon name={icon} size={24} color={COLORS.acid} />
       </View>
       <View className="flex-1">
-        <Text style={{ fontFamily: FONT.display }} className="text-[16px] text-ink">{title}</Text>
-        <Text style={{ fontFamily: FONT.text }} className="mt-1.5 text-[13px] leading-[19px] text-inkdim">{body}</Text>
+        <Text style={{ fontFamily: FONT.display }} className={`text-[16px] ${selected ? "text-acidink" : "text-ink"}`}>{title}</Text>
+        <Text style={{ fontFamily: FONT.text }} className={`mt-1.5 text-[13px] leading-[19px] ${selected ? "text-acidink" : "text-inkdim"}`}>{body}</Text>
       </View>
-    </View>
+    </>
+  );
+  const cardCls = `mb-3 flex-row items-start gap-3.5 border bg-surface1 p-[18px] ${selected ? "border-acid bg-acid" : "border-hairline"}`;
+
+  if (!onPress) {
+    return <View style={{ borderRadius: 14 }} className={cardCls}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      onPress={() => { Haptics.selectionAsync(); onPress(); }}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: !!selected }}
+      accessibilityLabel={accessibilityLabel ?? title}
+      style={{ borderRadius: 14, minHeight: 48 }}
+      className={cardCls}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -110,6 +155,12 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [active, setActive] = useState(0);
+  // Selector preselected — matches session/new.tsx's own current default, so a
+  // user who never touches this card still gets the mode New Batch already
+  // opens with today. Neither-selected was the other option considered; it was
+  // rejected because a two-option single-select with no default forces an extra
+  // decision before "Continue" that today's flow has never required.
+  const [mode, setMode] = useState<"selector" | "bulto">("selector");
   // Reactive: pane math survives rotation, split-screen, and foldable resizes.
   const { width: SCREEN_WIDTH } = useWindowDimensions();
 
@@ -139,24 +190,29 @@ export default function OnboardingScreen() {
             </View>
             <Pressable
               hitSlop={8}
-              onPress={() => void finishOnboarding(router)}
+              onPress={() => void finishOnboarding(router, mode)}
               className="h-11 items-center justify-center px-2"
             >
               <Text style={{ fontFamily: FONT.semibold }} className="text-[13px] text-inkfaint">Skip</Text>
             </Pressable>
           </View>
 
-          <View className="flex-1 justify-center">
+          <View className="flex-1 justify-center" accessibilityRole="radiogroup">
             <ModeCard
               icon="Target"
               title="Selector"
               body="Cherry-pick pieces at per-item prices. Latag tracks profit piece by piece."
+              selected={mode === "selector"}
+              onPress={() => setMode("selector")}
+              accessibilityLabel="Selector — cherry-pick pieces at per-item prices"
             />
             <ModeCard
               icon="Package"
               title="Bulto"
               body="Buy the whole bale at one fixed cost. Latag tracks capital recovery to break-even and beyond."
-              accent
+              selected={mode === "bulto"}
+              onPress={() => setMode("bulto")}
+              accessibilityLabel="Bulto — buy the whole bale at one fixed cost"
             />
           </View>
 
@@ -220,7 +276,7 @@ export default function OnboardingScreen() {
           </View>
 
           <Dots active={active} />
-          <PrimaryButton label="Start logging" onPress={() => void finishOnboarding(router)} />
+          <PrimaryButton label="Start logging" onPress={() => void finishOnboarding(router, mode)} />
         </View>
       </ScrollView>
     </View>

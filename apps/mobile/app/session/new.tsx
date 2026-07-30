@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "../../db/client";
 import { createSession, updateSession } from "../../lib/repo";
 import { REMINDER_PRESETS, formatScheduleStamp, reminderTimes } from "../../lib/schedule";
@@ -22,7 +23,15 @@ export default function NewSessionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
+  // "selector" is the safe default for a fresh install or a user who skipped
+  // onboarding — nothing was ever written to latag.defaultMode. If onboarding's
+  // pane 1 pick did persist, this effect swaps it in once the read resolves.
   const [type, setType] = useState<"selector" | "bulto">("selector");
+  useEffect(() => {
+    AsyncStorage.getItem("latag.defaultMode")
+      .then((v) => { if (v === "selector" || v === "bulto") setType(v); })
+      .catch(() => {}); // storage failure just keeps the "selector" default
+  }, []);
   const [baleCost, setBaleCost] = useState(10000);
   const [pin, setPin] = useState<PickedLocation | null>(null);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
