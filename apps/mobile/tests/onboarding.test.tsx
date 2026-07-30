@@ -158,3 +158,55 @@ test("Skip stays available top-right on the first pane", async () => {
   const t = await render();
   expect(pressablesByText(t, "Skip").length).toBeGreaterThan(0);
 });
+
+test("Selector is preselected on open — no card shows a selected style by accident", async () => {
+  const t = await render();
+  const [selectorCard] = t.root.findAll(
+    (n) => n.props?.accessibilityRole === "radio" && n.props?.accessibilityLabel?.includes("Selector"),
+  );
+  const [bultoCard] = t.root.findAll(
+    (n) => n.props?.accessibilityRole === "radio" && n.props?.accessibilityLabel?.includes("Bulto"),
+  );
+  expect(selectorCard.props.accessibilityState).toEqual({ checked: true });
+  expect(bultoCard.props.accessibilityState).toEqual({ checked: false });
+});
+
+test("tapping Bulto selects it and deselects Selector — exactly one selected at a time", async () => {
+  const t = await render();
+  const [bultoCard] = t.root.findAll(
+    (n) => n.props?.accessibilityRole === "radio" && n.props?.accessibilityLabel?.includes("Bulto"),
+  );
+  await act(async () => { bultoCard.props.onPress(); });
+
+  const [selectorCard] = t.root.findAll(
+    (n) => n.props?.accessibilityRole === "radio" && n.props?.accessibilityLabel?.includes("Selector"),
+  );
+  const [bultoCardAfter] = t.root.findAll(
+    (n) => n.props?.accessibilityRole === "radio" && n.props?.accessibilityLabel?.includes("Bulto"),
+  );
+  expect(selectorCard.props.accessibilityState).toEqual({ checked: false });
+  expect(bultoCardAfter.props.accessibilityState).toEqual({ checked: true });
+});
+
+test("tapping Bulto then finishing onboarding persists 'bulto' as the default mode", async () => {
+  const t = await render();
+  const [bultoCard] = t.root.findAll(
+    (n) => n.props?.accessibilityRole === "radio" && n.props?.accessibilityLabel?.includes("Bulto"),
+  );
+  await act(async () => { bultoCard.props.onPress(); });
+  await press(t, "Start logging");
+  expect(await AsyncStorage.getItem("latag.defaultMode")).toBe("bulto");
+});
+
+test("Skip on pane 1 without touching a card persists the Selector default", async () => {
+  const t = await render();
+  await press(t, "Skip");
+  expect(await AsyncStorage.getItem("latag.defaultMode")).toBe("selector");
+});
+
+test("a storage write failure on finish still lets the user continue past onboarding", async () => {
+  jest.spyOn(AsyncStorage, "multiSet").mockRejectedValueOnce(new Error("disk full"));
+  const t = await render();
+  await press(t, "Start logging");
+  expect(mockReplace).toHaveBeenCalledWith("/");
+});
