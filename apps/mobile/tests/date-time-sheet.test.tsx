@@ -28,6 +28,14 @@ function pressConfirm(tree: ReactTestRenderer): void {
   act(() => { (btn.props.onPress as () => void)(); });
 }
 
+function collectTexts(node: any, out: string[] = []): string[] {
+  for (const child of node.children ?? []) {
+    if (typeof child === "string") out.push(child);
+    else collectTexts(child, out);
+  }
+  return out;
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   jest.useFakeTimers();
@@ -65,4 +73,31 @@ test("a time exactly at now is guarded (<=, not <)", () => {
   pressConfirm(tree);
   expect(showError).toHaveBeenCalledWith("Pick a time in the future");
   expect(onConfirm).not.toHaveBeenCalled();
+});
+
+// DESIGN.md/PRODUCT.md: touch targets >= 48x48px. The AM/PM chips are 26px
+// tall (`h-[26px]`) and stacked 6px apart (`gap-1.5`) — a hitSlop is the only
+// way to reach 48px without growing the pills past the 56px Wheel beside them
+// and overlapping the other, so each chip must claim no more than half that
+// 6px gap toward its neighbour.
+test("AM and PM each reach the 48px touch-target minimum via hitSlop, without their zones overlapping", () => {
+  const tree = render();
+  const CONTENT_HEIGHT = 26;
+  const GAP = 6;
+  // NativeWind wraps `Pressable` per file, so identity-based `findAllByType`
+  // doesn't match across module boundaries — match by component name instead,
+  // and require the outer composite (not the inner Views it renders through)
+  // so each chip is counted exactly once.
+  const chips = tree.root.findAll(
+    (n) =>
+      typeof n.type === "function" &&
+      n.type.name === "Pressable" &&
+      ["AM", "PM"].includes(collectTexts(n).join("")),
+  );
+  expect(chips).toHaveLength(2);
+  for (const chip of chips) {
+    const { top = 0, bottom = 0 } = chip.props.hitSlop ?? {};
+    expect(top + CONTENT_HEIGHT + bottom).toBeGreaterThanOrEqual(48);
+    expect(Math.min(top, bottom)).toBeLessThanOrEqual(GAP / 2);
+  }
 });

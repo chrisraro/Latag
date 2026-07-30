@@ -19,7 +19,7 @@ import { showSuccess, showError } from "../../../lib/toast";
 import { FONT, COLORS } from "../../../lib/theme";
 import { formatPeso } from "../../../lib/format";
 import { DEPARTMENTS, specRowsFor, type CatalogItem } from "../../../lib/catalog";
-import { Badge, PrimaryButton, SecondaryButton } from "../../../components/ui";
+import { Badge, Money, PrimaryButton, SecondaryButton } from "../../../components/ui";
 import { AppHead } from "../../../components/AppHead";
 import { Icon } from "../../../components/Icon";
 
@@ -218,9 +218,7 @@ export default function ItemDetail() {
               {sold && item.soldPrice != null && item.soldPrice !== item.targetSellPrice ? (
                 <Text style={{ fontFamily: FONT.medium, fontVariant: ["tabular-nums"], textDecorationLine: "line-through", lineHeight: 17 }} className="text-[12px] text-inkfaint">{formatPeso(item.targetSellPrice)}</Text>
               ) : null}
-              <Text style={{ fontFamily: FONT.semibold, fontVariant: ["tabular-nums"], lineHeight: 21 }} className="text-[15px] text-acid">
-                {formatPeso(sold && item.soldPrice != null ? item.soldPrice : item.targetSellPrice)}
-              </Text>
+              <Money value={sold && item.soldPrice != null ? item.soldPrice : item.targetSellPrice} size="row" />
             </View>
           </View>
         </View>

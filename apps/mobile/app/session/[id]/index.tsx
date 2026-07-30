@@ -125,10 +125,11 @@ export default function DashboardScreen() {
             <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17 }} className="text-[12px] text-inkfaint">
               <Text style={{ fontFamily: FONT.text }} className="text-inkdim">{formatPeso(soldRevenue(all))}</Text> of {formatPeso(session.totalBaleCost ?? 0)} bale
             </Text>
-            <View className="flex-row items-center gap-[3px]">
-              <Text style={{ lineHeight: 17 }} className="text-[12px] text-inkfaint">break-even</Text>
-              <Icon name="CaretRight" size={12} color={COLORS.inkFaint} />
-            </View>
+            {/* Plain label, deliberately not a Pressable: the caret this used to
+                carry is the app's disclosure affordance everywhere else
+                (AppHead's back chevron, SettingsRow's chevron), and there is
+                no break-even breakdown behind this one to disclose. */}
+            <Text style={{ lineHeight: 17 }} className="text-[12px] text-inkfaint">break-even</Text>
           </View>
           <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 17, marginTop: 6, paddingTop: 8, paddingBottom: 2 }} className="text-[12px] text-inkfaint">
             Projected if all sells at target: <Text style={{ fontFamily: FONT.semibold }} className="text-acid">{projPct == null ? "—" : `${formatPct(projPct)} · ${formatPeso(all.reduce((a, i) => a + i.targetSellPrice, 0))}`}</Text>

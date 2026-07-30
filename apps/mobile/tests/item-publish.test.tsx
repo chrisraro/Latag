@@ -300,6 +300,34 @@ describe("Publish toggle — Pro with a shop", () => {
   });
 });
 
+describe("Price row", () => {
+  // DESIGN.md: acid marks money-positive/progress/primary-action, never a
+  // plain asking price. Every other price row in the app renders through the
+  // shared `Money` component (`row` size => ink); this screen's Price row
+  // must too, instead of hand-rolling its own acid Text.
+  test("an unsold item's price renders in ink, via Money's row style — not hand-rolled acid", async () => {
+    setup({ pro: false, shop: false, item: { targetSellPrice: 850 } });
+    const t = await render();
+    const amountNodes = t.root.findAll(
+      (n) => typeof n.props?.className === "string" && collectTexts(n).join("") === "850",
+    );
+    expect(amountNodes.length).toBeGreaterThan(0);
+    for (const n of amountNodes) expect(n.props.className).not.toContain("text-acid");
+    expect(amountNodes.some((n) => n.props.className.includes("text-ink"))).toBe(true);
+  });
+
+  test("a sold item's realized price also renders in ink, not acid", async () => {
+    setup({ pro: false, shop: false, item: { targetSellPrice: 850, status: "sold", soldPrice: 700 } });
+    const t = await render();
+    const amountNodes = t.root.findAll(
+      (n) => typeof n.props?.className === "string" && collectTexts(n).join("") === "700",
+    );
+    expect(amountNodes.length).toBeGreaterThan(0);
+    for (const n of amountNodes) expect(n.props.className).not.toContain("text-acid");
+    expect(amountNodes.some((n) => n.props.className.includes("text-ink"))).toBe(true);
+  });
+});
+
 describe("The batch line", () => {
   test("an item logged inside a batch names it", async () => {
     setup({ pro: false, shop: false });
