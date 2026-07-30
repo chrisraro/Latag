@@ -13,7 +13,7 @@ export default function ProPage() {
       </p>
 
       <div className="mt-10 max-w-md">
-        {/* Download / subscribe via App Store / Play Store */}
+        {/* Download / subscribe via Google Play — see RCBuyButton for iOS status */}
         <RCBuyButton />
       </div>
     </div>
