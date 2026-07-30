@@ -32,7 +32,7 @@ jest.mock("../lib/media", () => ({ deleteFiles: jest.fn(async () => {}) }));
 jest.mock("../lib/toast", () => ({ showError: jest.fn(), showSuccess: jest.fn() }));
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Alert, AppState, type AppStateStatus } from "react-native";
+import { Alert, AppState, FlatList, type AppStateStatus } from "react-native";
 import { db } from "../db/client";
 import { sessions, items } from "../db/schema";
 import { deleteSession, startScheduledSession } from "../lib/repo";
@@ -202,6 +202,53 @@ test("live session card gains a pinned-location line when locationName is set", 
   insertSession({ locationName: "Ukay Center", lat: 13.6, lng: 123.2 });
   const t = await render();
   expect(texts(t)).toContain("Ukay Center");
+});
+
+// ---------------------------------------------------------------------------
+// List sizing (Wave 1 Task 3)
+//
+// Neither FlatList here had `style`/`flex`, unlike every other list in the
+// app (inventory.tsx, shop.tsx) and unlike the empty-state ScrollView in this
+// same file — an unbounded FlatList in a flex column sizes to its content
+// instead of the remaining screen space, which can grow past the viewport
+// and push the sibling "New Batch" footer (a plain View below the list, not
+// part of its scroll content) off-screen once there are enough rows to fill
+// a screen. Jest's renderer doesn't run Yoga layout, so it can't measure
+// actual pixel heights or prove scrolling — the closest verifiable proxy is
+// that the list is a real FlatList (a scrollable container, not a plain
+// View) carrying the same flex-sizing style as the reference screens, with
+// the primary action still reachable in the tree in every list state.
+//
+// Placed before "countdowns refresh...": that test's AppState.addEventListener
+// spy (restored in its own `finally`) is unrelated to this fix, but running a
+// scheduled-tab test immediately after it hits a pre-existing test-order
+// fragility in the real (unmocked) AppState listener's cleanup — not
+// something this task touches, so these tests run ahead of it instead.
+// ---------------------------------------------------------------------------
+
+test("the live batches list is a flex-sized FlatList with New Batch still present", async () => {
+  insertSession();
+  const t = await render();
+  const lists = t.root.findAllByType(FlatList as any);
+  expect(lists).toHaveLength(1);
+  expect(lists[0].props.style).toEqual(expect.objectContaining({ flex: 1 }));
+  expect(pressableByText(t, "New Batch")).toBeTruthy();
+});
+
+test("the scheduled list is a flex-sized FlatList with New Batch still present", async () => {
+  insertSession({ id: "sch1", name: "Baguio Weekend", scheduledAt: new Date(Date.now() + 120 * MIN + 5000), reminderOffsets: "[30]" });
+  const t = await render();
+  press(t, "Scheduled");
+  const lists = t.root.findAllByType(FlatList as any);
+  expect(lists).toHaveLength(1);
+  expect(lists[0].props.style).toEqual(expect.objectContaining({ flex: 1 }));
+  expect(pressableByText(t, "New Batch")).toBeTruthy();
+});
+
+test("the empty batches state (no FlatList mounted) still shows New Batch", async () => {
+  const t = await render();
+  expect(t.root.findAllByType(FlatList as any)).toHaveLength(0);
+  expect(pressableByText(t, "New Batch")).toBeTruthy();
 });
 
 test("countdowns refresh the moment the app returns to the foreground", async () => {
