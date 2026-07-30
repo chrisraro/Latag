@@ -221,6 +221,7 @@ export default function SessionsScreen() {
             ref={listRef}
             data={list}
             keyExtractor={({ s }) => s.id}
+            style={{ flex: 1 }}
             refreshControl={refreshControl}
             renderItem={({ item: { s, count, soldCount, pct, money, note, negative } }) => (
               // The card's bottom margin moves onto the swipe container so the
@@ -269,6 +270,7 @@ export default function SessionsScreen() {
           ref={listRef}
           data={scheduled}
           keyExtractor={(s) => s.id}
+          style={{ flex: 1 }}
           refreshControl={refreshControl}
           renderItem={({ item: s }) => {
             // scheduledAt is non-null by query (IS NOT NULL); overdue keeps the
