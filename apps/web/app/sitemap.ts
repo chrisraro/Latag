@@ -8,7 +8,7 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = "https://latag.vercel.app";
 
-  const marketing = ["", "/pro", "/privacy", "/terms", "/data"].map((p) => ({
+  const marketing = ["", "/pro", "/privacy", "/terms", "/data", "/faq"].map((p) => ({
     url: `${base}${p}`,
     lastModified: new Date("2026-07-13"),
   }));

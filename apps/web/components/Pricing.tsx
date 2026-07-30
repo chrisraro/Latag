@@ -6,11 +6,9 @@ const MONTHLY_SKU = "latag-pro-monthly";
 const YEARLY_SKU = "latag-pro-yearly";
 
 export function Pricing({
-  detailed,
   selectedSku,
   onSelect,
 }: {
-  detailed?: boolean;
   selectedSku?: string;
   onSelect?: (sku: string) => void;
 }) {
@@ -38,7 +36,7 @@ export function Pricing({
           tabIndex={onSelect ? 0 : undefined}
           onClick={() => onSelect?.(MONTHLY_SKU)}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(MONTHLY_SKU); } }}
-          className={`cursor-pointer rounded-2xl border bg-surface1 p-5 transition-all hover:border-acid/60 ${
+          className={`rounded-2xl border bg-surface1 p-5 transition-all ${onSelect ? "cursor-pointer hover:border-acid/60" : ""} ${
             selectedSku === MONTHLY_SKU ? "border-acid" : "border-hairline"
           }`}
         >
@@ -63,7 +61,7 @@ export function Pricing({
           tabIndex={onSelect ? 0 : undefined}
           onClick={() => onSelect?.(YEARLY_SKU)}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(YEARLY_SKU); } }}
-          className={`cursor-pointer rounded-2xl border bg-surface1 p-5 transition-all hover:border-acid/60 ${
+          className={`rounded-2xl border bg-surface1 p-5 transition-all ${onSelect ? "cursor-pointer hover:border-acid/60" : ""} ${
             selectedSku === YEARLY_SKU ? "border-acid" : "border-hairline"
           }`}
         >
@@ -83,13 +81,10 @@ export function Pricing({
           </ul>
         </div>
 
-        {detailed ? (
-          <p className="rounded-xl border border-hairline bg-surface2 p-4 text-sm text-inkdim">
-            <strong className="text-ink">14-day free trial.</strong> Your first 14 days are on us.
-            No charge until after the trial. Cancel anytime in your account settings — no questions asked.
-            Pro unlocks by signing in once inside the app.
-          </p>
-        ) : null}
+        <p className="text-xs text-inkdim">
+          <strong className="text-ink">14-day free trial</strong> on either plan — no charge until it ends.
+          Pro unlocks by signing in once inside the app.
+        </p>
       </section>
     </div>
   );

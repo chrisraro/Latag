@@ -39,7 +39,7 @@ export default function PrivacyPage() {
       <h2>What we collect, and why</h2>
       <ul>
         <li><strong>Account details</strong> (email address) — only if you create an account to activate a Pro license. Used solely to issue and verify that license. Encrypted in transit (TLS) and at rest.</li>
-        <li><strong>Payment records</strong> — when you buy Pro, our payment provider processes the payment. We store only a reference ID, the amount, and its status. We never see or store your card number or e-wallet credentials; the provider is PCI-DSS compliant.</li>
+        <li><strong>Payment records</strong> — Pro is billed and processed by the App Store or Play Store, not by us. We store only a reference ID, the amount, and its status from that transaction. Your card number or e-wallet credentials go to Apple or Google — they never reach our servers.</li>
       </ul>
       <h2>What we don't do</h2>
       <ul>

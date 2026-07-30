@@ -29,6 +29,7 @@ const SURFACES = [
   "app/terms/page.tsx",
   "app/privacy/page.tsx",
   "app/data/page.tsx",
+  "app/faq/page.tsx",
   "components/Pricing.tsx",
   "components/RCBuyButton.tsx",
 ] as const;

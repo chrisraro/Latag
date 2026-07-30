@@ -62,6 +62,7 @@ export function SiteFooter() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p>© {new Date().getFullYear()} Latag · Made for the ukay grind</p>
         <nav aria-label="Legal" className="flex gap-5">
+          <Link className="hover:text-inkdim" href="/faq">FAQ</Link>
           <Link className="hover:text-inkdim" href="/privacy">Privacy</Link>
           <Link className="hover:text-inkdim" href="/terms">Terms</Link>
           <Link className="hover:text-inkdim" href="/data">Data &amp; Security</Link>
