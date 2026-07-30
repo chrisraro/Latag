@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { DESIGN_COLORS, RADIUS } from "@latag/tokens";
+import { DESIGN_COLORS, RADIUS, handle } from "@latag/tokens";
 import { COLORS as MOBILE_THEME_COLORS } from "../../mobile/lib/theme";
 
 const require = createRequire(import.meta.url);
@@ -132,9 +132,7 @@ describe("design token parity (DESIGN.md <-> @latag/tokens <-> apps/mobile <-> a
 
   test("the undocumented sheet-handle color is named exactly once, in @latag/tokens", () => {
     expect(DESIGN_COLORS).not.toHaveProperty("handle");
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const tokens = require("@latag/tokens") as { handle: string };
-    expect(tokens.handle).toBe("#3A3A3A");
+    expect(handle).toBe("#3A3A3A");
     expect(mobileTailwindConfig.theme.colors.handle).toBe("#3A3A3A");
   });
 
