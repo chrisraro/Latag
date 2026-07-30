@@ -75,15 +75,27 @@ test("a time exactly at now is guarded (<=, not <)", () => {
   expect(onConfirm).not.toHaveBeenCalled();
 });
 
-// DESIGN.md/PRODUCT.md: touch targets >= 48x48px. The AM/PM chips are 26px
-// tall (`h-[26px]`) and stacked 6px apart (`gap-1.5`) — a hitSlop is the only
-// way to reach 48px without growing the pills past the 56px Wheel beside them
-// and overlapping the other, so each chip must claim no more than half that
-// 6px gap toward its neighbour.
-test("AM and PM each reach the 48px touch-target minimum via hitSlop, without their zones overlapping", () => {
+// DESIGN.md/PRODUCT.md: touch targets >= 48x48px.
+//
+// A previous version of this test asserted `top + CONTENT_HEIGHT + bottom >=
+// 48` against the `hitSlop` prop literal — but that arithmetic is copied
+// straight from the same numbers used to build the prop, so it could never
+// fail: it was checking the prop equals itself, not that the target is real.
+// It also missed a real bug — RN's `hitSlop` is clipped to every ancestor's
+// own bounds, and this pair's parent had exactly zero spare room (58px for a
+// 58px-tall pair), so the slop was entirely invisible on a device.
+//
+// The actual fix drops hitSlop and gives each pill real h-12/w-14 (48x48px)
+// dimensions instead. Jest's renderer never runs a Yoga layout pass, so this
+// suite cannot measure rendered pixels — what it CAN check, honestly, is the
+// structural property that makes the geometry safe: no hitSlop is being
+// relied on to fake the size, and the box the pill actually claims (via its
+// own className, not a slop prop) is a real NativeWind `h-12` (48px, see
+// SecondaryButton/PrimaryButton in components/ui.tsx for the same convention
+// establishing h-12 == 48px and h-14 == 56px in this codebase) and `w-14`
+// (56px) — both >= the 48px minimum on their own, unaided by any slop.
+test("AM and PM are real >=48x48px pills — no hitSlop standing in for the target size", () => {
   const tree = render();
-  const CONTENT_HEIGHT = 26;
-  const GAP = 6;
   // NativeWind wraps `Pressable` per file, so identity-based `findAllByType`
   // doesn't match across module boundaries — match by component name instead,
   // and require the outer composite (not the inner Views it renders through)
@@ -96,8 +108,10 @@ test("AM and PM each reach the 48px touch-target minimum via hitSlop, without th
   );
   expect(chips).toHaveLength(2);
   for (const chip of chips) {
-    const { top = 0, bottom = 0 } = chip.props.hitSlop ?? {};
-    expect(top + CONTENT_HEIGHT + bottom).toBeGreaterThanOrEqual(48);
-    expect(Math.min(top, bottom)).toBeLessThanOrEqual(GAP / 2);
+    // No hitSlop anywhere in the chain — the size claim is the box itself.
+    expect(chip.props.hitSlop).toBeUndefined();
+    const className: string = chip.props.className;
+    expect(className).toMatch(/(?:^|\s)h-12(?:\s|$)/); // 48px tall
+    expect(className).toMatch(/(?:^|\s)w-14(?:\s|$)/); // 56px wide
   }
 });

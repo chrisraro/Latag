@@ -18,7 +18,7 @@
  * @see https://www.revenuecat.com/docs
  */
 
-import type { CustomerInfo, PurchasesOfferings, PurchasesStoreProduct } from "react-native-purchases";
+import type { CustomerInfo, PurchasesOfferings } from "react-native-purchases";
 
 const RC_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ?? "";
 
@@ -83,8 +83,8 @@ export async function checkProStatus(): Promise<ProStatus | null> {
   if (!RC_API_KEY) return null;
   try {
     const Purchases = await import("react-native-purchases");
-    // Unlike purchaseProduct/restorePurchases (which resolve to a wrapper
-    // object), getCustomerInfo resolves to the CustomerInfo itself.
+    // Unlike purchaseProduct (which resolves to a wrapper object), both
+    // getCustomerInfo and restorePurchases resolve to the CustomerInfo itself.
     const customerInfo = await Purchases.default.getCustomerInfo();
     return parseProStatus(customerInfo);
   } catch {
@@ -235,6 +235,7 @@ let _listenerAttached = false;
  * Call once from _layout.tsx or a root component.
  */
 export function onEntitlementUpdate(callback: EntitlementCallback): void {
+  if (!RC_API_KEY) return;
   _entitlementCallback = callback;
   if (_listenerAttached) return;
   _listenerAttached = true;
