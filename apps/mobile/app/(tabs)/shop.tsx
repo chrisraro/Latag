@@ -127,7 +127,7 @@ export default function ShopScreen() {
   const refreshControl = <RefreshControl refreshing={vm.refreshing} onRefresh={vm.refresh} {...REFRESH_TINT} />;
 
   const soldCount = vm.listings.filter((i) => i.status === "sold").length;
-  const pending = vm.queued;
+  const pending = vm.pending;
   const stuck = vm.stuck;
 
   // --- State 1: free ----------------------------------------------------

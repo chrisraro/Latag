@@ -26,9 +26,13 @@ export type ShopViewModel = {
   // --- Derived state ---
   pro: boolean;
   queued: number;
+  /** Queue rows still within their retry budget — the count it is honest to
+   *  tell the seller "syncs when you're online". Excludes `stuck` rows, which
+   *  have exhausted their retries and will never drain on their own. */
+  pending: number;
   /** Queue rows that have exhausted MAX_ATTEMPTS — a publish that has stopped
    *  retrying, not merely one still waiting its turn. Surfaced separately from
-   *  `queued` so a permanently-failed change is never mistaken for "in progress". */
+   *  `pending` so a permanently-failed change is never mistaken for "in progress". */
   stuck: number;
   profile: Profile;
   stale: boolean;
@@ -65,6 +69,7 @@ export function useShopViewModel(): ShopViewModel {
   const pro = entRows?.[0]?.pro === true;
   const queue = queueRows ?? [];
   const queued = queue.length;
+  const pending = queue.filter((q) => q.attempts < MAX_ATTEMPTS).length;
   const stuck = queue.filter((q) => q.attempts >= MAX_ATTEMPTS).length;
 
   const listings: Listing[] = (publishedRows ?? []).map((item) => {
@@ -123,6 +128,7 @@ export function useShopViewModel(): ShopViewModel {
   return {
     pro,
     queued,
+    pending,
     stuck,
     profile,
     stale,
