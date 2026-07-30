@@ -11,11 +11,17 @@ import { PrimaryButton } from "../../components/ui";
 import { Icon } from "../../components/Icon";
 
 type FeatureRow = {
-  icon: "Storefront" | "ShareNetwork" | "InstagramLogo" | "ShieldCheck";
+  icon: "Storefront" | "ShareNetwork";
   title: string;
   subtitle: string;
 };
 
+// Every bullet here must correspond to something actually gated behind Pro.
+// IG drop export (app/session/[id]/export.tsx) and offline support (the whole
+// app is offline-first for free users too — see app/welcome.tsx,
+// app/onboarding.tsx, and the "Offline-first" row in Settings) used to be
+// listed here despite never being gated. Removed 2026-07-30 per owner
+// decision: don't sell what's already free. See tests/paywall-features.test.ts.
 const FEATURES: FeatureRow[] = [
   {
     icon: "Storefront",
@@ -26,16 +32,6 @@ const FEATURES: FeatureRow[] = [
     icon: "ShareNetwork",
     title: "Buyer-ready inquiries",
     subtitle: "Pre-written messages land in your DMs on Facebook & Messenger",
-  },
-  {
-    icon: "InstagramLogo",
-    title: "IG drop export",
-    subtitle: "Share your curated selection directly to Instagram stories",
-  },
-  {
-    icon: "ShieldCheck",
-    title: "Works offline, always",
-    subtitle: "Costs, margins & inventory never leave your phone",
   },
 ];
 
