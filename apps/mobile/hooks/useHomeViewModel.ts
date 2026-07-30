@@ -36,6 +36,8 @@ export type HomeViewModel = {
   pending: number;
   latestBatch: Session | undefined;
   profile: Profile;
+  /** Drives `RefreshControl`'s `refreshing` — true only while a pull is in flight. */
+  refreshing: boolean;
 
   // --- Actions ---
   startNow: (s: Session) => void;
@@ -153,6 +155,7 @@ export function useHomeViewModel(): HomeViewModel {
     pending,
     latestBatch,
     profile,
+    refreshing,
     startNow,
     copyLink,
     refresh: onRefresh,
