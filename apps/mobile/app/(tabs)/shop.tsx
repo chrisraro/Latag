@@ -100,7 +100,12 @@ export default function ShopScreen() {
               } else if (result.skipped > 0) {
                 showSuccess("All your listings are already on this phone");
               } else {
-                showError("No published listings found — publish items first");
+                // Also reached when not signed in, or when there's no shop
+                // row at all — the outcome can't distinguish those from a
+                // shop with zero published items, so this can't name one
+                // specific cause. It's still a successful call that found
+                // nothing, not an error.
+                showSuccess("Nothing to restore — sign in and publish items to your shop, then try again");
               }
             } catch {
               showError("Couldn't restore — check your connection and try again");
