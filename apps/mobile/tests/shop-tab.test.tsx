@@ -50,6 +50,7 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock("../lib/toast", () => ({ showError: jest.fn(), showSuccess: jest.fn() }));
+jest.mock("../lib/shop-restore", () => ({ restorePublishedItems: jest.fn() }));
 // The network seam. The pure helpers keep their real behaviour — the screens
 // render their output verbatim, so faking them would test nothing.
 jest.mock("../lib/shop-api", () => ({
@@ -67,12 +68,13 @@ jest.mock("../lib/shop-api", () => ({
   cacheShop: jest.fn(async () => {}),
 }));
 
-import { Share } from "react-native";
+import { Alert, Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { db } from "../db/client";
 import { entitlements, items, photos, publishQueue, sessions } from "../db/schema";
 import { cacheShop, cachedShop, checkHandleAvailable, getMyShop, saveMyShop, type ShopProfile } from "../lib/shop-api";
 import { showError, showSuccess } from "../lib/toast";
+import { restorePublishedItems } from "../lib/shop-restore";
 import ShopScreen from "../app/(tabs)/shop";
 import ShopSetupScreen from "../app/shop/setup";
 
@@ -80,6 +82,7 @@ const mockedGetMyShop = getMyShop as jest.MockedFunction<typeof getMyShop>;
 const mockedSaveMyShop = saveMyShop as jest.MockedFunction<typeof saveMyShop>;
 const mockedCheckHandle = checkHandleAvailable as jest.MockedFunction<typeof checkHandleAvailable>;
 const mockedCachedShop = cachedShop as jest.MockedFunction<typeof cachedShop>;
+const mockedRestore = restorePublishedItems as jest.MockedFunction<typeof restorePublishedItems>;
 
 const PROFILE: ShopProfile = {
   handle: "naga-thrift",
@@ -169,6 +172,17 @@ function pressableByText(t: ReactTestRenderer, label: string) {
 async function press(t: ReactTestRenderer, label: string) {
   const target = pressableByText(t, label);
   await act(async () => { target.props.onPress(); });
+}
+
+/** Answers the most recent Alert by pressing the button with this label,
+ *  awaiting the button's onPress in case it's async (e.g. restore). */
+async function confirmAlert(label: string): Promise<void> {
+  const alertMock = Alert.alert as unknown as jest.Mock;
+  expect(alertMock).toHaveBeenCalled();
+  const buttons = alertMock.mock.calls[alertMock.mock.calls.length - 1][2] as { text: string; onPress?: () => void }[];
+  const button = buttons.find((b) => b.text === label);
+  expect(button).toBeDefined();
+  await act(async () => { await button!.onPress?.(); });
 }
 
 /** The single control carrying an exact a11y label (header icon buttons). */
@@ -401,6 +415,68 @@ describe("Shop tab — Pro, shop exists", () => {
     const all = texts(t);
     // Current behavior: shows pending count (stuck detection is a TODO in the hook)
     expect(all).toContain("1 change pending");
+  });
+});
+
+describe("Shop tab — restore from published", () => {
+  beforeEach(() => {
+    mockShopVM.pro = true;
+    mockShopVM.profile = PROFILE;
+    mockShopVM.stale = false;
+    mockShopVM.failed = false;
+    mockShopVM.loading = false;
+    mockShopVM.queued = 0;
+    mockShopVM.listings = [];
+    jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  });
+
+  test("a failed restore surfaces the outcome's own message as an error and does not refresh", async () => {
+    mockedRestore.mockResolvedValue({
+      ok: false,
+      reason: "items-fetch-failed",
+      message: "Couldn't fetch your shop listings — try again",
+    });
+    const t = await render(ShopScreen);
+    await press(t, "Restore from published");
+    await confirmAlert("Restore");
+    expect(showError).toHaveBeenCalledWith("Couldn't fetch your shop listings — try again");
+    expect(mockShopVM.refresh).not.toHaveBeenCalled();
+  });
+
+  test("newly restored listings toast the count as a success and refresh the list", async () => {
+    mockedRestore.mockResolvedValue({ ok: true, restored: 3, skipped: 0 });
+    const t = await render(ShopScreen);
+    await press(t, "Restore from published");
+    await confirmAlert("Restore");
+    expect(showSuccess).toHaveBeenCalledWith("Restored 3 listings from your shop");
+    expect(showError).not.toHaveBeenCalled();
+    expect(mockShopVM.refresh).toHaveBeenCalled();
+  });
+
+  test("everything already local is reported as a success, not an error, and does not refresh", async () => {
+    mockedRestore.mockResolvedValue({ ok: true, restored: 0, skipped: 2 });
+    const t = await render(ShopScreen);
+    await press(t, "Restore from published");
+    await confirmAlert("Restore");
+    expect(showSuccess).toHaveBeenCalledWith("All your listings are already on this phone");
+    expect(showError).not.toHaveBeenCalled();
+    expect(mockShopVM.refresh).not.toHaveBeenCalled();
+  });
+
+  // { restored: 0, skipped: 0 } is also what a signed-out user or a user with
+  // no shop row gets back — the handler can't tell those apart, so the
+  // message must stay honest about all three instead of blaming "publish
+  // items first" as if that were the only possible cause.
+  test("nothing restored and nothing skipped is a success with honest wording, not an accusation", async () => {
+    mockedRestore.mockResolvedValue({ ok: true, restored: 0, skipped: 0 });
+    const t = await render(ShopScreen);
+    await press(t, "Restore from published");
+    await confirmAlert("Restore");
+    expect(showError).not.toHaveBeenCalled();
+    expect(showSuccess).toHaveBeenCalledWith(
+      "Nothing to restore — sign in and publish items to your shop, then try again",
+    );
+    expect(mockShopVM.refresh).not.toHaveBeenCalled();
   });
 });
 
