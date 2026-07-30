@@ -130,24 +130,46 @@ published shop in the table changes nothing.
 **Done when:** every caller can distinguish failure from an empty shop, and
 the sign-in path surfaces a failure without breaking sign-in.
 
-## Task 4 — Restore is unreachable after the first item: manual action
+## Task 4 — Harden the existing manual restore action
 
 **Why:** defect D. Recovery must not depend on catching the one-shot
 sign-in window.
 
-1. Add a user-triggered restore to the Shop tab
-   (`apps/mobile/app/(tabs)/shop.tsx`, State 3 — the shop exists). Follow the
-   screen's existing button and busy-state conventions; check
-   `components/ui` before adding anything new.
-2. Behaviour: disabled while running; on success with `restored > 0` a
-   success toast naming the count; on success with `restored === 0` a brief
-   "already up to date" success toast (the user asked, so answer them); on
-   failure the Task 3 error toast. Re-running must not duplicate listings.
-3. Tests in `apps/mobile/tests/`: cover the handler's outcome mapping. Follow
-   the existing screen-test approach in `tests/shop-tab.test.tsx`.
+**Revised after discovery.** The plan originally called for *adding* a manual
+restore action. It already exists — the project owner added it to
+`apps/mobile/app/(tabs)/shop.tsx` in commit `7b129b3`, before this repair
+began. Task 3 patched it minimally to compile against the new
+`RestoreOutcome`. So defect D is already addressed structurally; what remains
+is that the handler has **no test coverage** and one branch miscategorises a
+non-error as an error.
 
-**Done when:** a user who already has local items can still pull their
-published listings back, repeatedly and safely.
+The handler currently maps outcomes as:
+
+| outcome | current toast |
+| --- | --- |
+| `!ok` | `showError(result.message)` |
+| `restored > 0` | success naming the count, then `vm.refresh()` |
+| `skipped > 0` | success, "All your listings are already on this phone" |
+| else (`0` restored, `0` skipped) | **`showError`**, "No published listings found — publish items first" |
+
+1. Fix the last row. Zero-restored/zero-skipped is a *successful* call that
+   found nothing — it is not a failure and must not use `showError`, which
+   trains users to distrust real errors. Use the screen's non-error toast
+   with honest wording.
+2. Note the ambiguity that makes the current wording wrong: after Task 2, a
+   signed-out user and a user with no shop both also produce
+   `{ ok: true, restored: 0, skipped: 0 }`. The message must not assert
+   "publish items first" as the only explanation. Keep it honest about what
+   is actually known.
+3. Add the missing tests in `apps/mobile/tests/`, covering all four branches
+   of the handler's outcome mapping, including that `vm.refresh()` is called
+   only when something was actually restored. Follow the existing screen-test
+   approach in `tests/shop-tab.test.tsx`.
+4. Do not redesign the button, its placement, or the confirmation dialog.
+
+**Done when:** every branch of the manual restore is covered by a test that
+fails if that branch is broken, and no successful outcome is reported as an
+error.
 
 ## Out of scope
 
