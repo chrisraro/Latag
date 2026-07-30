@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { RCBuyButton } from "@/components/RCBuyButton";
 
-export const metadata: Metadata = { title: "Pricing" };
+export const metadata: Metadata = { title: "Pricing", alternates: { canonical: "/pro" } };
 
 export default function ProPage() {
   return (

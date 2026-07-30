@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { JsonLd } from "../../../components/JsonLd";
 import { getShopWithItems } from "../../../lib/shop-queries";
 import { shopUrl } from "../../../lib/inquiry";
+import { shopItemListJsonLd } from "../../../lib/structured-data";
 import { ShopFooter, ShopNav } from "../StorefrontChrome";
 import { ShopGrid } from "./ShopGrid";
 
@@ -49,6 +51,7 @@ export default async function ShopPage({ params }: Props) {
 
   return (
     <div className="overflow-x-hidden">
+      <JsonLd data={shopItemListJsonLd(shop, items)} />
       <ShopNav handle={shop.handle} />
 
       <section className="mx-auto max-w-5xl px-5 pb-12 pt-14 md:pb-16 md:pt-20">
