@@ -4,6 +4,14 @@ import { Prose } from "@/components/Prose";
 
 export const metadata: Metadata = { title: "Terms of Use", alternates: { canonical: "/terms" } };
 
+// Android-only reality — Latag has no iOS release yet (see
+// components/RCBuyButton.tsx). Its sibling constants live in
+// app/privacy/page.tsx and app/data/page.tsx; update all three the day an
+// iOS listing exists alongside Google Play.
+const PAYMENT_HANDLER = "Google Play";
+const PAYMENT_PROCESSOR = "Google";
+const CANCEL_SETTINGS = "Google Play subscription settings";
+
 export default function TermsPage() {
   return (
     <Prose title="Terms of Use" updated="July 30, 2026">
@@ -33,17 +41,17 @@ export default function TermsPage() {
       </p>
       <h2>Subscription, auto-renewal and cancellation</h2>
       <p>
-        Pro is billed and processed by the App Store or Play Store, not by us. Your first 14 days are free;
-        unless you cancel before the trial ends, the subscription auto-renews at ₱199/month or ₱1,799/year
-        and your payment method is charged by Apple or Google at the start of each new period. Subscriptions
-        renew automatically until cancelled. To cancel, use your Apple ID or Google Play subscription
-        settings — we have no ability to cancel a subscription on your behalf, and cancelling stops future
-        renewals but does not end your current paid period early.
+        Pro is billed and processed by {PAYMENT_HANDLER}, not by us. Your first 14 days are free; unless you
+        cancel before the trial ends, the subscription auto-renews at ₱199/month or ₱1,799/year and your
+        payment method is charged by {PAYMENT_PROCESSOR} at the start of each new period. Subscriptions renew
+        automatically until cancelled. To cancel, use your {CANCEL_SETTINGS} — we have no ability to cancel a
+        subscription on your behalf, and cancelling stops future renewals but does not end your current paid
+        period early.
       </p>
       <h2>Refunds</h2>
       <p>
-        Because Apple and Google process the payment, they also handle refunds — request one through the
-        App Store or Play Store, not from us. If Pro fails to activate on your device after a successful
+        Because {PAYMENT_PROCESSOR} processes the payment, it also handles refunds — request one through
+        {" "}{PAYMENT_HANDLER}, not from us. If Pro fails to activate on your device after a successful
         purchase and we cannot fix it within a reasonable time, contact hello@latag.ph and we will help you
         get a refund through the store or make it right another way.
       </p>

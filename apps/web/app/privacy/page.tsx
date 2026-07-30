@@ -3,6 +3,13 @@ import { Prose } from "@/components/Prose";
 
 export const metadata: Metadata = { title: "Privacy Policy", alternates: { canonical: "/privacy" } };
 
+// Android-only reality — Latag has no iOS release yet (see
+// components/RCBuyButton.tsx). Its sibling constants live in
+// app/data/page.tsx and app/terms/page.tsx; update all three the day an
+// iOS listing exists alongside Google Play.
+const PAYMENT_HANDLER = "Google Play";
+const PAYMENT_PROCESSOR = "Google";
+
 export default function PrivacyPage() {
   return (
     <Prose title="Privacy Policy" updated="July 30, 2026">
@@ -31,15 +38,17 @@ export default function PrivacyPage() {
       <p>
         Published items are stored with Supabase, our backend provider, with photos served through
         Supabase's storage CDN — we haven't pinned or verified that to a specific region, so don't take a
-        Philippines location as a promise. Unpublish an item (or delete it) and Latag deletes its row and
-        photos from our servers, not just hides them. That delete is attempted automatically up to 5 times
-        total if it can't go through right away (you're offline, for instance); if every attempt fails,
-        the Shop tab flags the item as stuck, and toggling Publish off then on queues a fresh attempt.
+        Philippines location as a promise. Unpublish an item (or delete it) and Latag deletes its row from
+        our servers, not just hides it, and attempts to remove its photos too — that photo cleanup is
+        best-effort and won't block the removal if it fails. The row delete is attempted automatically up
+        to 5 times total if it can't go through right away (you're offline, for instance); if every attempt
+        fails, the Shop tab shows a banner counting the changes that couldn't sync, and toggling Publish on
+        and then off again queues a fresh delete attempt.
       </p>
       <h2>What we collect, and why</h2>
       <ul>
         <li><strong>Account details</strong> (email address) — only if you create an account to activate a Pro license. Used solely to issue and verify that license. Encrypted in transit (TLS) and at rest.</li>
-        <li><strong>Payment records</strong> — Pro is billed and processed by the App Store or Play Store, not by us. We store only a reference ID, the amount, and its status from that transaction. Your card number or e-wallet credentials go to Apple or Google — they never reach our servers.</li>
+        <li><strong>Payment records</strong> — Pro is billed and processed by {PAYMENT_HANDLER}, not by us. We store only a reference ID, the amount, and its status from that transaction. Your card number or e-wallet credentials go to {PAYMENT_PROCESSOR} — they never reach our servers.</li>
       </ul>
       <h2>What we don't do</h2>
       <ul>

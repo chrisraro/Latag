@@ -27,3 +27,34 @@ describe("RCBuyButton payment-handler copy regression guard", () => {
     expect(SOURCE).toContain("play.google.com");
   });
 });
+
+/**
+ * Wave 3 whole-wave review, I2 (IMPORTANT): the site told AI assistants and
+ * buyers there is no iOS release (public/llms.txt, this component) while
+ * simultaneously telling users to cancel a subscription "via your Apple ID"
+ * and request refunds "through the App Store" (app/terms/page.tsx), and
+ * privacy/data described payment as processed by "the App Store or Play
+ * Store". Those three surfaces are fixed to be Android-truthful the same way
+ * this component already is — this extends the same regression guard to
+ * cover them.
+ */
+const PAYMENT_CLAIM_SURFACES = [
+  "app/terms/page.tsx",
+  "app/privacy/page.tsx",
+  "app/data/page.tsx",
+] as const;
+
+describe("Payment-handler copy regression guard (terms/privacy/data)", () => {
+  for (const surface of PAYMENT_CLAIM_SURFACES) {
+    const source = readFileSync(join(__dirname, "..", surface), "utf8");
+
+    test(`${surface} does not mention Apple or the App Store as a payment/cancellation/refund path`, () => {
+      expect(source).not.toMatch(/apple/i);
+      expect(source).not.toMatch(/app store/i);
+    });
+
+    test(`${surface} names Google Play as the payment handler`, () => {
+      expect(source).toMatch(/google play/i);
+    });
+  }
+});

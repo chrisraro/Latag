@@ -189,7 +189,7 @@ describe("/account entitlement display", () => {
 
   test("a comped user sees Pro, not Free", async () => {
     licenseRows = [
-      { id: "l1", sku: PRO_COMP, status: "active", granted_at: "2026-07-01T00:00:00Z", expires_at: null },
+      { id: "l1", user_id: "user-1", sku: PRO_COMP, status: "active", granted_at: "2026-07-01T00:00:00Z", expires_at: null },
     ];
     const text = await renderAccountPage();
     expect(text).toContain("PRO — Active");
@@ -198,7 +198,7 @@ describe("/account entitlement display", () => {
 
   test("a grandfathered lifetime user sees Pro, not Free", async () => {
     licenseRows = [
-      { id: "l1", sku: PRO_LIFETIME, status: "active", granted_at: "2026-07-27T08:25:32Z", expires_at: null },
+      { id: "l1", user_id: "user-1", sku: PRO_LIFETIME, status: "active", granted_at: "2026-07-27T08:25:32Z", expires_at: null },
     ];
     const text = await renderAccountPage();
     expect(text).toContain("PRO — Active");
@@ -207,8 +207,8 @@ describe("/account entitlement display", () => {
 
   test("a user with TWO entitling rows (comp + subscription) resolves without erroring", async () => {
     licenseRows = [
-      { id: "l1", sku: PRO_COMP, status: "active", granted_at: "2026-07-01T00:00:00Z", expires_at: null },
-      { id: "l2", sku: PRO_MONTHLY, status: "active", granted_at: "2026-07-20T00:00:00Z", expires_at: FUTURE },
+      { id: "l1", user_id: "user-1", sku: PRO_COMP, status: "active", granted_at: "2026-07-01T00:00:00Z", expires_at: null },
+      { id: "l2", user_id: "user-1", sku: PRO_MONTHLY, status: "active", granted_at: "2026-07-20T00:00:00Z", expires_at: FUTURE },
     ];
     // Must not throw (this is exactly what a real `.maybeSingle()` over two
     // rows would do — PostgREST errors, `license` becomes null, page says Free).
@@ -218,10 +218,29 @@ describe("/account entitlement display", () => {
 
   test("a purely monthly subscriber (single row) still sees Pro", async () => {
     licenseRows = [
-      { id: "l1", sku: PRO_MONTHLY, status: "active", granted_at: "2026-07-20T00:00:00Z", expires_at: FUTURE },
+      { id: "l1", user_id: "user-1", sku: PRO_MONTHLY, status: "active", granted_at: "2026-07-20T00:00:00Z", expires_at: FUTURE },
     ];
     const text = await renderAccountPage();
     expect(text).toContain("PRO — Active");
+  });
+
+  /**
+   * Wave 3 whole-wave review, M2: the licenses query previously had no
+   * `.eq("user_id", user.id)` and relied solely on RLS to scope results —
+   * unlike `/api/license` (app/api/license/route.ts), which scopes
+   * explicitly. This test's mock query builder actually applies `.eq()`
+   * filters (see `makeRowsChain` above), so a row belonging to a DIFFERENT
+   * user must not surface here even though it entitles Pro — proving the
+   * page's own query does the scoping rather than depending entirely on the
+   * mock/RLS layer to have filtered it out already.
+   */
+  test("an entitling row belonging to a DIFFERENT user does not make this user Pro", async () => {
+    licenseRows = [
+      { id: "l1", user_id: "someone-else", sku: PRO_LIFETIME, status: "active", granted_at: "2026-07-27T08:25:32Z", expires_at: null },
+    ];
+    const text = await renderAccountPage();
+    expect(text).toContain("Free — unlimited inventory");
+    expect(text).not.toContain("PRO — Active");
   });
 
   test("a Free user (no entitling rows) sees the monthly price labelled monthly, not the yearly price", async () => {

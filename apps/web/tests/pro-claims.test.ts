@@ -22,6 +22,13 @@ import path from "node:path";
 const ROOT = path.resolve(__dirname, "..");
 
 // Every marketing or legal surface that talks about Pro pricing/billing.
+//
+// Wave 3 whole-wave review, M4: `app/faq/page.tsx` held no claim text of its
+// own — it renders `FAQ_ENTRIES` from `lib/structured-data.ts`, so checking
+// the page file's raw source for pricing language was vacuous (it could
+// never contain the words being searched for). Swapped for the two real
+// sources of that copy: the structured-data module itself, and llms.txt,
+// which independently restates the same pricing facts for AI crawlers.
 const SURFACES = [
   "app/page.tsx",
   "app/pro/page.tsx",
@@ -29,7 +36,8 @@ const SURFACES = [
   "app/terms/page.tsx",
   "app/privacy/page.tsx",
   "app/data/page.tsx",
-  "app/faq/page.tsx",
+  "lib/structured-data.ts",
+  "public/llms.txt",
   "components/Pricing.tsx",
   "components/RCBuyButton.tsx",
 ] as const;

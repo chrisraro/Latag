@@ -108,8 +108,8 @@ export const FAQ_ENTRIES: FaqEntry[] = [
   {
     question: "Who is Latag for?",
     answer:
-      "Resellers who source and resell secondhand clothing — the app ships with 469 Philippine ukay " +
-      "brands built in, searchable offline, and prices everything in PHP.",
+      "Resellers who source and resell secondhand clothing — the app ships with 469 brands commonly found " +
+      "in Philippine ukay bales built in, searchable offline, and prices everything in PHP.",
   },
   {
     question: "What does Latag cost?",
@@ -123,16 +123,17 @@ export const FAQ_ENTRIES: FaqEntry[] = [
   {
     question: "Does Latag work offline?",
     answer:
-      "Yes — Latag works fully offline. Logging items, batches, costs and photos makes zero network calls; " +
-      "flip on airplane mode and inventory still works. Publishing an item to your shop is the one feature " +
-      "that needs a connection, because that's the moment something leaves your phone.",
+      "Yes — logging inventory works fully offline. Items, batches, costs and photos make zero network " +
+      "calls; flip on airplane mode and inventory logging still works. Publishing an item to your shop is " +
+      "the one inventory feature that needs a connection, because that's the moment something leaves your " +
+      "phone.",
   },
   {
     question: "What happens to my data if I lose, wipe or replace my phone?",
     answer:
       "Your inventory lives only on your device, so a lost or wiped phone can't be recovered by us — we " +
       "never had a copy. Two features soften that: Export backup (Settings) writes your sessions, items and " +
-      "brands to a file you can carry to a new phone, and Restore from your shop (Shop tab) pulls your " +
+      "brands to a file you can carry to a new phone, and \"Restore from published\" (Shop tab) pulls your " +
       "published listings — brand, price, condition, code and photos — back from your shop after a wipe " +
       "or reinstall. Cost and profit are never recoverable that way, because they were never uploaded in the " +
       "first place.",

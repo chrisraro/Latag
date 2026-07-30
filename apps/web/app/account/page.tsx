@@ -31,9 +31,16 @@ export default async function AccountPage() {
     // than one (an admin comp alongside a paid subscription), and
     // `.maybeSingle()` errors the moment there is more than one row. See
     // pickEntitlingLicense in lib/licensing.ts, shared with GET /api/license.
+    //
+    // Wave 3 whole-wave review, M2: explicitly scoped to this user's own id,
+    // matching /api/license (lib/licensing.ts's callers) rather than relying
+    // solely on RLS — a defense-in-depth match with the API route, not a
+    // security hole today, but the two paths should read identically rather
+    // than silently diverging on how they get to "this user's licenses".
     supabase
       .from("licenses")
       .select("id,sku,status,granted_at,expires_at")
+      .eq("user_id", user.id)
       .in("sku", ENTITLING_SKUS)
       .in("status", ["active", "past_due"]),
     // Scoped to the monthly SKU specifically — the label below is hardcoded

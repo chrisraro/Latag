@@ -84,7 +84,7 @@ export default function Home() {
               </div>
             </dl>
             <p className="mt-8 text-sm text-inkfaint">
-              Latag is live on Android, available now on Google Play.
+              Latag is distributed through Google Play, for Android.
             </p>
           </div>
           <PhoneDemo />
@@ -284,17 +284,18 @@ latag.vercel.app/shop/thriftlord/LT-7K2Q9`}
               <h3 className="display text-lg text-ink">Move to a new phone</h3>
               <p className="mt-2 text-inkdim">
                 Settings → Export backup writes your whole inventory — every session, item and brand — to a
-                file you share to your next phone. Import backup reads it straight back in. The photo files
-                themselves aren't in that export, so bring your camera for those.
+                file you share to your next phone. Import backup reads it back in, replacing whatever's
+                already on the new phone. The photo files themselves aren't in that export, so bring your
+                camera for those.
               </p>
             </div>
             <div className={CARD}>
               <h3 className="display text-lg text-ink">Get your shop back after a wipe</h3>
               <p className="mt-2 text-inkdim">
-                Wipe the phone, reinstall, sign back in — Restore from your shop, in the Shop tab, pulls
-                every published listing back: brand, price, condition, code and photos, read live off your shop.
-                Cost and profit never make the trip; they were never uploaded, so there's nothing to lose
-                twice.
+                Wipe the phone, reinstall, sign back in — tap &quot;Restore from published&quot; in the Shop
+                tab to pull every published listing back: brand, price, condition, code and photos, read
+                live off your shop. Cost and profit never make the trip; they were never uploaded, so
+                there&apos;s nothing to lose twice.
               </p>
             </div>
           </div>

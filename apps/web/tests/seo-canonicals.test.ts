@@ -32,7 +32,6 @@ vi.mock("next/headers", () => ({ headers: () => Promise.resolve(new Map()), cook
 type RouteCase = { label: string; importPath: string; canonical: string };
 
 const ROUTES: RouteCase[] = [
-  { label: "app/layout.tsx", importPath: "../app/layout", canonical: "/" },
   { label: "app/page.tsx", importPath: "../app/page", canonical: "/" },
   { label: "app/pro/page.tsx", importPath: "../app/pro/page", canonical: "/pro" },
   { label: "app/account/page.tsx", importPath: "../app/account/page", canonical: "/account" },
@@ -51,6 +50,24 @@ describe("alternates.canonical on every marketing/legal route", () => {
       expect(mod.metadata!.alternates?.canonical).toBe(route.canonical);
     });
   }
+});
+
+/**
+ * Wave 3 whole-wave review, M8: the root layout used to set
+ * `alternates.canonical: "/"`. Next.js metadata doesn't merge `alternates`
+ * field-by-field between a layout and its descendants — a segment's own
+ * `metadata` export replaces the parent's `alternates` object wholesale, or
+ * inherits it verbatim if the segment declares none at all. So a root-level
+ * `"/"` silently becomes the canonical of any future route that forgets to
+ * set its own — every current page happens to set one explicitly (see the
+ * suite above), but the root layout should not be the thing making that
+ * safe. This guards against the root layout claiming a canonical again.
+ */
+describe("root layout does not set its own alternates.canonical", () => {
+  test("app/layout.tsx has no alternates.canonical for descendants to silently inherit", async () => {
+    const { metadata } = (await import("../app/layout")) as { metadata: Metadata };
+    expect(metadata.alternates?.canonical).toBeUndefined();
+  });
 });
 
 describe("root layout meta description", () => {
