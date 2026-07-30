@@ -3,6 +3,7 @@ import * as Crypto from "expo-crypto";
 import { items, photos, type Item } from "../db/schema";
 import type { LatagDb } from "../db/client";
 import { specRowsFor, SPEC_LABEL_TO_KEY, parseSpecValue, type CatalogItem, type SpecKey } from "./catalog";
+import { currentUserId } from "./shop-api";
 import { supabase } from "./supabase";
 
 /**
@@ -96,18 +97,33 @@ export async function restorePublishedItems(db: LatagDb): Promise<RestoreResult>
   const result: RestoreResult = { restored: 0, skipped: 0 };
 
   try {
-    // 1. Fetch all shop_items for the current user's shop
-    const { data: shopItems, error: shopError } = await supabase
+    // 0. Resolve the signed-in user. Mirrors getMyShop() in shop-api.ts —
+    // without this, the query below has nothing to scope by.
+    const userId = await currentUserId();
+    if (!userId) return result;
+
+    // 1. Fetch the current user's own shop.
+    //
+    // MUST filter by user_id: the live "public shops" SELECT policy on
+    // public.shops is qualified only on `is_published`, so an authenticated
+    // caller can read every published shop, not just their own. An unscoped
+    // `.single()` here picks the right row by luck when exactly one shop is
+    // published; with two, Postgrest errors on the ambiguous result and
+    // restore silently reports nothing. `.maybeSingle()` (vs `.single()`)
+    // also makes "the user has no shop at all" resolve to
+    // { data: null, error: null } instead of an error.
+    const { data: shopRow, error: shopError } = await supabase
       .from("shops")
       .select("id")
-      .single();
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (shopError || !shopItems) return result;
+    if (shopError || !shopRow) return result;
 
     const { data: items_data, error: itemsError } = await supabase
       .from("shop_items")
       .select("*")
-      .eq("shop_id", shopItems.id)
+      .eq("shop_id", shopRow.id)
       .order("sort_order", { ascending: false });
 
     if (itemsError || !items_data || items_data.length === 0) return result;
