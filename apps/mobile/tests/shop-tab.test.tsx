@@ -15,6 +15,7 @@ jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn(async () => true) }
 const mockShopVM = {
   pro: false,
   queued: 0,
+  pending: 0,
   stuck: 0,
   profile: undefined as any,
   stale: false,
@@ -227,6 +228,7 @@ describe("Shop tab — free user", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.pending = 0;
     mockShopVM.stuck = 0;
     mockShopVM.listings = [];
     mockShopVM.refreshing = false;
@@ -265,6 +267,7 @@ describe("Shop tab — Pro, no shop yet", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.pending = 0;
     mockShopVM.stuck = 0;
     mockShopVM.listings = [];
     mockShopVM.refreshing = false;
@@ -309,6 +312,7 @@ describe("Shop tab — Pro, shop exists", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.pending = 0;
     mockShopVM.stuck = 0;
     mockShopVM.listings = [];
     mockShopVM.refreshing = false;
@@ -380,6 +384,7 @@ describe("Shop tab — Pro, shop exists", () => {
 
   test("queued changes surface as an honest pending count", async () => {
     mockShopVM.queued = 2;
+    mockShopVM.pending = 2;
     mockShopVM.listings = [
       { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
     ];
@@ -414,6 +419,7 @@ describe("Shop tab — Pro, shop exists", () => {
 
   test("a row that gave up after five tries is called out separately", async () => {
     mockShopVM.queued = 1;
+    mockShopVM.pending = 1;
     mockShopVM.listings = [
       { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
     ];
@@ -448,6 +454,7 @@ describe("Shop tab — Pro, shop exists", () => {
   test("no stuck rows means no give-up banner at all", async () => {
     mockShopVM.stuck = 0;
     mockShopVM.queued = 2;
+    mockShopVM.pending = 2;
     mockShopVM.listings = [
       { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
     ];
@@ -456,15 +463,21 @@ describe("Shop tab — Pro, shop exists", () => {
     expect(all).not.toContain("couldn't sync");
   });
 
-  test("a still-retrying queue and a permanently-failed row both surface at once", async () => {
+  test("a still-retrying queue and a permanently-failed row both surface at once, without double-counting the stuck row as pending", async () => {
+    // 3 rows total: 2 still within their retry budget, 1 that has given up.
+    // Before the fix the screen used the raw `queued` total (3) for the
+    // pending banner, which double-counts the stuck row as "will sync" —
+    // a false promise, since drainQueue skips rows at MAX_ATTEMPTS forever.
     mockShopVM.queued = 3;
+    mockShopVM.pending = 2;
     mockShopVM.stuck = 1;
     mockShopVM.listings = [
       { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
     ];
     const t = await render(ShopScreen);
     const all = texts(t);
-    expect(all).toContain("3 changes pending");
+    expect(all).toContain("2 changes pending");
+    expect(all).not.toContain("3 changes pending");
     expect(all).toContain("1 change couldn't sync — open the item and switch Publish off, then on");
   });
 });
@@ -485,6 +498,7 @@ describe("Shop tab — pull to refresh", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.pending = 0;
     mockShopVM.stuck = 0;
     mockShopVM.listings = [];
   });
@@ -527,6 +541,7 @@ describe("Shop tab — restore from published", () => {
     mockShopVM.failed = false;
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
+    mockShopVM.pending = 0;
     mockShopVM.stuck = 0;
     mockShopVM.listings = [];
     mockShopVM.refreshing = false;

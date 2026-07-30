@@ -174,3 +174,51 @@ describe("useShopViewModel — stuck", () => {
     expect(h.api().queued).toBe(3);
   });
 });
+
+// ---------------------------------------------------------------------------
+// pending — rows still within their retry budget, i.e. the count it is
+// honest to tell the seller "syncs when you're online" (Task 2 follow-up,
+// review of commit b10d16f). Before this fix the Shop tab used `queued`
+// (the raw total) for that banner, which counted rows that have permanently
+// given up right alongside rows still trying — telling the seller to wait
+// for a sync that will never happen. `pending` must exclude those rows.
+// ---------------------------------------------------------------------------
+
+describe("useShopViewModel — pending", () => {
+  test("an empty queue reports zero pending rows", async () => {
+    const h = await mount();
+    expect(h.api().pending).toBe(0);
+  });
+
+  test("a row below MAX_ATTEMPTS is counted as pending", async () => {
+    insertItem("i1");
+    insertQueueRow("q1", "i1", MAX_ATTEMPTS - 1);
+    const h = await mount();
+    expect(h.api().pending).toBe(1);
+  });
+
+  test("a row that has reached MAX_ATTEMPTS is NOT counted as pending — it has given up, not merely waiting its turn", async () => {
+    insertItem("i1");
+    insertQueueRow("q1", "i1", MAX_ATTEMPTS);
+    const h = await mount();
+    expect(h.api().pending).toBe(0);
+    expect(h.api().stuck).toBe(1);
+  });
+
+  test("a mix of retrying and given-up rows splits cleanly — pending and stuck each report only their own rows, with no double-counting", async () => {
+    insertItem("i1");
+    insertItem("i2");
+    insertItem("i3");
+    insertItem("i4");
+    insertQueueRow("q1", "i1", MAX_ATTEMPTS); // stuck
+    insertQueueRow("q2", "i2", MAX_ATTEMPTS + 3); // stuck, well past the threshold
+    insertQueueRow("q3", "i3", 0); // pending
+    insertQueueRow("q4", "i4", MAX_ATTEMPTS - 1); // pending, one try left
+    const h = await mount();
+    expect(h.api().stuck).toBe(2);
+    expect(h.api().pending).toBe(2);
+    expect(h.api().queued).toBe(4);
+    // Every row lands in exactly one bucket — no row counted twice, none dropped.
+    expect(h.api().pending + h.api().stuck).toBe(h.api().queued);
+  });
+});
