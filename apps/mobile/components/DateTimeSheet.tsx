@@ -72,21 +72,22 @@ export function DateTimeSheet({
           <View className="flex-[1.1]">
             <Wheel values={MINUTE_VALUES} value={minute} onChange={setMinute} format={(v) => String(v).padStart(2, "0")} />
           </View>
-          <View className="gap-1.5">
+          {/* A real 48px-tall pill, not a 26px pill wearing hitSlop: RN's
+              hitSlop is clipped to the parent's bounds at every ancestor, and
+              this pair's parent used to hug the pills with zero spare room
+              (58px = 26 + 6 + 26, exactly the two pills' own height), so the
+              slop was invisible — the actual target stayed ~29px. Laid out
+              horizontally instead of stacked (h-12 stacked twice would reach
+              94px, taller than the 56px Wheel beside it), each pill is
+              genuinely >= 48x48 (h-12 x w-14) with no slop involved. */}
+          <View className="h-12 flex-row gap-1.5">
             {(["AM", "PM"] as const).map((p) => (
               <Pressable
                 key={p}
                 accessibilityRole="button"
                 accessibilityState={{ selected: period === p }}
                 onPress={() => { Haptics.selectionAsync(); setPeriod(p); }}
-                // The pills are 26px tall — a real 48px box here would blow
-                // past the 56px Wheel beside them and stack the pair to ~94px.
-                // hitSlop reaches 48 without moving anything: each pill claims
-                // 3px into the shared 6px gap (half, so AM's and PM's zones
-                // meet exactly in the middle and never overlap) and the rest
-                // outward, away from the other pill.
-                hitSlop={p === "AM" ? { top: 19, bottom: 3, left: 10, right: 10 } : { top: 3, bottom: 19, left: 10, right: 10 }}
-                className={`h-[26px] w-14 items-center justify-center rounded-full border ${period === p ? "border-acid bg-acid" : "border-hairline bg-surface2"}`}
+                className={`h-12 w-14 items-center justify-center rounded-full border ${period === p ? "border-acid bg-acid" : "border-hairline bg-surface2"}`}
               >
                 <Text style={{ fontFamily: period === p ? FONT.bold : FONT.medium }} className={`text-[12px] ${period === p ? "text-acidink" : "text-inkdim"}`}>{p}</Text>
               </Pressable>

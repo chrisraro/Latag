@@ -46,6 +46,21 @@ const STATIC_IMPORT = /^\s*import\s[^;]*?\sfrom\s*["']@expo\/ui/m;
 /** A runtime reach into the package: `require("@expo/ui...")`. */
 const RUNTIME_REQUIRE = /require\(\s*["']@expo\/ui/;
 
+/** `import ... from "react-native-reanimated" | "react-native-worklets" |
+ *  "react-native-gesture-handler/ReanimatedSwipeable"`. Mirrors STATIC_IMPORT
+ *  above: a static import of any of these evaluates the worklet runtime at
+ *  module scope, during route registration — before any try/catch or error
+ *  boundary exists to guard it. That is a WORSE case than the require() form
+ *  below, not a lesser one, so it needs its own dedicated check rather than
+ *  falling through a require()-only regex untouched. */
+const REANIMATED_STATIC_IMPORT =
+  /^\s*import\s[^;]*?\sfrom\s*["'](?:react-native-reanimated|react-native-worklets|react-native-gesture-handler\/ReanimatedSwipeable)["']/m;
+
+/** A runtime reach into any of the three: `require("react-native-reanimated")`,
+ *  `require("react-native-worklets")`, or the Reanimated-backed Swipeable. */
+const REANIMATED_RUNTIME_REQUIRE =
+  /require\(\s*["'](?:react-native-reanimated|react-native-worklets|react-native-gesture-handler\/ReanimatedSwipeable)["']/;
+
 describe("@expo/ui may never be reached unguarded", () => {
   test("no source file imports @expo/ui at module scope", () => {
     // A static import runs `requireNativeView` the moment the module is
@@ -65,11 +80,22 @@ describe("@expo/ui may never be reached unguarded", () => {
     expect(ungated.map((f) => f.replace(MOBILE_ROOT, ""))).toEqual([]);
   });
 
+  test("no source file imports react-native-reanimated, react-native-worklets, or ReanimatedSwipeable at module scope", () => {
+    // The Reanimated equivalent of the @expo/ui static-import test above. A
+    // static `import { useSharedValue } from "react-native-reanimated"` would
+    // sail straight through a require()-only gate untouched, and it is the
+    // WORSE failure mode of the two: it creates the worklet runtime the
+    // instant the module is evaluated, during route registration, with no
+    // try/catch and no error boundary anywhere in that call stack.
+    const offenders = SOURCE_FILES.filter((f) => REANIMATED_STATIC_IMPORT.test(read(f)));
+    expect(offenders.map((f) => f.replace(MOBILE_ROOT, ""))).toEqual([]);
+  });
+
   test("every file that requires reanimated consults the animation switch", () => {
     // Reanimated's worklet runtime is the same hazard as Compose: it fails on
     // the UI thread, where nothing in JS can catch it. `master` ships no JS
     // importing it, so anything here would be its first run on the device.
-    const reaching = SOURCE_FILES.filter((f) => /require\(\s*["']react-native-reanimated|require\(\s*["']react-native-gesture-handler\/ReanimatedSwipeable/.test(read(f)));
+    const reaching = SOURCE_FILES.filter((f) => REANIMATED_RUNTIME_REQUIRE.test(read(f)));
     expect(reaching.length).toBeGreaterThan(0);
 
     const ungated = reaching.filter((f) => !read(f).includes("NATIVE_ANIMATION_ENABLED"));

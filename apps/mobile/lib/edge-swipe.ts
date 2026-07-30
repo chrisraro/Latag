@@ -24,8 +24,10 @@ import { TAB_DESTINATIONS } from "../components/FloatingTabBar";
 /** How close to a screen edge a touch must start for the pan to be a candidate
  *  at all. Wide enough for a thumb, narrow enough to leave every other pixel —
  *  Home's "Recent items" strip, Inventory's filter chips, both FlashLists, and
- *  every screen's `RefreshControl` — untouched. */
-export const EDGE_WIDTH = 24;
+ *  every screen's `RefreshControl` — untouched. Matches `px-5` (20dp), the
+ *  screen-edge padding every tab screen uses, so the band stops exactly where
+ *  scrollable content starts instead of overlapping it. */
+export const EDGE_WIDTH = 20;
 
 /** Minimum horizontal travel, in px, before a completed pan counts as a
  *  deliberate flick rather than a thumb resting near the edge. */

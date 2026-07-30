@@ -80,6 +80,10 @@ describe("purchases.ts is runtime-inert with no RevenueCat API key", () => {
       kind: "error",
       message: "RevenueCat not configured",
     });
+    // onEntitlementUpdate is synchronous and void — there's no resolved value
+    // to assert, only whether it reaches the native module below.
+    purchases.onEntitlementUpdate(() => {});
+    await new Promise((resolve) => setImmediate(resolve));
 
     // The real proof: none of these guarded calls ever reached the (mocked)
     // native module — a removed guard would show up here even if the
@@ -91,5 +95,31 @@ describe("purchases.ts is runtime-inert with no RevenueCat API key", () => {
     expect(spies.getOfferings).not.toHaveBeenCalled();
     expect(spies.purchaseProduct).not.toHaveBeenCalled();
     expect(spies.restorePurchases).not.toHaveBeenCalled();
+    expect(spies.addCustomerInfoUpdateListener).not.toHaveBeenCalled();
+  });
+
+  // The assertion above (`spies.addCustomerInfoUpdateListener` not called)
+  // cannot actually distinguish a present guard from an absent one: this
+  // repo's Jest config has no `--experimental-vm-modules`, so the real
+  // `await import("react-native-purchases")` inside onEntitlementUpdate's
+  // async IIFE throws in Jest's Node VM unconditionally — caught by the
+  // function's own try/catch — regardless of whether the guard exists.
+  // (Verified directly: removing the guard still leaves that spy's call
+  // count at 0, because the code never gets far enough to reach it either
+  // way.) So unlike the seven functions above — where a missing guard is
+  // caught by the *resolved value* changing from `null`/`undefined` to
+  // `{ kind: "error" }` — onEntitlementUpdate needs a different check.
+  //
+  // What IS reliably observable: onEntitlementUpdate is a plain (non-async)
+  // function, so babel's transform leaves its body inspectable via
+  // `Function.prototype.toString()` instead of hiding it behind a
+  // regenerator wrapper. The guard, if present, is literally its first
+  // statement — the same structural property `tests/native-ui-gate.test.ts`
+  // checks by reading source text for exactly this reason: some hazards
+  // can't be reproduced by exercising the code in Jest at all.
+  test("onEntitlementUpdate's not-configured guard is its first statement, same as its siblings", () => {
+    const { purchases } = loadPurchasesWithEmptyKey();
+    const src = purchases.onEntitlementUpdate.toString();
+    expect(src).toMatch(/^function onEntitlementUpdate\([^)]*\)\s*\{\s*if\s*\(!RC_API_KEY\)\s*return;/);
   });
 });

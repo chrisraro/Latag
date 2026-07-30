@@ -1,4 +1,4 @@
-import { useCallback, useRef, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import { View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useRouter, usePathname } from "expo-router";
@@ -30,13 +30,27 @@ import {
  * ## Why it doesn't fight the FlashLists, the RefreshControls, or the two
  * horizontal strips (Home's recent items, Inventory's filter chips)
  *
- * Each `Gesture.Pan()` below carries a `hitSlop` that shrinks its touchable
- * area to a 24px sliver at one screen edge. A touch beginning anywhere else —
- * which is to say, everywhere the app's own horizontal scrollers and lists
- * live — never reaches this gesture at all; it passes straight through to
- * whatever is underneath. The `edgeSwipeDirection` distance/dominance check in
- * `lib/edge-swipe.ts` is a second, independently-testable line of defense on
- * top of that, not a substitute for it.
+ * Two defenses, neither a substitute for the other:
+ *
+ * 1. Each `Gesture.Pan()` below carries a `hitSlop` that shrinks its touchable
+ *    area to an `EDGE_WIDTH`-px sliver at one screen edge — `EDGE_WIDTH` (20)
+ *    matches `px-5`, the padding every tab screen uses, so the band ends
+ *    exactly where scrollable content begins rather than overlapping it. A
+ *    touch beginning further in never reaches this gesture at all.
+ * 2. `.activeOffsetX([-15, 15])` and `.failOffsetY([-15, 15])` on both
+ *    gestures below. Without them, `Gesture.Pan()` activates omnidirectionally
+ *    after ~8dp of travel in ANY direction (RNGH's default `shouldActivate` is
+ *    `distSq >= minDist²`, not axis-aware) — so a touch that starts in the
+ *    edge sliver but is actually the first pixels of a vertical scroll or
+ *    pull-to-refresh would activate this gesture and cancel that scroll mid
+ *    drag. `failOffsetY` is checked before activation, so a vertical drag
+ *    fails this gesture outright and the ScrollView/FlashList underneath
+ *    keeps the touch.
+ *
+ * The `edgeSwipeDirection` distance/dominance check in `lib/edge-swipe.ts` is
+ * a third, independently-testable line of defense on top of both — it runs in
+ * `onEnd`, too late to save a cancelled scroll, but it is what decides whether
+ * a *completed* edge-origin pan counts as a deliberate flick.
  *
  * ## Why there is no finger-tracked page translation
  *
@@ -74,20 +88,34 @@ export function EdgeSwipeNav({ children }: { children: ReactNode }) {
     [attempt],
   );
 
-  const leftEdge = Gesture.Pan()
-    .runOnJS(true)
-    .hitSlop({ left: 0, width: EDGE_WIDTH })
-    .onBegin((e) => { startXRef.current = e.x; })
-    .onEnd(onEnd);
+  const leftEdge = useMemo(
+    () =>
+      Gesture.Pan()
+        .runOnJS(true)
+        .hitSlop({ left: 0, width: EDGE_WIDTH })
+        .activeOffsetX([-15, 15])
+        .failOffsetY([-15, 15])
+        .onBegin((e) => { startXRef.current = e.x; })
+        .onEnd(onEnd),
+    [onEnd],
+  );
 
-  const rightEdge = Gesture.Pan()
-    .runOnJS(true)
-    .hitSlop({ right: 0, width: EDGE_WIDTH })
-    .onBegin((e) => { startXRef.current = e.x; })
-    .onEnd(onEnd);
+  const rightEdge = useMemo(
+    () =>
+      Gesture.Pan()
+        .runOnJS(true)
+        .hitSlop({ right: 0, width: EDGE_WIDTH })
+        .activeOffsetX([-15, 15])
+        .failOffsetY([-15, 15])
+        .onBegin((e) => { startXRef.current = e.x; })
+        .onEnd(onEnd),
+    [onEnd],
+  );
+
+  const gesture = useMemo(() => Gesture.Race(leftEdge, rightEdge), [leftEdge, rightEdge]);
 
   return (
-    <GestureDetector gesture={Gesture.Race(leftEdge, rightEdge)}>
+    <GestureDetector gesture={gesture}>
       <View style={{ flex: 1 }}>{children}</View>
     </GestureDetector>
   );
