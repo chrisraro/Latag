@@ -1,31 +1,23 @@
 @import "tailwindcss";
 
 /*
- * Colors are sourced from @latag/tokens (packages/tokens/src/index.ts,
- * `DESIGN_COLORS`). Tailwind v4's CSS-first @theme block cannot import a
- * JS/TS value at build time, so these are kept in literal sync here by hand
- * rather than by import — apps/web/tests/design-tokens.test.ts parses this
- * file, @latag/tokens, apps/mobile's theme/tailwind files, and DESIGN.md's
- * table, and fails if any of them disagree. Change a value in
- * packages/tokens first, then mirror it here; the test is what catches a
- * forgotten mirror.
+ * Colors and radii come from @latag/tokens (packages/tokens/src/index.ts) by
+ * way of ../tailwind.config.cjs, loaded below with Tailwind v4's `@config`
+ * at-rule. `@config` loads a legacy JS/CommonJS config and merges its
+ * `theme.extend` into the real design system — it is not a CSS-first
+ * `@theme` block, but it genuinely pulls in a `require()`d JS value at build
+ * time, verified by compiling a minimal case through the installed
+ * tailwindcss@4.3.2 engine. apps/web/tests/design-tokens.test.ts still
+ * cross-checks @latag/tokens, apps/mobile's theme/tailwind files, and
+ * DESIGN.md's table against each other as defence-in-depth.
  */
+@config "../tailwind.config.cjs";
+
 @theme {
-  --color-bg: #000000;
-  --color-surface1: #111111;
-  --color-surface2: #1a1a1a;
-  --color-hairline: #262626;
-  --color-ink: #f2f2f2;
-  --color-inkdim: #adadad;
-  --color-inkfaint: #8a8a8a;
-  --color-acid: #b8f135;
-  --color-acidink: #141a05;
-  --color-danger: #ff5a3c;
-  --color-sold: #8a8a8a;
   --font-sans: var(--font-archivo), system-ui, sans-serif;
 }
 
-body { background: var(--color-bg); color: var(--color-ink); }
+body { @apply bg-bg text-ink; }
 
 /*
  * Unified focus-visible ring for every interactive element. Several links
@@ -42,8 +34,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid var(--color-acid);
-  outline-offset: 2px;
+  @apply outline outline-2 outline-acid outline-offset-2;
 }
 
 .display { font-stretch: 125%; font-weight: 800; }

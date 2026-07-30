@@ -70,7 +70,7 @@ export function BrandPickerSheet({
       <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" className="flex-1 bg-black/60" onPress={onClose} />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View className="rounded-t-sheet border-t border-hairline bg-surface1 px-5 pb-7 pt-3">
-          <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
+          <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-handle" />
           <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">Brand</Text>
           <TextInput
             value={query}

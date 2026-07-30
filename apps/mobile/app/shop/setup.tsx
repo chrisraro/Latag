@@ -205,7 +205,7 @@ export default function ShopSetupScreen() {
 
   return (
     <View className="flex-1 bg-surface1 px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
-      <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
+      <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-handle" />
       <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">{editing ? "Edit shop" : "Set up your shop"}</Text>
       <Text style={{ fontFamily: FONT.text, lineHeight: 18 }} className="mb-1 mt-1 text-[12.5px] text-inkfaint">
         One link buyers can open, browse, and message you from.

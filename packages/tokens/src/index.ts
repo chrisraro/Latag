@@ -87,21 +87,30 @@ export const TAILWIND_COLORS = {
 /**
  * Corner-radius tokens.
  *
- * DESIGN.md originally documented cards at 12px. In practice `apps/mobile`
- * has used 14px (`rounded-[14px]` / `borderRadius: 14`) at every real card
- * call site since before this package existed — `rounded-card`/12px was
- * defined in `tailwind.config.js` and never referenced anywhere. Wave 2
- * Task 1 resolved that conflict by promoting the app's actual 14px to the
- * documented value (DESIGN.md updated to match) rather than rewriting every
- * call site to 12px, since the latter would visibly shrink every card
- * corner — a real rendering change this task is not supposed to make.
- * `card` below is therefore 14, matching the app as it exists today.
+ * `card` is 12px, matching DESIGN.md and the `rounded-card` Tailwind utility,
+ * which is live at 12 call sites across 7 files (AppToast, the Batches tab
+ * card list, all three Shop-tab cards, shop/setup, item/[id]/index,
+ * session/[id]/export, session/[id]/index — grep `rounded-card` under
+ * `apps/mobile` to enumerate them). An earlier version of this file claimed
+ * `rounded-card` was dead and redefined `card` to 14 to match the app's
+ * separate, unrelated `rounded-[14px]` arbitrary-value call sites (~25 of
+ * them). That claim was false and the change was a silent 2px visual
+ * regression on every one of the 12 `rounded-card` sites. It has been
+ * reverted: `card` is 12, `rounded-card` renders at 12px again.
+ *
+ * The app now has two competing card radii — 12px via `rounded-card` (12
+ * sites) and 14px via arbitrary `rounded-[14px]` (~25 sites). That
+ * inconsistency predates this token package and is a real design decision
+ * for the owner, not something a centralisation task should resolve in
+ * either direction. See `apps/mobile/tests/design-tokens.test.ts` for a
+ * live-call-site inventory that keeps a future "this class is dead" claim
+ * checkable instead of asserted.
  */
 export const RADIUS = {
   /** Chips & buttons: fully rounded pill shape (Tailwind `rounded-full`). Not a fixed px value; 9999 is the conventional "large enough to always be a pill" number. */
   pill: 9999,
-  /** Cards. See module comment re: the 12px → 14px reconciliation. */
-  card: 14,
+  /** Cards (the `rounded-card` utility). See module comment re: the two-radii inconsistency. */
+  card: 12,
   /** Modal sheet top corners. */
   sheet: 20,
   /** Photo slot squares. */

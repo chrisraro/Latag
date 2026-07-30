@@ -32,7 +32,7 @@ export default function MarkSoldScreen() {
 
   return (
     <View className="flex-1 bg-surface1 px-5" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4 }}>
-      <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-[#3A3A3A]" />
+      <View className="mb-3.5 h-1 w-11 self-center rounded-full bg-handle" />
       <Text style={{ fontFamily: FONT.display }} className="text-[19px] text-ink">Mark Sold</Text>
       <Text style={{ fontFamily: FONT.text, fontVariant: ["tabular-nums"], lineHeight: 18 }} className="mb-4 mt-1 text-[12.5px] text-inkfaint">
         Listed at {formatPeso(item.targetSellPrice)} — set the final price if you haggled.
