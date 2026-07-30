@@ -40,6 +40,7 @@ import { db } from "../db/client";
 import { entitlements, items, photos, publishQueue, sessions } from "../db/schema";
 import { getMyShop } from "../lib/shop-api";
 import { useShopViewModel, type ShopViewModel } from "../hooks/useShopViewModel";
+import { MAX_ATTEMPTS } from "../lib/shop-sync";
 
 const mockedGetMyShop = getMyShop as jest.MockedFunction<typeof getMyShop>;
 
@@ -117,5 +118,59 @@ describe("useShopViewModel — refreshing", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// stuck — a queue row that has exhausted its retries must be visible to the
+// seller (Task 2 / mobile P0-1). Before this fix, the Shop tab hardcoded
+// `stuck = 0`, so a permanently-failed publish was silently invisible: the
+// user only ever saw "N changes pending" forever, with no explanation and no
+// path forward. These tests exercise the real derivation in the hook, not a
+// mock, so stubbing the count back to a constant makes them fail.
+// ---------------------------------------------------------------------------
+
+function insertItem(id: string): void {
+  db.insert(items).values({
+    id, sessionId: "s1", brand: "Carhartt", name: null, department: "tops",
+    category: "Jacket", condition: "9/10", individualCost: 0, targetSellPrice: 850,
+    status: "available", createdAt: new Date("2026-07-01T00:00:00Z"),
+  }).run();
+}
+
+function insertQueueRow(id: string, itemId: string, attempts: number): void {
+  db.insert(publishQueue).values({ id, itemId, op: "upsert", attempts, createdAt: new Date() }).run();
+}
+
+describe("useShopViewModel — stuck", () => {
+  test("an empty queue reports zero stuck rows", async () => {
+    const h = await mount();
+    expect(h.api().stuck).toBe(0);
+  });
+
+  test("a row below MAX_ATTEMPTS is not counted as stuck", async () => {
+    insertItem("i1");
+    insertQueueRow("q1", "i1", MAX_ATTEMPTS - 1);
+    const h = await mount();
+    expect(h.api().stuck).toBe(0);
+  });
+
+  test("a row that has reached MAX_ATTEMPTS is counted as stuck", async () => {
+    insertItem("i1");
+    insertQueueRow("q1", "i1", MAX_ATTEMPTS);
+    const h = await mount();
+    expect(h.api().stuck).toBe(1);
+  });
+
+  test("only the rows that gave up are counted — a mix reports the exact stuck subset", async () => {
+    insertItem("i1");
+    insertItem("i2");
+    insertItem("i3");
+    insertQueueRow("q1", "i1", MAX_ATTEMPTS);
+    insertQueueRow("q2", "i2", MAX_ATTEMPTS + 3); // still stuck past the threshold
+    insertQueueRow("q3", "i3", 0);
+    const h = await mount();
+    expect(h.api().stuck).toBe(2);
+    expect(h.api().queued).toBe(3);
   });
 });

@@ -128,7 +128,7 @@ export default function ShopScreen() {
 
   const soldCount = vm.listings.filter((i) => i.status === "sold").length;
   const pending = vm.queued;
-  const stuck: number = 0; // TODO: derive from queue if needed
+  const stuck = vm.stuck;
 
   // --- State 1: free ----------------------------------------------------
   if (!vm.pro) {

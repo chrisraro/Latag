@@ -26,6 +26,10 @@ export type ShopViewModel = {
   // --- Derived state ---
   pro: boolean;
   queued: number;
+  /** Queue rows that have exhausted MAX_ATTEMPTS — a publish that has stopped
+   *  retrying, not merely one still waiting its turn. Surfaced separately from
+   *  `queued` so a permanently-failed change is never mistaken for "in progress". */
+  stuck: number;
   profile: Profile;
   stale: boolean;
   failed: boolean;
@@ -59,7 +63,9 @@ export function useShopViewModel(): ShopViewModel {
 
   // --- Derived state ---
   const pro = entRows?.[0]?.pro === true;
-  const queued = (queueRows ?? []).length;
+  const queue = queueRows ?? [];
+  const queued = queue.length;
+  const stuck = queue.filter((q) => q.attempts >= MAX_ATTEMPTS).length;
 
   const listings: Listing[] = (publishedRows ?? []).map((item) => {
     const front = (photoRows ?? []).find((p) => p.itemId === item.id && p.type === "front");
@@ -117,6 +123,7 @@ export function useShopViewModel(): ShopViewModel {
   return {
     pro,
     queued,
+    stuck,
     profile,
     stale,
     failed,
