@@ -329,13 +329,18 @@ describe("restorePublishedItems", () => {
 
     const result = await restorePublishedItems(db);
 
-    expect(result).toEqual({ restored: 1, skipped: 0 });
+    expect(result).toEqual({ ok: true, restored: 1, skipped: 0 });
     const rows = db.select().from(items).all();
     expect(rows).toHaveLength(1);
     expect(rows[0].shopCode).toBe("LT-7K2Q9");
     expect(rows[0].brand).toBe("Carhartt");
     expect(rows[0].ptpInches).toBe(21);
     expect(db.select().from(photos).all()).toHaveLength(2);
+
+    // Privacy boundary: restored items never carry cost, session, or sold data.
+    expect(rows[0].individualCost).toBe(0);
+    expect(rows[0].sessionId).toBeNull();
+    expect(rows[0].soldPrice).toBeNull();
   });
 
   // THE regression test. On device there is no global `crypto` — Hermes does
@@ -361,7 +366,7 @@ describe("restorePublishedItems", () => {
 
       const result = await restorePublishedItems(db);
 
-      expect(result).toEqual({ restored: 1, skipped: 0 });
+      expect(result).toEqual({ ok: true, restored: 1, skipped: 0 });
       expect(db.select().from(items).all()).toHaveLength(1);
     });
   });
@@ -388,22 +393,72 @@ describe("restorePublishedItems", () => {
 
     const result = await restorePublishedItems(db);
 
-    expect(result).toEqual({ restored: 0, skipped: 1 });
+    expect(result).toEqual({ ok: true, restored: 0, skipped: 1 });
     expect(db.select().from(items).all()).toHaveLength(1);
   });
 
-  test("shop lookup error -> nothing restored, never throws", async () => {
+  // Failing-test #3 from the brief: a Postgrest error on the shop lookup
+  // itself (not merely "no row") must surface as a distinct, machine-readable
+  // failure — not collapse into the same shape as a genuinely empty shop.
+  test("shop lookup error -> reports a distinct failure, never throws", async () => {
     const { db } = makeTestDb();
     mockedSupabase.from.mockReturnValueOnce(chain({ data: null, error: { message: "boom" } }));
 
-    await expect(restorePublishedItems(db)).resolves.toEqual({ restored: 0, skipped: 0 });
+    await expect(restorePublishedItems(db)).resolves.toEqual({
+      ok: false,
+      reason: "shop-lookup-failed",
+      message: expect.any(String),
+    });
   });
 
-  test("no shop row at all -> nothing restored, never throws", async () => {
+  // Failing-test #4 from the brief: a Postgrest error on the items fetch
+  // (shop lookup itself succeeded) is a different failure reason from a
+  // failed shop lookup — callers need to tell these apart.
+  test("items fetch error -> reports a distinct failure, never throws", async () => {
+    const { db } = makeTestDb();
+    mockedSupabase.from
+      .mockReturnValueOnce(chain({ data: { id: "shop-1" }, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: { message: "boom" } }));
+
+    await expect(restorePublishedItems(db)).resolves.toEqual({
+      ok: false,
+      reason: "items-fetch-failed",
+      message: expect.any(String),
+    });
+  });
+
+  // Failing-test #5 from the brief: an unexpected throw mid-insert (e.g. a
+  // disk-full SQLite error on the second item) must still resolve to a
+  // failure outcome, not propagate out of restorePublishedItems — this is
+  // called from the sign-in flow and must never throw or reject.
+  test("unexpected throw mid-insert -> reports a failure, never throws or rejects", async () => {
+    const { db } = makeTestDb();
+    mockRestoreQueries([SHOP_ITEM]);
+    jest.spyOn(db, "insert").mockImplementationOnce(() => {
+      throw new Error("disk full");
+    });
+
+    await expect(restorePublishedItems(db)).resolves.toEqual({
+      ok: false,
+      reason: "unexpected-error",
+      message: expect.any(String),
+    });
+  });
+
+  // Failing-test #2 from the brief: shop exists but has no published items —
+  // this is a genuinely empty shop, not an error, and must be a success.
+  test("shop exists but has no published items -> success with nothing to restore", async () => {
+    const { db } = makeTestDb();
+    mockRestoreQueries([]);
+
+    await expect(restorePublishedItems(db)).resolves.toEqual({ ok: true, restored: 0, skipped: 0 });
+  });
+
+  test("no shop row at all -> success with nothing to restore, never throws", async () => {
     const { db } = makeTestDb();
     mockedSupabase.from.mockReturnValueOnce(chain({ data: null, error: null }));
 
-    await expect(restorePublishedItems(db)).resolves.toEqual({ restored: 0, skipped: 0 });
+    await expect(restorePublishedItems(db)).resolves.toEqual({ ok: true, restored: 0, skipped: 0 });
   });
 
   // THE regression test for defect B (RLS scoping). Live `public.shops` has a
@@ -428,7 +483,7 @@ describe("restorePublishedItems", () => {
 
     const result = await restorePublishedItems(db);
 
-    expect(result).toEqual({ restored: 1, skipped: 0 });
+    expect(result).toEqual({ ok: true, restored: 1, skipped: 0 });
     expect(shopsBuilder.eq).toHaveBeenCalledWith("user_id", "user-1");
     expect(mockedSupabase.from).toHaveBeenNthCalledWith(2, "shop_items");
   });
@@ -445,7 +500,7 @@ describe("restorePublishedItems", () => {
     const shopsBuilder = shopsTableChain([{ id: "shop-2", user_id: "someone-else" }]);
     mockedSupabase.from.mockReturnValueOnce(shopsBuilder);
 
-    await expect(restorePublishedItems(db)).resolves.toEqual({ restored: 0, skipped: 0 });
+    await expect(restorePublishedItems(db)).resolves.toEqual({ ok: true, restored: 0, skipped: 0 });
     expect(shopsBuilder.eq).toHaveBeenCalledWith("user_id", "user-1");
     expect(shopsBuilder.maybeSingle).toHaveBeenCalled();
     expect(shopsBuilder.single).not.toHaveBeenCalled();
@@ -455,7 +510,7 @@ describe("restorePublishedItems", () => {
     const { db } = makeTestDb();
     signedOut();
 
-    await expect(restorePublishedItems(db)).resolves.toEqual({ restored: 0, skipped: 0 });
+    await expect(restorePublishedItems(db)).resolves.toEqual({ ok: true, restored: 0, skipped: 0 });
     expect(mockedSupabase.from).not.toHaveBeenCalled();
   });
 });

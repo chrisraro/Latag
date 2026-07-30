@@ -92,7 +92,9 @@ export default function ShopScreen() {
             setSyncing(true);
             try {
               const result = await restorePublishedItems(db);
-              if (result.restored > 0) {
+              if (!result.ok) {
+                showError(result.message);
+              } else if (result.restored > 0) {
                 showSuccess(`Restored ${result.restored} listing${result.restored === 1 ? "" : "s"} from your shop`);
                 vm.refresh();
               } else if (result.skipped > 0) {
