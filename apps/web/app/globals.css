@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/*
+ * Colors are sourced from @latag/tokens (packages/tokens/src/index.ts,
+ * `DESIGN_COLORS`). Tailwind v4's CSS-first @theme block cannot import a
+ * JS/TS value at build time, so these are kept in literal sync here by hand
+ * rather than by import — apps/web/tests/design-tokens.test.ts parses this
+ * file, @latag/tokens, apps/mobile's theme/tailwind files, and DESIGN.md's
+ * table, and fails if any of them disagree. Change a value in
+ * packages/tokens first, then mirror it here; the test is what catches a
+ * forgotten mirror.
+ */
 @theme {
   --color-bg: #000000;
   --color-surface1: #111111;
@@ -11,6 +21,7 @@
   --color-acid: #b8f135;
   --color-acidink: #141a05;
   --color-danger: #ff5a3c;
+  --color-sold: #8a8a8a;
   --font-sans: var(--font-archivo), system-ui, sans-serif;
 }
 

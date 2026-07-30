@@ -1,8 +1,8 @@
-export const COLORS = {
-  bg: "#000000", surface1: "#111111", surface2: "#1A1A1A", hairline: "#262626",
-  ink: "#F2F2F2", inkDim: "#ADADAD", inkFaint: "#8A8A8A",
-  acid: "#B8F135", acidInk: "#141A05", danger: "#FF5A3C",
-} as const;
+// Colors live in @latag/tokens (packages/tokens/src/index.ts) — the shared
+// source of truth for both apps/mobile and apps/web. Re-exported here so
+// existing `import { COLORS } from "@/lib/theme"` call sites don't need to
+// change.
+export { COLORS } from "@latag/tokens";
 
 export const FONT = {
   text: "Archivo", medium: "Archivo-Medium", semibold: "Archivo-SemiBold", bold: "Archivo-Bold",
