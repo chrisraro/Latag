@@ -438,7 +438,7 @@ describe("Shop tab — Pro, shop exists", () => {
     ];
     const t = await render(ShopScreen);
     const all = texts(t);
-    expect(all).toContain("1 change couldn't sync — open the item and switch Publish off, then on");
+    expect(all).toContain("1 change couldn't sync — open the item and toggle Publish to retry");
   });
 
   test("a row that has exhausted its retries gets its own honest banner, plural", async () => {
@@ -448,7 +448,7 @@ describe("Shop tab — Pro, shop exists", () => {
     ];
     const t = await render(ShopScreen);
     const all = texts(t);
-    expect(all).toContain("3 changes couldn't sync — open those items and switch Publish off, then on");
+    expect(all).toContain("3 changes couldn't sync — open those items and toggle Publish to retry");
   });
 
   test("no stuck rows means no give-up banner at all", async () => {
@@ -478,7 +478,23 @@ describe("Shop tab — Pro, shop exists", () => {
     const all = texts(t);
     expect(all).toContain("2 changes pending");
     expect(all).not.toContain("3 changes pending");
-    expect(all).toContain("1 change couldn't sync — open the item and switch Publish off, then on");
+    expect(all).toContain("1 change couldn't sync — open the item and toggle Publish to retry");
+  });
+
+  test("the give-up banner never tells the seller to switch Publish off — that instruction re-lists a deliberately unpublished item and is unopenable for a delete row", async () => {
+    // Op-neutral regression guard: a stuck row can be an upsert (item exists,
+    // possibly unpublished on purpose) or a delete (item no longer exists).
+    // "switch Publish off, then on" is only ever correct for the upsert case —
+    // it fabricates a broken instruction for the other two states. The banner
+    // must stay generic enough to be true for both ops.
+    mockShopVM.stuck = 1;
+    mockShopVM.listings = [
+      { id: "i1", brand: "Carhartt", name: null, shopCode: "LT-7K2Q9", targetSellPrice: 450, status: "available", frontPhoto: null },
+    ];
+    const t = await render(ShopScreen);
+    const all = texts(t).join(" | ");
+    expect(all).not.toContain("switch Publish off");
+    expect(all).not.toContain("off, then on");
   });
 });
 

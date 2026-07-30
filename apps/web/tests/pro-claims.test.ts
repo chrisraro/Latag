@@ -56,3 +56,24 @@ describe("Pro billing claim regression guard", () => {
     });
   }
 });
+
+/**
+ * Version-claim regression guard: the landing page once asserted "version
+ * 1.2.0" while apps/mobile/app.json pinned runtimeVersion to 1.1.0 (the
+ * installed binary) — 1.2.0 was the next not-yet-built native version, so the
+ * claim was unsupportable the moment it shipped and would keep going stale
+ * with every native bump. The same sentence also implied Latag is
+ * subscriber-only ("shipping to subscribers now"), but the app is free with a
+ * paid storefront. Neither claim belongs on the landing page.
+ */
+describe("Version/availability claim regression guard", () => {
+  test("app/page.tsx does not assert a specific app version number", () => {
+    const source = read("app/page.tsx");
+    expect(/\bv?\d+\.\d+\.\d+\b/.test(source)).toBe(false);
+  });
+
+  test("app/page.tsx does not imply the app is available only to subscribers", () => {
+    const source = read("app/page.tsx");
+    expect(/shipping to subscribers/i.test(source)).toBe(false);
+  });
+});
