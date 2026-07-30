@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Data & Security" };
 
 export default function DataPage() {
   return (
-    <Prose title="Data & Security" updated="July 13, 2026">
+    <Prose title="Data & Security" updated="July 30, 2026">
       <p>
         This page is the plain-language version of our architecture: where your data lives, how it's
         protected, and the promises we build against.
@@ -20,14 +20,13 @@ export default function DataPage() {
       <h2>What goes to the shop when you publish</h2>
       <p>
         Publishing is opt-in, per item. Only when you publish a specific piece does anything about it leave
-        your phone, and only these fields go up: brand, name, category, condition, measurements, price, and
-        photos.
+        your phone, and only the fields listed below go up.
       </p>
       <ul>
-        <li><strong>Uploaded on publish:</strong> brand, name, department, category, condition, measurements, price, availability (available/sold), photos.</li>
+        <li><strong>Uploaded on publish:</strong> brand, name, department, category, condition, measurements, price, availability (available/sold), item's public code, shop display order, internal reference id, photos.</li>
         <li><strong>Never uploaded, at any point:</strong> cost, profit, supplier location, batch data, and every item you haven't published.</li>
         <li><strong>Where it lives:</strong> Supabase (Postgres + storage). Photos are served through Supabase's storage CDN — we haven't pinned or verified a specific region, so don't read a Philippines location into it.</li>
-        <li><strong>Removing it:</strong> unpublishing or deleting a shop item deletes its row and photos from our servers — not a soft-hide. The delete is attempted immediately and retried automatically up to 5 times if it fails; after that the Shop tab flags it as stuck, and toggling Publish off then on queues a fresh attempt.</li>
+        <li><strong>Removing it:</strong> unpublishing or deleting a shop item deletes its row and photos from our servers — not a soft-hide. The delete is attempted automatically up to 5 times total if it fails; after that the Shop tab flags it as stuck, and toggling Publish off then on queues a fresh attempt.</li>
       </ul>
       <h2>On our servers (as little as possible)</h2>
       <ul>

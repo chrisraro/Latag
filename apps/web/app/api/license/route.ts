@@ -1,41 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { issueReceipt } from "@/lib/licensing";
+import { issueReceipt, pickEntitlingLicense, type LicenseRow } from "@/lib/licensing";
 import { ENTITLING_SKUS } from "@latag/licensing";
 
 export const dynamic = "force-dynamic";
-
-type LicenseRow = {
-  id: string;
-  sku: string;
-  status: string;
-  granted_at: string;
-  expires_at: string | null;
-};
-
-/**
- * Picks the license that actually unlocks Pro from every entitling row a user
- * holds. A user can hold more than one legitimately — an admin comp alongside
- * a paid subscription — so this must never assume a single row.
- *
- * Rows that have already lapsed are dropped first, so an expired subscription
- * can never mask a still-valid comp. Of what remains, a never-expiring grant
- * (comp / grandfathered lifetime) outranks a dated one, then the furthest
- * expiry, then `active` over `past_due`.
- */
-export function pickEntitlingLicense(rows: LicenseRow[], now: number): LicenseRow | null {
-  const live = rows.filter((r) => !r.expires_at || Date.parse(r.expires_at) >= now);
-  if (live.length === 0) return null;
-
-  return live.reduce((best, row) => {
-    if (!best.expires_at) return best;
-    if (!row.expires_at) return row;
-    const diff = Date.parse(row.expires_at) - Date.parse(best.expires_at);
-    if (diff !== 0) return diff > 0 ? row : best;
-    return best.status === "active" ? best : row;
-  });
-}
 
 /**
  * GET /api/license — the mobile app's source of truth for its Pro unlock.
