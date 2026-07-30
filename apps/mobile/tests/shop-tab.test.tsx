@@ -419,6 +419,11 @@ describe("Shop tab — Pro, shop exists", () => {
 });
 
 describe("Shop tab — restore from published", () => {
+  // Held so it can be put back. There is no `restoreMocks` in this project's
+  // jest config, so an unrestored spy on a React Native module stays swapped
+  // out for every describe that runs after this one.
+  let alertSpy: jest.SpyInstance;
+
   beforeEach(() => {
     mockShopVM.pro = true;
     mockShopVM.profile = PROFILE;
@@ -427,7 +432,11 @@ describe("Shop tab — restore from published", () => {
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
     mockShopVM.listings = [];
-    jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    alertSpy.mockRestore();
   });
 
   test("a failed restore surfaces the outcome's own message as an error and does not refresh", async () => {
@@ -485,6 +494,15 @@ describe("Shop tab — restore from published", () => {
 // ---------------------------------------------------------------------------
 
 describe("Shop setup", () => {
+  // M7. The restore describe above swaps out Alert.alert, and this project's
+  // jest config sets no `restoreMocks`. Nothing here uses Alert today, so a
+  // leak would be silent until some future test in this describe asserted on
+  // a dialog and got the previous describe's no-op stub instead of the real
+  // module. Failing loudly here is cheaper than debugging that later.
+  test("the restore describe's Alert spy did not leak into this one", () => {
+    expect(jest.isMockFunction(Alert.alert)).toBe(false);
+  });
+
   test("fresh setup starts empty with the handle rules spelled out", async () => {
     const t = await render(ShopSetupScreen);
     const all = texts(t);
