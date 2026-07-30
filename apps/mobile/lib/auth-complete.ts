@@ -6,7 +6,7 @@ import { ensureEntitlements } from "./entitlements";
 import { loginRevenueCat, checkProStatus, isRevenueCatConfigured } from "./purchases";
 import type { ProStatus } from "./purchases";
 import { resolveLicenseAction } from "./license-policy";
-import { showSuccess } from "./toast";
+import { showSuccess, showError } from "./toast";
 import { restorePublishedItems } from "./shop-restore";
 
 type BackableRouter = { back: () => void };
@@ -60,9 +60,15 @@ export async function completeSignIn(router?: BackableRouter): Promise<boolean> 
     try {
       const localCount = db.select().from(items).all().length;
       if (localCount === 0) {
-        const restored = await restorePublishedItems(db);
-        if (restored.restored > 0) {
-          showSuccess(`Restored ${restored.restored} published listing${restored.restored === 1 ? "" : "s"} — check your Shop tab`);
+        const outcome = await restorePublishedItems(db);
+        if (outcome.ok) {
+          // A successful restore of zero items (no shop, empty shop, or
+          // already-restored) is silent — it's not news to the user.
+          if (outcome.restored > 0) {
+            showSuccess(`Restored ${outcome.restored} published listing${outcome.restored === 1 ? "" : "s"} — check your Shop tab`);
+          }
+        } else {
+          showError(outcome.message);
         }
       }
     } catch {

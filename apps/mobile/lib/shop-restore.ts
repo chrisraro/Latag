@@ -36,7 +36,24 @@ type ShopItemRow = {
   published_at: string;
 };
 
-type RestoreResult = { restored: number; skipped: number };
+/** Machine-readable reason for a failed restore. Distinguishes *why* nothing
+ *  came back from the (indistinguishable-looking) "shop is genuinely empty"
+ *  success case, so a caller (sign-in flow, manual "Restore from shop"
+ *  button) can decide whether to stay silent or surface an error. */
+export type RestoreFailReason = "shop-lookup-failed" | "items-fetch-failed" | "unexpected-error";
+
+/**
+ * Discriminated union, mirroring the `ShopResult<T>` convention used
+ * elsewhere in this module's neighbours (see ShopResult in shop-api.ts).
+ * `restored`/`skipped` are only meaningful on success — a genuinely empty
+ * shop (no shop row, or a shop with zero published items) is `{ ok: true,
+ * restored: 0, skipped: 0 }`, same as "not signed in": none of those are
+ * errors. A failure carries a stable `reason` for callers that branch on it,
+ * plus a short `message` a UI can show as-is without re-deriving anything.
+ */
+export type RestoreOutcome =
+  | { ok: true; restored: number; skipped: number }
+  | { ok: false; reason: RestoreFailReason; message: string };
 
 // ---------------------------------------------------------------------------
 // Spec parsing (reverse of specRowsFor)
@@ -93,14 +110,16 @@ const PHOTO_SLOTS = ["front", "back", "tag", "flaw"] as const;
  * Call this once after sign-in when the local DB has no items but Supabase
  * has shop_items.
  */
-export async function restorePublishedItems(db: LatagDb): Promise<RestoreResult> {
-  const result: RestoreResult = { restored: 0, skipped: 0 };
+export async function restorePublishedItems(db: LatagDb): Promise<RestoreOutcome> {
+  let restored = 0;
+  let skipped = 0;
 
   try {
     // 0. Resolve the signed-in user. Mirrors getMyShop() in shop-api.ts —
-    // without this, the query below has nothing to scope by.
+    // without this, the query below has nothing to scope by. Not being
+    // signed in is not an error here — it's an expected, silent no-op.
     const userId = await currentUserId();
-    if (!userId) return result;
+    if (!userId) return { ok: true, restored: 0, skipped: 0 };
 
     // 1. Fetch the current user's own shop.
     //
@@ -118,7 +137,11 @@ export async function restorePublishedItems(db: LatagDb): Promise<RestoreResult>
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (shopError || !shopRow) return result;
+    if (shopError) {
+      return { ok: false, reason: "shop-lookup-failed", message: "Couldn't look up your shop — try again" };
+    }
+    // No shop of the user's own at all — genuinely nothing to restore, not a failure.
+    if (!shopRow) return { ok: true, restored: 0, skipped: 0 };
 
     const { data: items_data, error: itemsError } = await supabase
       .from("shop_items")
@@ -126,7 +149,11 @@ export async function restorePublishedItems(db: LatagDb): Promise<RestoreResult>
       .eq("shop_id", shopRow.id)
       .order("sort_order", { ascending: false });
 
-    if (itemsError || !items_data || items_data.length === 0) return result;
+    if (itemsError) {
+      return { ok: false, reason: "items-fetch-failed", message: "Couldn't fetch your shop listings — try again" };
+    }
+    // Shop exists but has no published items — a genuinely empty shop, not a failure.
+    if (!items_data || items_data.length === 0) return { ok: true, restored: 0, skipped: 0 };
 
     // 2. For each shop_item, check if it already exists locally
     for (const si of items_data as ShopItemRow[]) {
@@ -140,7 +167,7 @@ export async function restorePublishedItems(db: LatagDb): Promise<RestoreResult>
         .where(eq(items.shopCode, code))
         .all();
       if (existing.length > 0) {
-        result.skipped += 1;
+        skipped += 1;
         continue;
       }
 
@@ -204,11 +231,15 @@ export async function restorePublishedItems(db: LatagDb): Promise<RestoreResult>
           .run();
       }
 
-      result.restored += 1;
+      restored += 1;
     }
   } catch {
-    // Swallow errors — restore is best-effort and must never crash the app
+    // Swallow errors — restore is best-effort and must never crash the app.
+    // This is the only path an unexpected throw mid-loop (e.g. a SQLite
+    // write failure) can take: it must resolve, not reject, and it must
+    // still tell the caller this was a failure, not an empty shop.
+    return { ok: false, reason: "unexpected-error", message: "Something went wrong restoring your shop" };
   }
 
-  return result;
+  return { ok: true, restored, skipped };
 }
