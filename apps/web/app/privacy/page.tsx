@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Privacy Policy" };
 
 export default function PrivacyPage() {
   return (
-    <Prose title="Privacy Policy" updated="July 27, 2026">
+    <Prose title="Privacy Policy" updated="July 30, 2026">
       <p>
         Latag is built so that we know as little about you as possible. This policy explains what little
         we collect, why, and what we never collect. The short version: nothing leaves your phone unless
@@ -23,7 +23,8 @@ export default function PrivacyPage() {
       <p>
         Publishing is opt-in, per item — nothing goes online until you tap "Publish" on that specific piece.
         When you do, Latag uploads only the buyer-relevant fields: brand, name, department, category,
-        condition, measurements, price, availability (available or sold), and the item's photos. It never
+        condition, measurements, price, availability (available or sold), the item's public code, its
+        position in your shop's display order, an internal reference id, and the item's photos. It never
         uploads cost, profit, supplier location, or batch data — those fields don't exist on the server at
         all; there is no column for them in our database, so there's nothing to leak by mistake.
       </p>
@@ -31,8 +32,8 @@ export default function PrivacyPage() {
         Published items are stored with Supabase, our backend provider, with photos served through
         Supabase's storage CDN — we haven't pinned or verified that to a specific region, so don't take a
         Philippines location as a promise. Unpublish an item (or delete it) and Latag deletes its row and
-        photos from our servers, not just hides them. That delete is attempted immediately and retried
-        automatically up to 5 times if it can't go through (you're offline, for instance); if all 5 fail,
+        photos from our servers, not just hides them. That delete is attempted automatically up to 5 times
+        total if it can't go through right away (you're offline, for instance); if every attempt fails,
         the Shop tab flags the item as stuck, and toggling Publish off then on queues a fresh attempt.
       </p>
       <h2>What we collect, and why</h2>

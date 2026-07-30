@@ -74,3 +74,68 @@ describe("Photo-hosting region claim regression guard", () => {
     });
   }
 });
+
+/**
+ * Delete-retry-count claim regression guard: `MAX_ATTEMPTS = 5` in
+ * apps/mobile/lib/shop-sync.ts caps the TOTAL number of attempts a queued
+ * delete gets (see the "After five honest tries" comment and `drainQueue`,
+ * which skips a row once `attempts >= MAX_ATTEMPTS`) — it is not 1 initial
+ * attempt plus 5 retries. "attempted immediately and retried automatically up
+ * to 5 times" reads as 1 + 5 = 6 total attempts, which is wrong by one.
+ */
+describe("Delete-retry-count claim regression guard", () => {
+  const AMBIGUOUS_SIX_TOTAL: RegExp[] = [
+    /attempted\s+immediately\s+and\s+(?:is\s+)?retried\s+automatically\s+up\s+to\s+5\s+times/i,
+  ];
+  const UNAMBIGUOUS_FIVE_TOTAL = /up\s+to\s+5\s+(?:times|attempts)\s+total/i;
+
+  for (const surface of SURFACES) {
+    test(`${surface} does not imply 6 total delete attempts (1 immediate + 5 retries)`, () => {
+      const source = read(surface);
+      for (const pattern of AMBIGUOUS_SIX_TOTAL) {
+        expect(
+          pattern.test(source),
+          `${surface} matched ${pattern} — MAX_ATTEMPTS caps the TOTAL attempts at 5, not 5 retries on top of ` +
+            `an initial try`,
+        ).toBe(false);
+      }
+    });
+
+    test(`${surface} states the 5-attempt cap unambiguously as a total`, () => {
+      const source = read(surface);
+      expect(
+        UNAMBIGUOUS_FIVE_TOTAL.test(source),
+        `${surface} should spell out that 5 is the TOTAL number of delete attempts, matching MAX_ATTEMPTS in ` +
+          `apps/mobile/lib/shop-sync.ts`,
+      ).toBe(true);
+    });
+  }
+});
+
+/**
+ * Uploaded-field-list completeness guard: both pages claim to enumerate every
+ * field a publish uploads. `toShopItemUpsert` (apps/mobile/lib/shop-sync.ts)
+ * and `upsertShopItem` (apps/mobile/lib/shop-api.ts) also send the item's
+ * public code, its shop display order, and an internal reference id used to
+ * match future edits to the right row — none privacy-sensitive, but the list
+ * claims exhaustiveness, so omitting them makes it false.
+ */
+describe("Uploaded-field-list completeness guard", () => {
+  const REQUIRED_FIELD_MENTIONS: RegExp[] = [
+    /(?:public|item'?s)\s+code/i,
+    /(?:display|shop)\s+order/i,
+    /internal\s+reference/i,
+  ];
+
+  for (const surface of SURFACES) {
+    test(`${surface} lists the item code, display order, and internal reference id as uploaded`, () => {
+      const source = read(surface);
+      for (const pattern of REQUIRED_FIELD_MENTIONS) {
+        expect(
+          pattern.test(source),
+          `${surface} is missing a mention matching ${pattern} — the uploaded-fields list must be accurate`,
+        ).toBe(true);
+      }
+    });
+  }
+});

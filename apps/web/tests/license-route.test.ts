@@ -35,9 +35,17 @@ vi.mock("../lib/supabase/server", () => ({
   }),
 }));
 
-vi.mock("../lib/licensing", () => ({
-  issueReceipt: (_payload: unknown, _secret: string) => "latag1.test.receipt",
-}));
+vi.mock("../lib/licensing", async (importOriginal) => {
+  // pickEntitlingLicense is the real, unmocked implementation — the route
+  // depends on its actual entitlement-resolution behavior (this file's own
+  // tests exercise it end to end). Only issueReceipt is stubbed, since
+  // signing isn't what these tests are about.
+  const actual = await importOriginal<typeof import("../lib/licensing")>();
+  return {
+    ...actual,
+    issueReceipt: (_payload: unknown, _secret: string) => "latag1.test.receipt",
+  };
+});
 
 vi.mock("next/server", () => ({
   NextResponse: {

@@ -25,6 +25,7 @@ const ROOT = path.resolve(__dirname, "..");
 const SURFACES = [
   "app/page.tsx",
   "app/pro/page.tsx",
+  "app/account/page.tsx",
   "app/terms/page.tsx",
   "app/privacy/page.tsx",
   "app/data/page.tsx",

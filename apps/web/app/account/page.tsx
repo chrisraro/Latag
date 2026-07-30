@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui";
 import { signOut } from "./actions";
 import { FeedbackForm } from "./FeedbackForm";
 import { DeleteAccountForm } from "./DeleteAccountForm";
-import { PRO_SKUS } from "@latag/licensing";
+import { ENTITLING_SKUS, PRO_MONTHLY } from "@latag/licensing";
+import { pickEntitlingLicense, type LicenseRow } from "@/lib/licensing";
 
 export const metadata: Metadata = { title: "Account" };
 export const dynamic = "force-dynamic";
@@ -24,14 +25,22 @@ export default async function AccountPage() {
     redirect("/account/sign-in");
   }
 
-  const [{ data: license }, { data: pricing }, { data: feedbackRows }] = await Promise.all([
+  const [{ data: licenseRows }, { data: pricing }, { data: feedbackRows }] = await Promise.all([
+    // Every entitling SKU (not just the purchasable ones), and the full set of
+    // rows rather than `.maybeSingle()` — a user can legitimately hold more
+    // than one (an admin comp alongside a paid subscription), and
+    // `.maybeSingle()` errors the moment there is more than one row. See
+    // pickEntitlingLicense in lib/licensing.ts, shared with GET /api/license.
     supabase
       .from("licenses")
-      .select("sku,status,granted_at,expires_at")
-      .in("sku", PRO_SKUS)
-      .in("status", ["active", "past_due"])
-      .maybeSingle(),
-    supabase.from("pricing").select("price,currency").in("sku", PRO_SKUS).limit(1).maybeSingle(),
+      .select("id,sku,status,granted_at,expires_at")
+      .in("sku", ENTITLING_SKUS)
+      .in("status", ["active", "past_due"]),
+    // Scoped to the monthly SKU specifically — the label below is hardcoded
+    // "/month", so the row fetched must always be the monthly price, not an
+    // arbitrary one of the purchasable SKUs (which could be the yearly price
+    // mislabelled as monthly).
+    supabase.from("pricing").select("price,currency").eq("sku", PRO_MONTHLY).maybeSingle(),
     supabase
       .from("feedback")
       .select("id,type,status,created_at")
@@ -39,6 +48,8 @@ export default async function AccountPage() {
       .order("created_at", { ascending: false })
       .limit(5),
   ]);
+
+  const license = pickEntitlingLicense((licenseRows ?? []) as LicenseRow[], Date.now());
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-14">
