@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import * as Crypto from "expo-crypto";
 import { items, photos, type Item } from "../db/schema";
 import type { LatagDb } from "../db/client";
 import { specRowsFor, SPEC_LABEL_TO_KEY, parseSpecValue, type CatalogItem, type SpecKey } from "./catalog";
@@ -131,7 +132,7 @@ export async function restorePublishedItems(db: LatagDb): Promise<RestoreResult>
       const specs = parseSpecs(si.specs);
 
       // 4. Generate a new local ID (old item_local_id is meaningless now)
-      const localId = crypto.randomUUID();
+      const localId = Crypto.randomUUID();
 
       // 5. Insert the item
       const publishedAt = si.published_at ? new Date(si.published_at) : new Date();
@@ -176,7 +177,7 @@ export async function restorePublishedItems(db: LatagDb): Promise<RestoreResult>
       for (let i = 0; i < photoUrls.length && i < PHOTO_SLOTS.length; i++) {
         db.insert(photos)
           .values({
-            id: crypto.randomUUID(),
+            id: Crypto.randomUUID(),
             itemId: localId,
             // Store the Supabase public URL as the localUri — the photo
             // is remote, not cached locally. This works for display but
