@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Prose } from "@/components/Prose";
 
-export const metadata: Metadata = { title: "Data & Security" };
+export const metadata: Metadata = { title: "Data & Security", alternates: { canonical: "/data" } };
 
 export default function DataPage() {
   return (

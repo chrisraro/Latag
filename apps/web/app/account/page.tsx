@@ -8,7 +8,7 @@ import { DeleteAccountForm } from "./DeleteAccountForm";
 import { ENTITLING_SKUS, PRO_MONTHLY } from "@latag/licensing";
 import { pickEntitlingLicense, type LicenseRow } from "@/lib/licensing";
 
-export const metadata: Metadata = { title: "Account" };
+export const metadata: Metadata = { title: "Account", alternates: { canonical: "/account" } };
 export const dynamic = "force-dynamic";
 
 function formatGrantedDate(iso: string): string {

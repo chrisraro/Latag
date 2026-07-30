@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { PhoneDemo } from "@/components/PhoneDemo";
 import { Pricing } from "@/components/Pricing";
 import { Showcase } from "@/components/Showcase";
 import { Badge, CheckItem, CtaButton, SectionTitle } from "@/components/ui";
+import { softwareApplicationJsonLd } from "@/lib/structured-data";
 import { DEPARTMENTS_DISPLAY } from "@latag/catalog";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 /** Shared card surface. Hover physics live here so every grid on the page
  *  responds identically — lift, warm the border, brighten the fill. */
@@ -35,6 +42,8 @@ const SHOP_STEPS = [
 export default function Home() {
   return (
     <>
+      <JsonLd data={softwareApplicationJsonLd()} />
+
       {/* HERO */}
       <section aria-labelledby="hero-title" className="mx-auto max-w-6xl px-5 pb-20 pt-8 sm:px-6 sm:pb-24 sm:pt-14">
         <Badge>Ukay inventory + storefronts</Badge>
