@@ -1,14 +1,38 @@
 import { readdirSync, readFileSync, statSync } from "fs";
 import { join } from "path";
+import { eq } from "drizzle-orm";
 import { parseSpecValue, SPEC_LABEL_TO_KEY, specRowsFor, typesFor, specFieldsFor } from "../lib/catalog";
 import { restorePublishedItems } from "../lib/shop-restore";
 import { supabase } from "../lib/supabase";
+import { uploadItemPhotos, upsertShopItem } from "../lib/shop-api";
+import { makeSyncDeps } from "../lib/shop-sync";
 import { makeTestDb } from "./helpers/testDb";
-import { items, photos } from "../db/schema";
+import { items, photos, type PublishQueueRow } from "../db/schema";
 
 jest.mock("../lib/supabase", () => ({
   supabase: { auth: { getSession: jest.fn() }, from: jest.fn() },
 }));
+
+/**
+ * Only the network edges are stubbed — `currentUserId` stays real so restore
+ * still resolves the session through the mocked supabase above. This lets the
+ * restored rows be fed straight into the real `makeSyncDeps` publish path,
+ * which is the only place the I2 defect (a restored item that can never
+ * re-publish) is actually observable.
+ */
+jest.mock("../lib/shop-api", () => ({
+  ...jest.requireActual("../lib/shop-api"),
+  uploadItemPhotos: jest.fn(),
+  upsertShopItem: jest.fn(),
+  deleteShopItem: jest.fn(),
+}));
+
+const mockedUpload = uploadItemPhotos as jest.MockedFunction<typeof uploadItemPhotos>;
+const mockedUpsert = upsertShopItem as jest.MockedFunction<typeof upsertShopItem>;
+
+function queueRow(itemId: string): PublishQueueRow {
+  return { id: "q1", itemId, op: "upsert", attempts: 0, lastError: null, createdAt: new Date(1000) };
+}
 
 const mockedSupabase = supabase as unknown as {
   auth: { getSession: jest.Mock };
@@ -19,9 +43,9 @@ type QueryResult = { data?: unknown; error?: unknown };
 
 /**
  * Mirrors postgrest-js: every builder method returns the builder, the builder
- * itself is thenable, and single() resolves to the same result. Task 2 will
- * add a `.maybeSingle()` / `user_id` filter to the shops query — this chain
- * already forwards any method call, so it accommodates that without changes.
+ * itself is thenable, and single()/maybeSingle() resolve to the same result.
+ * Forwarding every method means the chain accommodates whatever filters the
+ * code under test applies without needing to know about them.
  */
 function chain(result: QueryResult) {
   const builder: any = {
@@ -244,7 +268,9 @@ describe("spec roundtrip", () => {
 
 const SHOP_ITEM = {
   id: "shop-item-1",
-  item_local_id: "old-local-id-lost-on-wipe",
+  // The storefront's identity for this listing: `unique (shop_id, item_local_id)`
+  // in 0003_storefront.sql, and the photo folder is {user_id}/{item_local_id}/.
+  item_local_id: "11111111-2222-3333-4444-555555555555",
   code: "lt-7k2q9",
   brand: "Carhartt",
   name: "Detroit Jacket",
@@ -256,7 +282,21 @@ const SHOP_ITEM = {
   status: "available" as const,
   photo_urls: ["https://cdn.test/a.jpg", "https://cdn.test/b.jpg"],
   sort_order: 3,
-  published_at: "2026-01-01T00:00:00.000Z",
+  // The real PostgREST wire format for `timestamptz` — NOT the `.000Z` an
+  // ISO-string fixture would give you. Test/device divergence on exactly this
+  // kind of detail is what made restore a no-op on device in the first place.
+  published_at: "2026-01-01T00:00:00+00:00",
+};
+
+/** A second listing, so a per-item failure can be told apart from a whole-run abort. */
+const OTHER_SHOP_ITEM = {
+  ...SHOP_ITEM,
+  id: "shop-item-2",
+  item_local_id: "99999999-8888-7777-6666-555555555555",
+  code: "lt-4b8n2",
+  brand: "Levi's",
+  name: "501",
+  photo_urls: ["https://cdn.test/c.jpg"],
 };
 
 /** Points the two supabase.from() calls restorePublishedItems makes, in call
@@ -319,7 +359,10 @@ function shopsTableChain(rows: FakeShopRow[]) {
 
 describe("restorePublishedItems", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    // reset, not clear: the mocks here are bare jest.fn()s reconfigured per
+    // test, so a stale queued `mockReturnValueOnce` from a previous test must
+    // not be able to answer this one's first supabase.from() call.
+    jest.resetAllMocks();
     signedIn();
   });
 
@@ -341,6 +384,196 @@ describe("restorePublishedItems", () => {
     expect(rows[0].individualCost).toBe(0);
     expect(rows[0].sessionId).toBeNull();
     expect(rows[0].soldPrice).toBeNull();
+  });
+
+  // C1. `item_local_id` is not a dead field from a previous life of the phone:
+  // it is the storefront's primary identity for the listing.
+  // `unique (shop_id, item_local_id)` keys every write path — deleteShopItem
+  // filters on it, upsertShopItem conflict-targets it, and photos live under
+  // {user_id}/{item_local_id}/. Minting a fresh uuid here orphans the published
+  // row: the unpublish toast says "Removed from shop" while a zero-row DELETE
+  // reports success and the listing stays publicly live forever.
+  describe("published identity", () => {
+    test("a restored item keeps the storefront's item_local_id as its local primary key", async () => {
+      const { db } = makeTestDb();
+      mockRestoreQueries([SHOP_ITEM]);
+
+      const result = await restorePublishedItems(db);
+
+      expect(result).toEqual({ ok: true, restored: 1, skipped: 0 });
+      const rows = db.select().from(items).all();
+      expect(rows[0].id).toBe(SHOP_ITEM.item_local_id);
+      // Photos hang off that same id, which is also their storage folder name.
+      const photoRows = db.select().from(photos).all();
+      expect(photoRows.map((p) => p.itemId)).toEqual([
+        SHOP_ITEM.item_local_id,
+        SHOP_ITEM.item_local_id,
+      ]);
+    });
+
+    // The other half of C1: reusing the published id is a primary-key insert
+    // into a table the user may already have rows in. A clash must cost that
+    // one listing its published identity, not abort the whole restore via the
+    // catch-all — the rest of the shop still comes back.
+    test("falls back to a fresh id on a local primary-key clash, and the run continues", async () => {
+      const { db } = makeTestDb();
+      // An unrelated local item already occupies the published id.
+      db.insert(items)
+        .values({
+          id: SHOP_ITEM.item_local_id,
+          sessionId: null,
+          brand: "Somebody Else",
+          department: "tops",
+          category: "tee",
+          condition: "good",
+          individualCost: 0,
+          targetSellPrice: 100,
+          status: "available",
+          createdAt: new Date(),
+          shopCode: null,
+        })
+        .run();
+      mockRestoreQueries([SHOP_ITEM, OTHER_SHOP_ITEM]);
+
+      const result = await restorePublishedItems(db);
+
+      // Both listings came back; nothing was aborted.
+      expect(result).toEqual({ ok: true, restored: 2, skipped: 0 });
+
+      const clashed = db.select().from(items).where(eq(items.shopCode, "LT-7K2Q9")).all();
+      expect(clashed).toHaveLength(1);
+      expect(clashed[0].id).not.toBe(SHOP_ITEM.item_local_id);
+      expect(clashed[0].brand).toBe("Carhartt");
+
+      // The item that did NOT clash still keeps its published identity.
+      const clean = db.select().from(items).where(eq(items.shopCode, "LT-4B8N2")).all();
+      expect(clean).toHaveLength(1);
+      expect(clean[0].id).toBe(OTHER_SHOP_ITEM.item_local_id);
+
+      // The pre-existing local row is untouched.
+      const squatter = db.select().from(items).where(eq(items.id, SHOP_ITEM.item_local_id)).all();
+      expect(squatter[0].brand).toBe("Somebody Else");
+    });
+  });
+
+  // I2. Restore stores the remote `https://` URL as the photo's `localUri`,
+  // because the bytes are not on this phone. With no upload marker, the very
+  // next publish of that item recomputes the photo key, finds nothing recorded,
+  // and hands those `https://` URLs to uploadItemPhotos → FileSystem
+  // .readAsStringAsync, which only accepts `file://`. It throws, the queue row
+  // burns all five attempts, and the seller sees "N changes pending" forever.
+  // Seeding the marker makes an unchanged photo set reuse the URLs already in
+  // storage and skip the upload entirely.
+  test("a restored item re-publishes by reusing its stored URLs, never re-uploading them", async () => {
+    const { db } = makeTestDb();
+    mockRestoreQueries([SHOP_ITEM]);
+    mockedUpload.mockResolvedValue({ ok: true, data: [] });
+    mockedUpsert.mockResolvedValue({ ok: true, data: null });
+
+    await restorePublishedItems(db);
+    const item = db.select().from(items).all()[0];
+
+    // The real publish path, not a re-implementation of it.
+    const res = await makeSyncDeps(db).upsert(queueRow(item.id));
+
+    expect(res).toEqual({ ok: true, data: null });
+    expect(mockedUpload).not.toHaveBeenCalled();
+    expect(mockedUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // C1 again, from the other side: the payload must carry the identity
+        // the storefront already has for this listing.
+        itemLocalId: SHOP_ITEM.item_local_id,
+        photoUrls: SHOP_ITEM.photo_urls,
+      }),
+    );
+  });
+
+  // I3. The dedupe unit is the item (`shopCode` already local → skip), but the
+  // write unit is item + photos. Without a transaction a photo insert that
+  // throws leaves the item row committed, so the retry takes the skip branch
+  // and that listing's photos are never restored — silently, permanently.
+  test("a photo-insert failure rolls the item back, so a retry restores it with its photos", async () => {
+    const { db } = makeTestDb();
+    mockRestoreQueries([SHOP_ITEM]);
+
+    // Fail only the photo insert, and fail it *inside* the transaction, which
+    // is the exact shape of the defect: the item row is already written when
+    // the photos blow up.
+    const realTransaction = db.transaction.bind(db);
+    const failingWrite = jest.spyOn(db, "transaction").mockImplementation(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ((cb: (tx: any) => unknown) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        realTransaction(((tx: any) => {
+          const realInsert = tx.insert.bind(tx);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          tx.insert = (table: any) => {
+            if (table === photos) throw new Error("disk full");
+            return realInsert(table);
+          };
+          return cb(tx);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any)) as any,
+    );
+
+    await expect(restorePublishedItems(db)).resolves.toEqual({
+      ok: false,
+      reason: "unexpected-error",
+      message: expect.any(String),
+    });
+
+    // Nothing half-written: no orphan item row for the retry to trip over.
+    expect(db.select().from(items).all()).toHaveLength(0);
+    expect(db.select().from(photos).all()).toHaveLength(0);
+
+    // The retry — same shop, disk no longer full.
+    failingWrite.mockRestore();
+    mockRestoreQueries([SHOP_ITEM]);
+
+    await expect(restorePublishedItems(db)).resolves.toEqual({
+      ok: true,
+      restored: 1,
+      skipped: 0,
+    });
+    expect(db.select().from(items).all()).toHaveLength(1);
+    expect(db.select().from(photos).all()).toHaveLength(2);
+  });
+
+  // M4. `published_at` arrives as whatever PostgREST emits for `timestamptz`,
+  // which is `+00:00`-offset, not the `.000Z` an ISO-string fixture produces.
+  describe("published_at", () => {
+    test("parses PostgREST's real timestamptz wire format, no fallback", async () => {
+      const { db } = makeTestDb();
+      mockRestoreQueries([SHOP_ITEM]);
+
+      await restorePublishedItems(db);
+
+      const row = db.select().from(items).all()[0];
+      expect(row.publishedAt?.toISOString()).toBe("2026-01-01T00:00:00.000Z");
+      expect(row.createdAt.toISOString()).toBe("2026-01-01T00:00:00.000Z");
+    });
+
+    // An unparseable value must not reach the column. `new Date(bad).getTime()`
+    // is NaN, SQLite stores that as NULL, and a null publishedAt makes the item
+    // look UNPUBLISHED to lib/shop-sync — makeSyncDeps.upsert drops the queue
+    // row as "nothing to publish" and the listing can never be updated again.
+    test("an unparseable published_at falls back to now, never writes NaN", async () => {
+      const { db } = makeTestDb();
+      const before = Date.now();
+      mockRestoreQueries([{ ...SHOP_ITEM, published_at: "0001-01-01 BC" }]);
+
+      const result = await restorePublishedItems(db);
+
+      expect(result).toEqual({ ok: true, restored: 1, skipped: 0 });
+      const row = db.select().from(items).all()[0];
+      expect(row.publishedAt).toBeInstanceOf(Date);
+      expect(Number.isNaN(row.publishedAt!.getTime())).toBe(false);
+      expect(row.publishedAt!.getTime()).toBeGreaterThanOrEqual(
+        Math.floor(before / 1000) * 1000,
+      );
+      expect(row.createdAt).toBeInstanceOf(Date);
+      expect(Number.isNaN(row.createdAt.getTime())).toBe(false);
+    });
   });
 
   // THE regression test. On device there is no global `crypto` — Hermes does
@@ -431,10 +664,10 @@ describe("restorePublishedItems", () => {
   // disk-full SQLite error on the second item) must still resolve to a
   // failure outcome, not propagate out of restorePublishedItems — this is
   // called from the sign-in flow and must never throw or reject.
-  test("unexpected throw mid-insert -> reports a failure, never throws or rejects", async () => {
+  test("unexpected throw mid-write -> reports a failure, never throws or rejects", async () => {
     const { db } = makeTestDb();
     mockRestoreQueries([SHOP_ITEM]);
-    jest.spyOn(db, "insert").mockImplementationOnce(() => {
+    jest.spyOn(db, "transaction").mockImplementationOnce(() => {
       throw new Error("disk full");
     });
 

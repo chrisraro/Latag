@@ -1,4 +1,6 @@
 import { completeSignIn } from "../lib/auth-complete";
+import { db } from "../db/client";
+import { items } from "../db/schema";
 import { supabase } from "../lib/supabase";
 import { fetchLicense } from "../lib/license";
 import { resolveLicenseAction } from "../lib/license-policy";
@@ -141,5 +143,60 @@ describe("completeSignIn — restore outcome handling", () => {
 
     await expect(completeSignIn()).resolves.toBe(true);
     expect(mockedShowError).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M5. The `if (localCount === 0)` gate is the whole surface of the restore
+// trigger: restore is data-loss recovery, not a merge. Every test above fixes
+// localCount at 0, so the gate itself was never exercised — a change that
+// dropped it would have kept the suite green while making every sign-in pull
+// the whole storefront down on top of the seller's live inventory.
+// ---------------------------------------------------------------------------
+
+describe("completeSignIn — the local-is-empty gate", () => {
+  afterEach(() => {
+    db.delete(items).run();
+  });
+
+  test("does not restore when the phone already has items", async () => {
+    db.insert(items)
+      .values({
+        id: "already-here",
+        sessionId: null,
+        brand: "Carhartt",
+        department: "tops",
+        category: "jacket",
+        condition: "9/10",
+        individualCost: 120,
+        targetSellPrice: 850,
+        status: "available",
+        createdAt: new Date(),
+      })
+      .run();
+    mockedRestorePublishedItems.mockResolvedValue({
+      ok: true,
+      restored: 3,
+      skipped: 0,
+    } satisfies RestoreOutcome);
+
+    const result = await completeSignIn();
+
+    expect(result).toBe(true);
+    expect(mockedRestorePublishedItems).not.toHaveBeenCalled();
+    expect(mockedShowError).not.toHaveBeenCalled();
+  });
+
+  test("does restore when the phone is empty (the same flow, gate open)", async () => {
+    mockedRestorePublishedItems.mockResolvedValue({
+      ok: true,
+      restored: 3,
+      skipped: 0,
+    } satisfies RestoreOutcome);
+
+    const result = await completeSignIn();
+
+    expect(result).toBe(true);
+    expect(mockedRestorePublishedItems).toHaveBeenCalledTimes(1);
   });
 });

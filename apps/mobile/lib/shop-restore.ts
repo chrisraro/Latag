@@ -4,6 +4,7 @@ import { items, photos, type Item } from "../db/schema";
 import type { LatagDb } from "../db/client";
 import { specRowsFor, SPEC_LABEL_TO_KEY, parseSpecValue, type CatalogItem, type SpecKey } from "./catalog";
 import { currentUserId } from "./shop-api";
+import { photoSetKey, writePhotoSync } from "./shop-sync";
 import { supabase } from "./supabase";
 
 /**
@@ -18,6 +19,10 @@ import { supabase } from "./supabase";
  * Call this when a user wants to "restore from published" — i.e. re-download
  * their shop listings after losing local data.
  */
+
+/** Same escape hatch lib/repo.ts uses for drizzle's transaction handle, whose
+ *  full generic type is not worth spelling out at every call site. */
+type AnyDb = any;
 
 type ShopItemRow = {
   id: string;
@@ -174,62 +179,123 @@ export async function restorePublishedItems(db: LatagDb): Promise<RestoreOutcome
       // 3. Parse specs back to individual columns
       const specs = parseSpecs(si.specs);
 
-      // 4. Generate a new local ID (old item_local_id is meaningless now)
-      const localId = Crypto.randomUUID();
+      // 4. Reuse the published identity (C1).
+      //
+      // `item_local_id` is NOT a dead id from the phone's previous life — it is
+      // the storefront's identity for this listing. 0003_storefront.sql declares
+      // `unique (shop_id, item_local_id)`, deleteShopItem filters on it,
+      // upsertShopItem conflict-targets it, and the photos live at
+      // {user_id}/{item_local_id}/. Minting a fresh uuid here orphans the
+      // published row: the later DELETE matches zero rows, PostgREST reports no
+      // error, the queue row drains as a success — and the seller is told
+      // "Removed from shop" while the listing stays publicly live forever.
+      //
+      // Reusing it means inserting a caller-supplied primary key, so a clash
+      // with a row the user already has locally is possible. That must cost
+      // this one listing its published identity (degraded, but present and
+      // visible) rather than throw into the catch-all and abandon the rest of
+      // the shop.
+      const publishedId = typeof si.item_local_id === "string" ? si.item_local_id.trim() : "";
+      const idIsFree =
+        publishedId.length > 0 &&
+        db.select().from(items).where(eq(items.id, publishedId)).all().length === 0;
+      const localId = idIsFree ? publishedId : Crypto.randomUUID();
 
-      // 5. Insert the item
-      const publishedAt = si.published_at ? new Date(si.published_at) : new Date();
+      // 5. Insert the item.
+      //
+      // M4: guard the parse. `published_at` is whatever PostgREST emits for a
+      // `timestamptz` — `2026-01-01T00:00:00+00:00`, not the `.000Z` an ISO
+      // fixture produces — and an unparseable value would give NaN. That is not
+      // cosmetic: the driver rejects the NaN bind, which takes the whole restore
+      // into the catch-all and loses every remaining listing. Even if it bound,
+      // a null publishedAt reads as UNPUBLISHED to lib/shop-sync, which then
+      // drops the item's queue rows as "nothing to publish" forever.
+      const parsedAt = si.published_at ? new Date(si.published_at) : new Date();
+      const publishedAt = Number.isNaN(parsedAt.getTime()) ? new Date() : parsedAt;
 
-      db.insert(items)
-        .values({
-          id: localId,
-          sessionId: null, // session association is lost — by design
-          brand: si.brand,
-          name: si.name ?? null,
-          department: (si.department as Item["department"]) ?? "tops",
-          category: si.category ?? "",
-          condition: si.condition ?? "good",
-          ptpInches: specs.ptpInches ?? null,
-          lengthInches: specs.lengthInches ?? null,
-          sleeveInches: specs.sleeveInches ?? null,
-          waistInches: specs.waistInches ?? null,
-          inseamInches: specs.inseamInches ?? null,
-          riseInches: specs.riseInches ?? null,
-          legOpeningInches: specs.legOpeningInches ?? null,
-          shoeSizeUs: specs.shoeSizeUs ?? null,
-          insoleCm: specs.insoleCm ?? null,
-          widthInches: specs.widthInches ?? null,
-          heightInches: specs.heightInches ?? null,
-          depthInches: specs.depthInches ?? null,
-          strapDropInches: specs.strapDropInches ?? null,
-          sizeNote: null,
-          individualCost: 0, // cost is lost — by design
-          targetSellPrice: si.price ?? 0,
-          status: si.status ?? "available",
-          soldPrice: null, // sold price is lost — by design
-          soldAt: null,
-          createdAt: publishedAt,
-          publishedAt,
-          shopCode: code,
-          photoSync: null,
-        })
-        .run();
+      // The photos that will become this item's rows, in slot order. Sliced
+      // once so the upload marker below and the inserts further down can never
+      // disagree about which URLs actually landed locally.
+      const slotUrls = (si.photo_urls ?? []).slice(0, PHOTO_SLOTS.length);
 
-      // 6. Insert photo references (URLs from Supabase storage)
-      const photoUrls = si.photo_urls ?? [];
-      for (let i = 0; i < photoUrls.length && i < PHOTO_SLOTS.length; i++) {
-        db.insert(photos)
+      // 5b. One item and its photos are ONE write (I3).
+      //
+      // The idempotency check above dedupes on `shopCode`, i.e. per item — but
+      // the write is item + photos. Without this transaction, a photo insert
+      // that throws leaves the item row committed, and the next attempt takes
+      // the skip branch above: that listing's photos would never come back,
+      // silently and permanently. All-or-nothing makes the dedupe unit and the
+      // write unit the same thing again.
+      db.transaction((tx: AnyDb) => {
+        tx.insert(items)
           .values({
-            id: Crypto.randomUUID(),
-            itemId: localId,
-            // Store the Supabase public URL as the localUri — the photo
-            // is remote, not cached locally. This works for display but
-            // requires network. A future enhancement could download to cache.
-            localUri: photoUrls[i],
-            type: PHOTO_SLOTS[i],
+            id: localId,
+            sessionId: null, // session association is lost — by design
+            brand: si.brand,
+            name: si.name ?? null,
+            department: (si.department as Item["department"]) ?? "tops",
+            category: si.category ?? "",
+            condition: si.condition ?? "good",
+            ptpInches: specs.ptpInches ?? null,
+            lengthInches: specs.lengthInches ?? null,
+            sleeveInches: specs.sleeveInches ?? null,
+            waistInches: specs.waistInches ?? null,
+            inseamInches: specs.inseamInches ?? null,
+            riseInches: specs.riseInches ?? null,
+            legOpeningInches: specs.legOpeningInches ?? null,
+            shoeSizeUs: specs.shoeSizeUs ?? null,
+            insoleCm: specs.insoleCm ?? null,
+            widthInches: specs.widthInches ?? null,
+            heightInches: specs.heightInches ?? null,
+            depthInches: specs.depthInches ?? null,
+            strapDropInches: specs.strapDropInches ?? null,
+            sizeNote: null,
+            individualCost: 0, // cost is lost — by design
+            targetSellPrice: si.price ?? 0,
+            status: si.status ?? "available",
+            soldPrice: null, // sold price is lost — by design
+            soldAt: null,
+            createdAt: publishedAt,
+            publishedAt,
+            shopCode: code,
+            // I2: seed the upload marker with the photos already in storage.
+            //
+            // The `localUri` written below is an `https://` URL — the bytes are
+            // not on this phone. Left null, the next publish of this item would
+            // see no recorded upload and hand those URLs to uploadItemPhotos →
+            // FileSystem.readAsStringAsync, which accepts only `file://`. It
+            // throws, the queue row burns all five attempts, and the seller is
+            // stuck on "N changes pending" with no way to clear it.
+            //
+            // The key must be what lib/shop-sync recomputes from the photo rows:
+            // orderedLocalUris sorts by SLOT_ORDER, which is the same order as
+            // PHOTO_SLOTS, so the array written here is the array it will read.
+            //
+            // NOTE this only covers an *unchanged* photo set. Re-shooting one
+            // photo on a restored item produces a mixed file:// + https:// set
+            // that still fails on upload. Downloading photos to the local cache
+            // is out of scope here; this does not pretend otherwise.
+            photoSync: slotUrls.length
+              ? writePhotoSync({ key: photoSetKey(slotUrls), urls: slotUrls })
+              : null,
           })
           .run();
-      }
+
+        // 6. Insert photo references (URLs from Supabase storage)
+        for (let i = 0; i < slotUrls.length; i++) {
+          tx.insert(photos)
+            .values({
+              id: Crypto.randomUUID(),
+              itemId: localId,
+              // Store the Supabase public URL as the localUri — the photo
+              // is remote, not cached locally. This works for display but
+              // requires network. A future enhancement could download to cache.
+              localUri: slotUrls[i],
+              type: PHOTO_SLOTS[i],
+            })
+            .run();
+        }
+      });
 
       restored += 1;
     }
