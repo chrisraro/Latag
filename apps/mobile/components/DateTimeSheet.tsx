@@ -79,6 +79,13 @@ export function DateTimeSheet({
                 accessibilityRole="button"
                 accessibilityState={{ selected: period === p }}
                 onPress={() => { Haptics.selectionAsync(); setPeriod(p); }}
+                // The pills are 26px tall — a real 48px box here would blow
+                // past the 56px Wheel beside them and stack the pair to ~94px.
+                // hitSlop reaches 48 without moving anything: each pill claims
+                // 3px into the shared 6px gap (half, so AM's and PM's zones
+                // meet exactly in the middle and never overlap) and the rest
+                // outward, away from the other pill.
+                hitSlop={p === "AM" ? { top: 19, bottom: 3, left: 10, right: 10 } : { top: 3, bottom: 19, left: 10, right: 10 }}
                 className={`h-[26px] w-14 items-center justify-center rounded-full border ${period === p ? "border-acid bg-acid" : "border-hairline bg-surface2"}`}
               >
                 <Text style={{ fontFamily: period === p ? FONT.bold : FONT.medium }} className={`text-[12px] ${period === p ? "text-acidink" : "text-inkdim"}`}>{p}</Text>

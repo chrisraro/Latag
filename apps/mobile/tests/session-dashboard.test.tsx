@@ -1,4 +1,5 @@
 import renderer, { act, type ReactTestRenderer } from "react-test-renderer";
+import { Text } from "react-native";
 
 jest.mock("expo-haptics", () => ({
   selectionAsync: jest.fn(),
@@ -36,6 +37,7 @@ jest.mock("react-native-safe-area-context", () => ({
 
 import { db } from "../db/client";
 import { items, sessions } from "../db/schema";
+import { Icon } from "../components/Icon";
 import DashboardScreen from "../app/session/[id]/index";
 
 let tree: ReactTestRenderer | null = null;
@@ -112,4 +114,21 @@ test("a cold-start notification tap with no stack lands on the batches tab", () 
   press(render(), "Back to batches");
   expect(mockReplace).toHaveBeenCalledWith("/batches");
   expect(mockBack).not.toHaveBeenCalled();
+});
+
+// A trailing caret next to "break-even" implied a tap that went nowhere — the
+// exact "disclosure affordance" pattern used everywhere else in the app
+// (AppHead's chevron, SettingsRow's chevron), sitting right in the middle of
+// the Bulto dashboard's money hero with no handler behind it.
+test("Bulto's break-even label carries no caret and is not itself pressable", () => {
+  db.insert(sessions).values({ id: "s1", name: "Naga Run", type: "bulto", totalBaleCost: 1000, createdAt: new Date() }).run();
+  const t = render();
+  expect(texts(t)).toContain("break-even");
+
+  const label = t.root.findAll((n) => n.type === Text && collectTexts(n).join("") === "break-even")[0];
+  expect(label).toBeDefined();
+  expect(label.props.onPress).toBeUndefined();
+  // Nothing between the label and its immediate row wrapper is pressable either.
+  expect(label.parent?.props?.onPress).toBeUndefined();
+  expect(label.parent?.findAllByType(Icon)).toHaveLength(0);
 });
