@@ -1,4 +1,5 @@
 import renderer, { act, type ReactTestRenderer } from "react-test-renderer";
+import { RefreshControl } from "react-native";
 
 jest.mock("expo-haptics", () => ({
   selectionAsync: jest.fn(),
@@ -19,6 +20,7 @@ const mockShopVM = {
   failed: false,
   loading: false,
   listings: [] as any[],
+  refreshing: false,
   copyLink: jest.fn(async () => {}),
   shareLink: jest.fn(async () => {}),
   refresh: jest.fn(async () => {}),
@@ -225,6 +227,7 @@ describe("Shop tab — free user", () => {
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
     mockShopVM.listings = [];
+    mockShopVM.refreshing = false;
   });
 
   test("shows the value proposition behind the Pro gate and never hits the network", async () => {
@@ -261,6 +264,7 @@ describe("Shop tab — Pro, no shop yet", () => {
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
     mockShopVM.listings = [];
+    mockShopVM.refreshing = false;
   });
 
   test("same pitch, but the CTA routes to setup", async () => {
@@ -303,6 +307,7 @@ describe("Shop tab — Pro, shop exists", () => {
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
     mockShopVM.listings = [];
+    mockShopVM.refreshing = false;
     mockShopVM.copyLink.mockClear();
     mockShopVM.shareLink.mockClear();
   });
@@ -418,6 +423,50 @@ describe("Shop tab — Pro, shop exists", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Pull to refresh — the screen must bind the view model's real flag, not a
+// hardcoded `false`. The view model's own refreshing lifecycle (true while
+// in flight, false once settled, false even after a throw) is exercised
+// directly against the real hook in tests/shop-view-model.test.tsx; this
+// only checks the wiring the screen is responsible for.
+// ---------------------------------------------------------------------------
+
+describe("Shop tab — pull to refresh", () => {
+  beforeEach(() => {
+    mockShopVM.pro = true;
+    mockShopVM.profile = PROFILE;
+    mockShopVM.stale = false;
+    mockShopVM.failed = false;
+    mockShopVM.loading = false;
+    mockShopVM.queued = 0;
+    mockShopVM.listings = [];
+  });
+
+  test("the refresh control mirrors the view model's refreshing flag when true", async () => {
+    mockShopVM.refreshing = true;
+    const t = await render(ShopScreen);
+    const control = t.root.findByType(RefreshControl);
+    expect(control.props.refreshing).toBe(true);
+  });
+
+  test("the refresh control mirrors the view model's refreshing flag when false", async () => {
+    mockShopVM.refreshing = false;
+    const t = await render(ShopScreen);
+    const control = t.root.findByType(RefreshControl);
+    expect(control.props.refreshing).toBe(false);
+  });
+
+  // Same binding, checked in the free-tier state too — Centered's ScrollView
+  // carries its own RefreshControl instance, wired the same way.
+  test("the free-tier gate's refresh control mirrors refreshing as well", async () => {
+    mockShopVM.pro = false;
+    mockShopVM.refreshing = true;
+    const t = await render(ShopScreen);
+    const control = t.root.findByType(RefreshControl);
+    expect(control.props.refreshing).toBe(true);
+  });
+});
+
 describe("Shop tab — restore from published", () => {
   // Held so it can be put back. There is no `restoreMocks` in this project's
   // jest config, so an unrestored spy on a React Native module stays swapped
@@ -432,6 +481,7 @@ describe("Shop tab — restore from published", () => {
     mockShopVM.loading = false;
     mockShopVM.queued = 0;
     mockShopVM.listings = [];
+    mockShopVM.refreshing = false;
     alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
   });
 

@@ -1,4 +1,5 @@
 import renderer, { act, type ReactTestRenderer } from "react-test-renderer";
+import { RefreshControl } from "react-native";
 
 jest.mock("expo-haptics", () => ({
   selectionAsync: jest.fn(),
@@ -334,6 +335,58 @@ describe("Home — recent items", () => {
     setPro(false);
     const t = await render();
     expect(texts(t)).not.toContain("Recent items");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Pull to refresh
+// ---------------------------------------------------------------------------
+
+describe("Home — pull to refresh", () => {
+  /** Flushes both the fake timer queue and the microtask queue it feeds. */
+  async function settleAll(): Promise<void> {
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
+  test("the refresh control mirrors the real refreshing state, not a hardcoded false", async () => {
+    jest.useFakeTimers();
+    try {
+      setPro(false);
+      const t = await render();
+      const control = () => t.root.findByType(RefreshControl);
+      expect(control().props.refreshing).toBe(false);
+
+      act(() => { control().props.onRefresh(); });
+      expect(control().props.refreshing).toBe(true);
+
+      await settleAll();
+      expect(control().props.refreshing).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("a refresh whose shop lookup rejects still lowers the flag instead of leaving the spinner stuck", async () => {
+    jest.useFakeTimers();
+    try {
+      setPro(true);
+      mockedGetMyShop.mockResolvedValueOnce({ ok: true, data: null });
+      const t = await render();
+      mockedGetMyShop.mockRejectedValueOnce(new Error("offline"));
+      const control = () => t.root.findByType(RefreshControl);
+
+      act(() => { control().props.onRefresh(); });
+      expect(control().props.refreshing).toBe(true);
+
+      await settleAll();
+      expect(control().props.refreshing).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

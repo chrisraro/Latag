@@ -31,6 +31,8 @@ export type ShopViewModel = {
   failed: boolean;
   loading: boolean;
   listings: Listing[];
+  /** Drives `RefreshControl`'s `refreshing` — true only while a pull is in flight. */
+  refreshing: boolean;
 
   // --- Actions ---
   copyLink: () => Promise<void>;
@@ -120,6 +122,7 @@ export function useShopViewModel(): ShopViewModel {
     failed,
     loading,
     listings,
+    refreshing,
     copyLink,
     shareLink,
     refresh: onRefresh,

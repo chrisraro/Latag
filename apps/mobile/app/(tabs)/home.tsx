@@ -89,7 +89,7 @@ export default function HomeScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={vm.refresh} {...REFRESH_TINT} />}
+        refreshControl={<RefreshControl refreshing={vm.refreshing} onRefresh={vm.refresh} {...REFRESH_TINT} />}
       >
         {/* --- Snapshot ------------------------------------------------- */}
         <View className="mt-1 border border-hairline bg-surface1" style={CARD}>
