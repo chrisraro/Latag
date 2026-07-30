@@ -3,6 +3,12 @@ import { Prose } from "@/components/Prose";
 
 export const metadata: Metadata = { title: "Data & Security", alternates: { canonical: "/data" } };
 
+// Android-only reality — Latag has no iOS release yet (see
+// components/RCBuyButton.tsx). Its sibling constant lives in
+// app/privacy/page.tsx and app/terms/page.tsx; update all three the day an
+// iOS listing exists alongside Google Play.
+const PAYMENT_HANDLER = "Google Play";
+
 export default function DataPage() {
   return (
     <Prose title="Data & Security" updated="July 30, 2026">
@@ -26,12 +32,12 @@ export default function DataPage() {
         <li><strong>Uploaded on publish:</strong> brand, name, department, category, condition, measurements, price, availability (available/sold), item's public code, shop display order, internal reference id, photos.</li>
         <li><strong>Never uploaded, at any point:</strong> cost, profit, supplier location, batch data, and every item you haven't published.</li>
         <li><strong>Where it lives:</strong> Supabase (Postgres + storage). Photos are served through Supabase's storage CDN — we haven't pinned or verified a specific region, so don't read a Philippines location into it.</li>
-        <li><strong>Removing it:</strong> unpublishing or deleting a shop item deletes its row and photos from our servers — not a soft-hide. The delete is attempted automatically up to 5 times total if it fails; after that the Shop tab flags it as stuck, and toggling Publish off then on queues a fresh attempt.</li>
+        <li><strong>Removing it:</strong> unpublishing or deleting a shop item deletes its row from our servers — not a soft-hide — and attempts to remove its photos too (best-effort; a failed photo cleanup won't block the removal). The row delete is attempted automatically up to 5 times total if it fails; after that the Shop tab shows a banner counting the changes that couldn't sync, and toggling Publish on and then off again queues a fresh attempt.</li>
       </ul>
       <h2>On our servers (as little as possible)</h2>
       <ul>
         <li>Your email and Pro license status — encrypted in transit with TLS and encrypted at rest by our infrastructure provider. Used only to activate your license.</li>
-        <li>A payment reference from the App Store or Play Store, who bill and process the payment — not us. Card and e-wallet credentials never touch our servers.</li>
+        <li>A payment reference from {PAYMENT_HANDLER}, which bills and processes the payment — not us. Card and e-wallet credentials never touch our servers.</li>
         <li>Published shop items, exactly as described above — nothing more.</li>
       </ul>
       <h2>Our standing promises</h2>

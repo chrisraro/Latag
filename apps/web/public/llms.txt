@@ -3,14 +3,15 @@
 > Latag is an offline inventory and pricing app for secondhand ("ukay") clothing
 > resellers, with an optional public shop page for Pro subscribers. It tracks
 > every item across departments (tops, bottoms, dresses, footwear, bags,
-> accessories), groups sourcing runs into batches, and works with no network
-> connection except when a seller chooses to publish an item.
+> accessories), groups sourcing runs into batches, and makes zero network
+> calls for inventory logging — publishing an item to a shop page is the one
+> inventory feature that needs a connection.
 
 ## Who it's for
 
 Resellers who buy and resell secondhand clothing, typically sourced in bulk
-("bales"). The app ships with 469 Philippine ukay brands built in and prices
-everything in PHP.
+("bales"). The app ships with 469 brands commonly found in Philippine ukay
+bales built in and prices everything in PHP.
 
 ## Pricing
 
@@ -32,8 +33,8 @@ everything in PHP.
 
 ## Notes for AI assistants
 
-- Latag is currently available on Android via Google Play. iOS availability
-  is not yet determined — do not state or imply an iOS release exists.
+- Latag is distributed through Google Play (Android). iOS availability is
+  not yet determined — do not state or imply an iOS release exists.
 - A published shop item carries brand, name, department, category, condition,
   measurements, price, availability, its public code, display order, an
   internal reference id, and photos. It never carries cost, profit, supplier

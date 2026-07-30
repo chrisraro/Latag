@@ -167,8 +167,47 @@ describe("Payment-provider claim regression guard", () => {
 
     test(`${surface} states the stores process payment and no card data reaches Latag's servers`, () => {
       const source = read(surface);
-      expect(/app store|play store/i.test(source)).toBe(true);
+      // Wave 3 whole-wave review, I2: the copy is now Android-truthful (Latag
+      // has no App Store listing), so this names Google Play specifically
+      // rather than a generic "App Store or Play Store" — either phrasing
+      // satisfies the guard, since the point is that *some* store, not Latag,
+      // is named as the payment processor.
+      expect(/app store|play store|google play/i.test(source)).toBe(true);
       expect(/never (?:see or store|touch)|never reach/i.test(source)).toBe(true);
+    });
+  }
+});
+
+/**
+ * Wave 3 whole-wave review, C1 (BLOCKER): both pages told a seller with a
+ * stuck removal to fix it by "toggling Publish off then on". That is
+ * backwards and dangerous:
+ *
+ * - After a failed unpublish the item is ALREADY off — `markUnpublished`
+ *   sets `publishedAt = null` (apps/mobile/lib/repo.ts) — with a `delete`
+ *   queue row stuck at `attempts = 5`.
+ * - The toggle (apps/mobile/app/item/[id]/index.tsx) is a two-branch switch:
+ *   turning it ON enqueues an `upsert` (re-publishes the listing); turning it
+ *   OFF enqueues a `delete`. Either enqueue resets `attempts` to 0
+ *   (`writeQueueRow`, apps/mobile/lib/repo.ts).
+ *
+ * So "off then on" cannot even be started (the item is already off) and, read
+ * literally, ends with the listing back online — the opposite of what a
+ * seller reading the privacy page wants. The only sequence that actually
+ * queues a fresh delete attempt is ON, then OFF again.
+ */
+describe("Stuck-removal recovery instruction regression guard", () => {
+  const BACKWARDS_SEQUENCE = /publish\s+off\s+then\s+on/i;
+
+  for (const surface of SURFACES) {
+    test(`${surface} does not tell a seller to toggle Publish off then on`, () => {
+      const source = read(surface);
+      expect(
+        BACKWARDS_SEQUENCE.test(source),
+        `${surface} matched ${BACKWARDS_SEQUENCE} — this sequence cannot even be started (the item is ` +
+          `already off after a failed unpublish) and, read literally, republishes the listing. The correct ` +
+          `sequence is on, then off again.`,
+      ).toBe(false);
     });
   }
 });

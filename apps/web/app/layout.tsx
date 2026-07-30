@@ -13,7 +13,12 @@ export const metadata: Metadata = {
   // Kept under ~155 characters so Google doesn't truncate it in the SERP.
   description:
     "Offline-first inventory and storefront tool for PH ukay resellers. Free forever, with a paid Pro storefront.",
-  alternates: { canonical: "/" },
+  // Wave 3 whole-wave review, M8: no `alternates.canonical` here on purpose.
+  // A segment's `metadata` export replaces the parent's `alternates` object
+  // wholesale rather than merging field-by-field, so a `"/"` set at the root
+  // silently becomes every descendant route's canonical the moment that
+  // route forgets to declare its own — see app/page.tsx (and every other
+  // marketing/legal page), which already sets its own correct canonical.
   openGraph: {
     title: "Latag — ukay inventory and your own shop page",
     description: "Every piece you own in one offline inventory. One link buyers can browse.",

@@ -61,7 +61,10 @@ export function SiteFooter() {
     <footer className="mx-auto mt-24 max-w-6xl border-t border-hairline px-5 py-10 text-sm text-inkfaint sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p>© {new Date().getFullYear()} Latag · Made for the ukay grind</p>
-        <nav aria-label="Legal" className="flex gap-5">
+        {/* Wave 3 whole-wave review, M7: this nav also carries the FAQ link,
+            which isn't legal content — "Legal" was inaccurate for what
+            screen readers announce as the group's purpose. */}
+        <nav aria-label="Footer" className="flex gap-5">
           <Link className="hover:text-inkdim" href="/faq">FAQ</Link>
           <Link className="hover:text-inkdim" href="/privacy">Privacy</Link>
           <Link className="hover:text-inkdim" href="/terms">Terms</Link>

@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test, vi } from "vitest";
-import { PRO_MONTHLY, PRO_YEARLY } from "@latag/licensing";
 import { JsonLd } from "../components/JsonLd";
-import { FAQ_ENTRIES, PRO_PRICE_PHP, PRO_TRIAL_DAYS, faqJsonLd } from "../lib/structured-data";
+import { FAQ_ENTRIES, faqJsonLd } from "../lib/structured-data";
 
 /**
  * Wave 3, Task 5 — AIO: FAQ content + FAQPage JSON-LD.
@@ -46,21 +45,6 @@ describe("FAQ pricing claim tracks the licensing package", () => {
     expect(pricingAnswer.length).toBeGreaterThan(0);
   });
 
-  // Reads the ACTUAL constants (not a copy) so a SKU price/trial-length change
-  // that isn't reflected in the FAQ answer fails this test rather than
-  // shipping a landing page that disagrees with what the app actually charges.
-  test("states the real monthly price", () => {
-    expect(pricingAnswer).toContain(`₱${PRO_PRICE_PHP[PRO_MONTHLY]}/month`);
-  });
-
-  test("states the real yearly price", () => {
-    expect(pricingAnswer).toContain(`₱${PRO_PRICE_PHP[PRO_YEARLY].toLocaleString("en-PH")}/year`);
-  });
-
-  test("states the real trial length", () => {
-    expect(pricingAnswer).toContain(`${PRO_TRIAL_DAYS}-day free trial`);
-  });
-
   test("does not assert a live iOS/App Store billing path", () => {
     expect(pricingAnswer.toLowerCase()).not.toMatch(/apple|app store|ios/);
   });
@@ -70,20 +54,40 @@ describe("FAQ pricing claim tracks the licensing package", () => {
   });
 });
 
+// Wave 3 whole-wave review, M3: the three "states the real X price/trial"
+// tests that lived here were tautological — `pricingAnswer` is built in
+// lib/structured-data.ts from these exact same `PRO_PRICE_PHP`/`PRO_TRIAL_DAYS`
+// constants (see `FAQ_ENTRIES`'s "What does Latag cost?" entry), so asserting
+// the answer contains them can never fail short of a typo in the template
+// literal itself. The real cross-source guard — that the FAQ, the licensing
+// package, the RevenueCat webhook, and components/Pricing.tsx all agree — is
+// in tests/structured-data.test.ts (`softwareApplicationJsonLd` describe
+// block), which reads each source independently rather than the shared
+// constant. Removed rather than kept as dead weight.
+
 describe("FAQ content accuracy", () => {
   test("the offline answer matches the real offline behavior described on /data", () => {
     const dataPageSource = readFileSync(join(__dirname, "..", "app", "data", "page.tsx"), "utf8");
     const offlineAnswer = FAQ_ENTRIES.find((e) => /work offline/i.test(e.question))?.answer ?? "";
     expect(offlineAnswer.toLowerCase()).toContain("offline");
-    // Both must agree that publishing is the one feature requiring a connection.
+    // Wave 3 whole-wave review, I3: both must agree that publishing is the one
+    // INVENTORY feature requiring a connection — not the one feature, period.
+    // Creating/editing a batch opens the map location picker (live geocoding
+    // search + map tiles), and sign-in, license activation, Restore purchases
+    // and update checks are all networked too. The old regex
+    // (`/publishing.*connection|connection.*publish/`) passed on the broader,
+    // false "one feature" claim; this requires the narrower, true wording.
     expect(dataPageSource).toMatch(/one inventory feature that needs a connection/i);
-    expect(offlineAnswer.toLowerCase()).toMatch(/publishing.*connection|connection.*publish/);
+    expect(offlineAnswer.toLowerCase()).toMatch(/one inventory feature that needs a connection/i);
   });
 
   test("the data-loss answer cites both recovery features, matching apps/mobile/lib/backup.ts and shop-restore.ts", () => {
     const answer = FAQ_ENTRIES.find((e) => /lose, wipe or replace/i.test(e.question))?.answer ?? "";
     expect(answer).toMatch(/export backup/i);
-    expect(answer).toMatch(/restore from your shop/i);
+    // Wave 3 whole-wave review, M1: the actual Shop-tab button label is
+    // "Restore from published" (apps/mobile/app/(tabs)/shop.tsx), not
+    // "Restore from your shop" — use the literal label.
+    expect(answer).toMatch(/restore from published/i);
     expect(answer.toLowerCase()).toContain("cost and profit");
   });
 });
