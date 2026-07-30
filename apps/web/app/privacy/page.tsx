@@ -22,21 +22,23 @@ export default function PrivacyPage() {
       <h2>What happens when you publish an item</h2>
       <p>
         Publishing is opt-in, per item — nothing goes online until you tap "Publish" on that specific piece.
-        When you do, Latag uploads only the buyer-relevant fields: brand, name, category, condition,
-        measurements, price, and the item's photos. It never uploads cost, profit, supplier location, or
-        batch data — those fields don't exist on the server at all; there is no column for them in our
-        database, so there's nothing to leak by mistake.
+        When you do, Latag uploads only the buyer-relevant fields: brand, name, department, category,
+        condition, measurements, price, availability (available or sold), and the item's photos. It never
+        uploads cost, profit, supplier location, or batch data — those fields don't exist on the server at
+        all; there is no column for them in our database, so there's nothing to leak by mistake.
       </p>
       <p>
-        Published items are stored with Supabase, our backend provider, with photos served from a
-        Philippines-region CDN. Unpublish the item (or delete it) and its row and photos are deleted from
-        our servers — not just hidden.
+        Published items are stored with Supabase, our backend provider, with photos served through
+        Supabase's storage CDN — we haven't pinned or verified that to a specific region, so don't take a
+        Philippines location as a promise. Unpublish an item (or delete it) and Latag deletes its row and
+        photos from our servers, not just hides them. That delete is attempted immediately and retried
+        automatically up to 5 times if it can't go through (you're offline, for instance); if all 5 fail,
+        the Shop tab flags the item as stuck, and toggling Publish off then on queues a fresh attempt.
       </p>
       <h2>What we collect, and why</h2>
       <ul>
-        <li><strong>Account details</strong> (email address) — only if you create an account to activate a Pro license. Used solely for licensing and receipts. Encrypted in transit (TLS) and at rest.</li>
+        <li><strong>Account details</strong> (email address) — only if you create an account to activate a Pro license. Used solely to issue and verify that license. Encrypted in transit (TLS) and at rest.</li>
         <li><strong>Payment records</strong> — when you buy Pro, our payment provider processes the payment. We store only a reference ID, the amount, and its status. We never see or store your card number or e-wallet credentials; the provider is PCI-DSS compliant.</li>
-        <li><strong>Anonymous usage counters</strong> — total items logged and active regions, as plain counts with no account, item, or photo attached. You can turn this off in the app's settings at any time.</li>
       </ul>
       <h2>What we don't do</h2>
       <ul>
@@ -49,8 +51,10 @@ export default function PrivacyPage() {
         Deleting the app deletes your inventory, because your phone was the only place it existed. This does
         not automatically remove a published shop or its items — unpublish or delete them from the app (or
         contact us) before uninstalling if you want your storefront taken down too. Your account (if you made
-        one) can be deleted from the web portal at any time; this removes your email, license record, and any
-        feedback you sent us. Payment references are retained only as long as financial regulations require.
+        one) can be deleted from the web portal at any time; this removes your email, license record, any
+        feedback you sent us, and — because your shop is tied to your account — your shop and its listings.
+        That step doesn't reach into photo storage, so email us if you want any leftover photos cleared by
+        hand. Payment references are retained only as long as financial regulations require.
       </p>
       <h2>Contact</h2>
       <p>Questions about this policy: hello@latag.ph.</p>

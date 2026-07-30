@@ -24,16 +24,15 @@ export default function DataPage() {
         photos.
       </p>
       <ul>
-        <li><strong>Uploaded on publish:</strong> brand, name, category, condition, measurements, price, photos.</li>
+        <li><strong>Uploaded on publish:</strong> brand, name, department, category, condition, measurements, price, availability (available/sold), photos.</li>
         <li><strong>Never uploaded, at any point:</strong> cost, profit, supplier location, batch data, and every item you haven't published.</li>
-        <li><strong>Where it lives:</strong> Supabase (Postgres + storage), with photos served from a Philippines-region CDN.</li>
-        <li><strong>Removing it:</strong> unpublishing or deleting a shop item deletes its row and photos from our servers — not a soft-hide.</li>
+        <li><strong>Where it lives:</strong> Supabase (Postgres + storage). Photos are served through Supabase's storage CDN — we haven't pinned or verified a specific region, so don't read a Philippines location into it.</li>
+        <li><strong>Removing it:</strong> unpublishing or deleting a shop item deletes its row and photos from our servers — not a soft-hide. The delete is attempted immediately and retried automatically up to 5 times if it fails; after that the Shop tab flags it as stuck, and toggling Publish off then on queues a fresh attempt.</li>
       </ul>
       <h2>On our servers (as little as possible)</h2>
       <ul>
         <li>Your email and Pro license status — encrypted in transit with TLS and encrypted at rest by our infrastructure provider. Used only to activate your license.</li>
         <li>A payment reference from our PCI-DSS-compliant payment provider. Card and e-wallet credentials never touch our servers.</li>
-        <li>Anonymous counters (items logged, active regions) with an in-app opt-out. No item data, no photos, no names — counts only.</li>
         <li>Published shop items, exactly as described above — nothing more.</li>
       </ul>
       <h2>Our standing promises</h2>
