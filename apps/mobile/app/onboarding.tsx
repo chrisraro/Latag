@@ -81,7 +81,7 @@ function ModeCard({
       </View>
     </>
   );
-  const cardCls = `mb-3 flex-row items-start gap-3.5 border bg-surface1 p-[18px] ${selected ? "border-acid bg-acid" : "border-hairline"}`;
+  const cardCls = `mb-3 flex-row items-start gap-3.5 border p-[18px] ${selected ? "border-acid bg-acid" : "border-hairline bg-surface1"}`;
 
   if (!onPress) {
     return <View style={{ borderRadius: 14 }} className={cardCls}>{content}</View>;

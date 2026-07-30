@@ -204,6 +204,26 @@ test("Skip on pane 1 without touching a card persists the Selector default", asy
   expect(await AsyncStorage.getItem("latag.defaultMode")).toBe("selector");
 });
 
+test("mode cards emit exactly one bg-* utility each — two competing bg classes on one element is decided by tailwind.config.js key order, not intent", async () => {
+  // ModeCard's className is built from a base string plus a selected-branch
+  // override. If the base ever reintroduces its own bg-* (as the unselected
+  // branch's bg-surface1 used to sit outside the ternary), the selected card
+  // renders with two bg-* utilities on one element and the winner depends on
+  // tailwind.config.js key order rather than which branch is active — the
+  // exact accident that let the selected card fall back to bg-surface1 with
+  // text-acidink on it (an unreadable acid-on-dark combination) the moment
+  // that file's key order changed. Every other selected-state element in
+  // this codebase (components/ui.tsx Chip/PrimaryButton, the Batches tab
+  // pills) emits exactly one bg-* — mode cards must match.
+  const t = await render();
+  const cards = t.root.findAll((n) => n.props?.accessibilityRole === "radio");
+  expect(cards.length).toBeGreaterThan(0); // sanity: we actually found the cards
+  for (const card of cards) {
+    const bgClasses = (card.props.className as string).match(/\bbg-\S+/g) ?? [];
+    expect(bgClasses.length).toBe(1);
+  }
+});
+
 test("a storage write failure on finish still lets the user continue past onboarding", async () => {
   jest.spyOn(AsyncStorage, "multiSet").mockRejectedValueOnce(new Error("disk full"));
   const t = await render();

@@ -245,8 +245,8 @@ export default function ShopScreen() {
             {stuck > 0 ? (
               <Text style={{ fontFamily: FONT.text, lineHeight: 16 }} className="mt-1 text-[11.5px] text-danger">
                 {stuck === 1
-                  ? "1 change couldn't sync — open the item and switch Publish off, then on"
-                  : `${stuck} changes couldn't sync — open those items and switch Publish off, then on`}
+                  ? "1 change couldn't sync — open the item and toggle Publish to retry"
+                  : `${stuck} changes couldn't sync — open those items and toggle Publish to retry`}
               </Text>
             ) : null}
             {vm.stale ? (

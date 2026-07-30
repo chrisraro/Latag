@@ -75,7 +75,7 @@ export default function Home() {
               </div>
             </dl>
             <p className="mt-8 text-sm text-inkfaint">
-              Latag is live on Android, version 1.2.0, shipping to subscribers now.
+              Latag is live on Android, available now on Google Play.
             </p>
           </div>
           <PhoneDemo />
