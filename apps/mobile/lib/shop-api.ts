@@ -106,7 +106,10 @@ async function guard<T>(body: () => Promise<ShopResult<T>>): Promise<ShopResult<
   }
 }
 
-async function currentUserId(): Promise<string | null> {
+/** Exported so other modules that read the caller's own rows (e.g.
+ *  lib/shop-restore.ts) scope their queries the same way `getMyShop` does,
+ *  rather than re-deriving the session lookup. */
+export async function currentUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   return data?.session?.user?.id ?? null;
 }

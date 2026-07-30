@@ -7,10 +7,13 @@ import { makeTestDb } from "./helpers/testDb";
 import { items, photos } from "../db/schema";
 
 jest.mock("../lib/supabase", () => ({
-  supabase: { from: jest.fn() },
+  supabase: { auth: { getSession: jest.fn() }, from: jest.fn() },
 }));
 
-const mockedSupabase = supabase as unknown as { from: jest.Mock };
+const mockedSupabase = supabase as unknown as {
+  auth: { getSession: jest.Mock };
+  from: jest.Mock;
+};
 
 type QueryResult = { data?: unknown; error?: unknown };
 
@@ -264,9 +267,60 @@ function mockRestoreQueries(shopItems: unknown[], shopRow: unknown = { id: "shop
     .mockReturnValueOnce(chain({ data: shopItems, error: null }));
 }
 
+function signedIn(userId = "user-1") {
+  mockedSupabase.auth.getSession.mockResolvedValue({
+    data: { session: { user: { id: userId } } },
+    error: null,
+  });
+}
+
+function signedOut() {
+  mockedSupabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+}
+
+type FakeShopRow = { id: string; user_id: string };
+
+/**
+ * Simulates the *result* of Postgrest's real behavior for the `shops` table,
+ * not RLS itself: whatever `.eq()` filters the code under test applies get
+ * recorded and used to filter `rows` before `single()`/`maybeSingle()`
+ * resolve. Postgrest errors both `single()` and `maybeSingle()` when more
+ * than one row matches — so a query left unscoped against two published
+ * shops reproduces the live-database bug (defect B) exactly: the request
+ * errors and restore silently returns empty. A scoped `eq("user_id", ...)`
+ * narrows to one row and the query succeeds.
+ */
+function shopsTableChain(rows: FakeShopRow[]) {
+  const filters: Record<string, unknown> = {};
+  const matched = () =>
+    rows.filter((r) => Object.entries(filters).every(([k, v]) => (r as Record<string, unknown>)[k] === v));
+
+  const builder: any = {
+    select: jest.fn(() => builder),
+    eq: jest.fn((col: string, val: unknown) => {
+      filters[col] = val;
+      return builder;
+    }),
+    order: jest.fn(() => builder),
+    single: jest.fn(async () => {
+      const m = matched();
+      if (m.length === 1) return { data: m[0], error: null };
+      return { data: null, error: { message: `single(): ${m.length} rows matched` } };
+    }),
+    maybeSingle: jest.fn(async () => {
+      const m = matched();
+      if (m.length === 1) return { data: m[0], error: null };
+      if (m.length === 0) return { data: null, error: null };
+      return { data: null, error: { message: `maybeSingle(): ${m.length} rows matched` } };
+    }),
+  };
+  return builder;
+}
+
 describe("restorePublishedItems", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    signedIn();
   });
 
   test("restores a published item into the local db", async () => {
@@ -350,6 +404,59 @@ describe("restorePublishedItems", () => {
     mockedSupabase.from.mockReturnValueOnce(chain({ data: null, error: null }));
 
     await expect(restorePublishedItems(db)).resolves.toEqual({ restored: 0, skipped: 0 });
+  });
+
+  // THE regression test for defect B (RLS scoping). Live `public.shops` has a
+  // "public shops" SELECT policy qualified only on `is_published`, so an
+  // authenticated user can read EVERY published shop, not just their own.
+  // With exactly one published shop, an unscoped `.single()` picks it by
+  // luck; with two, Postgrest errors on the ambiguous row set and restore
+  // silently returns empty. This asserts the query was actually scoped by
+  // `user_id` — not merely that the right row came back, which would still
+  // pass against the buggy unscoped query whenever the mock happens to
+  // return only one shop.
+  test("scopes the shop lookup to the signed-in user when another user's shop is also published", async () => {
+    const { db } = makeTestDb();
+    signedIn("user-1");
+    const shopsBuilder = shopsTableChain([
+      { id: "shop-1", user_id: "user-1" },
+      { id: "shop-2", user_id: "someone-else" },
+    ]);
+    mockedSupabase.from
+      .mockReturnValueOnce(shopsBuilder)
+      .mockReturnValueOnce(chain({ data: [SHOP_ITEM], error: null }));
+
+    const result = await restorePublishedItems(db);
+
+    expect(result).toEqual({ restored: 1, skipped: 0 });
+    expect(shopsBuilder.eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(mockedSupabase.from).toHaveBeenNthCalledWith(2, "shop_items");
+  });
+
+  // Failing-test #2 from the brief: the signed-in user has no shop of their
+  // own at all, even though someone else's published shop exists in the
+  // table. Restore must report "nothing to do", not treat the zero-row case
+  // as an error — which is exactly the `.maybeSingle()` vs `.single()`
+  // distinction (maybeSingle resolves { data: null, error: null } for zero
+  // rows; single() errors).
+  test("user has no shop at all -> restore reports nothing to do, not an error", async () => {
+    const { db } = makeTestDb();
+    signedIn("user-1");
+    const shopsBuilder = shopsTableChain([{ id: "shop-2", user_id: "someone-else" }]);
+    mockedSupabase.from.mockReturnValueOnce(shopsBuilder);
+
+    await expect(restorePublishedItems(db)).resolves.toEqual({ restored: 0, skipped: 0 });
+    expect(shopsBuilder.eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(shopsBuilder.maybeSingle).toHaveBeenCalled();
+    expect(shopsBuilder.single).not.toHaveBeenCalled();
+  });
+
+  test("no signed-in user -> nothing restored, never throws, no query attempted", async () => {
+    const { db } = makeTestDb();
+    signedOut();
+
+    await expect(restorePublishedItems(db)).resolves.toEqual({ restored: 0, skipped: 0 });
+    expect(mockedSupabase.from).not.toHaveBeenCalled();
   });
 });
 
