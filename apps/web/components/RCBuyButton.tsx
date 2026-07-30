@@ -1,9 +1,9 @@
 /**
  * Play Store badge button.
  *
- * Since Latag uses Apple & Google in-app purchases (no Stripe/Paddle
- * paperwork needed), the web checkout just directs users to download or
- * open the app and subscribe there.
+ * Latag uses store in-app purchases (no Stripe/Paddle paperwork needed), so
+ * the web checkout just directs users to download or open the app and
+ * subscribe there.
  *
  * Android only for now — Latag is live on Google Play (package
  * com.chrisraro.latag, matching apps/mobile/app.json). There is no App Store
@@ -13,11 +13,15 @@
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.chrisraro.latag";
 
+// Android-only reality — the day an App Store listing exists alongside
+// Google Play, this is the one line to update to mention both stores.
+const PAYMENT_HANDLER_COPY = "Google Play handles the payment";
+
 export function RCBuyButton() {
   return (
     <div className="mt-5 flex flex-col gap-3">
       <p className="text-sm text-inkdim">
-        Subscribe inside the Latag app — Apple & Google handle the payment,
+        Subscribe inside the Latag app — {PAYMENT_HANDLER_COPY},
         so no billing documents or tax forms needed.
       </p>
 

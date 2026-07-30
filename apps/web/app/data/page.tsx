@@ -31,7 +31,7 @@ export default function DataPage() {
       <h2>On our servers (as little as possible)</h2>
       <ul>
         <li>Your email and Pro license status — encrypted in transit with TLS and encrypted at rest by our infrastructure provider. Used only to activate your license.</li>
-        <li>A payment reference from our PCI-DSS-compliant payment provider. Card and e-wallet credentials never touch our servers.</li>
+        <li>A payment reference from the App Store or Play Store, who bill and process the payment — not us. Card and e-wallet credentials never touch our servers.</li>
         <li>Published shop items, exactly as described above — nothing more.</li>
       </ul>
       <h2>Our standing promises</h2>

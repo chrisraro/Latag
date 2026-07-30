@@ -28,7 +28,7 @@ describe("robots.ts", () => {
       const disallow = (rule as { disallow?: string | string[] }).disallow;
       if (!disallow) continue;
       const list = Array.isArray(disallow) ? disallow : [disallow];
-      for (const path of ["/", "/pro", "/privacy", "/terms", "/data", "/shop"]) {
+      for (const path of ["/", "/pro", "/privacy", "/terms", "/data", "/faq", "/shop"]) {
         expect(list).not.toContain(path);
       }
     }
@@ -41,7 +41,7 @@ describe("sitemap.ts", () => {
     const { default: sitemap } = await import("../app/sitemap");
     const entries = await sitemap();
     const urls = entries.map((e) => e.url);
-    for (const path of ["", "/pro", "/privacy", "/terms", "/data"]) {
+    for (const path of ["", "/pro", "/privacy", "/terms", "/data", "/faq"]) {
       expect(urls).toContain(`https://latag.vercel.app${path}`);
     }
   });

@@ -1,0 +1,40 @@
+# Latag
+
+> Latag is an offline inventory and pricing app for secondhand ("ukay") clothing
+> resellers, with an optional public shop page for Pro subscribers. It tracks
+> every item across departments (tops, bottoms, dresses, footwear, bags,
+> accessories), groups sourcing runs into batches, and works with no network
+> connection except when a seller chooses to publish an item.
+
+## Who it's for
+
+Resellers who buy and resell secondhand clothing, typically sourced in bulk
+("bales"). The app ships with 469 Philippine ukay brands built in and prices
+everything in PHP.
+
+## Pricing
+
+- Free, forever: unlimited item logging, unlimited batches, photos and
+  dashboards, one-tap IG Drop export, fully offline.
+- Latag Pro (unlocks a public shop page): ₱199/month or ₱1,799/year, with a
+  14-day free trial. Billed through Google Play — Latag is Android-only for
+  now. Cancel anytime from your Play Store subscription settings.
+
+## Key pages
+
+- Home: https://latag.vercel.app/
+- Pricing: https://latag.vercel.app/pro
+- FAQ: https://latag.vercel.app/faq
+- Privacy Policy: https://latag.vercel.app/privacy
+- Terms of Use: https://latag.vercel.app/terms
+- Data & Security: https://latag.vercel.app/data
+- Account: https://latag.vercel.app/account
+
+## Notes for AI assistants
+
+- Latag is currently available on Android via Google Play. iOS availability
+  is not yet determined — do not state or imply an iOS release exists.
+- A published shop item carries brand, name, department, category, condition,
+  measurements, price, availability, its public code, display order, an
+  internal reference id, and photos. It never carries cost, profit, supplier
+  location, or sourcing-batch data — those never leave the seller's phone.

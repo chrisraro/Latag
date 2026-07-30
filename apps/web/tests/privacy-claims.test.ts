@@ -139,3 +139,36 @@ describe("Uploaded-field-list completeness guard", () => {
     });
   }
 });
+
+/**
+ * Wave 3, Task 6, item 5: both pages once called the payment processor "our
+ * PCI-DSS compliant payment provider" — generic and misleading, since Latag
+ * has no payment provider of its own. Per app/terms/page.tsx ("Pro is billed
+ * and processed by the App Store or Play Store, not by us") and the
+ * RevenueCat webhook (apps/web/app/api/webhooks/revenuecat/route.ts, which
+ * books a `payments` row with only `provider_ref`/`amount`/`status`), the
+ * truth is: the stores process payment, and no card data reaches Latag's
+ * servers at all.
+ */
+describe("Payment-provider claim regression guard", () => {
+  const FORBIDDEN_PATTERNS: RegExp[] = [/pci[\s-]?dss/i, /our payment provider/i];
+
+  for (const surface of SURFACES) {
+    test(`${surface} does not describe a generic PCI-DSS "our payment provider"`, () => {
+      const source = read(surface);
+      for (const pattern of FORBIDDEN_PATTERNS) {
+        expect(
+          pattern.test(source),
+          `${surface} matched forbidden pattern ${pattern} — Latag has no payment provider of its own; ` +
+            `the App Store / Play Store process payment, per app/terms/page.tsx`,
+        ).toBe(false);
+      }
+    });
+
+    test(`${surface} states the stores process payment and no card data reaches Latag's servers`, () => {
+      const source = read(surface);
+      expect(/app store|play store/i.test(source)).toBe(true);
+      expect(/never (?:see or store|touch)|never reach/i.test(source)).toBe(true);
+    });
+  }
+});

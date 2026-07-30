@@ -40,6 +40,7 @@ const ROUTES: RouteCase[] = [
   { label: "app/data/page.tsx", importPath: "../app/data/page", canonical: "/data" },
   { label: "app/privacy/page.tsx", importPath: "../app/privacy/page", canonical: "/privacy" },
   { label: "app/terms/page.tsx", importPath: "../app/terms/page", canonical: "/terms" },
+  { label: "app/faq/page.tsx", importPath: "../app/faq/page", canonical: "/faq" },
 ];
 
 describe("alternates.canonical on every marketing/legal route", () => {
