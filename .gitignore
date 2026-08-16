@@ -11,3 +11,7 @@ apps/mobile/android
 .env.*.local
 .claude/
 skills-lock.json
+
+# Agent scratch: SDD ledger, task briefs, review packages, audit reports.
+# The SDD skill treats this as disposable working state, not repo content.
+.superpowers/

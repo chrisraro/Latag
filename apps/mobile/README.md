@@ -1,56 +1,53 @@
-# Welcome to your Expo app 👋
+# Latag Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Offline-first inventory app for Philippine ukay-ukay resellers. Expo SDK 57 /
+React Native 0.86 / expo-router / NativeWind, with local SQLite via
+`drizzle-orm/expo-sqlite`.
 
-## Get started
+Read `../../PRODUCT.md` and `../../DESIGN.md` before changing UI, and
+`AGENTS.md` in this directory before writing any Expo code.
 
-1. Install dependencies
+## Running it
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+This is a pnpm workspace — install from the repo root, not from here.
 
 ```bash
-npm run reset-project
+pnpm install          # repo root
+pnpm mobile           # or: pnpm -C apps/mobile start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+**Expo Go will not work.** The app depends on native modules that are not in
+the Expo Go client (SQLite, camera, media library, location, notifications,
+MapLibre, gesture-handler). Use a development build or an internal-distribution
+build from EAS.
 
-### Other setup steps
+## Gates
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Run from the repo root; both must be clean before anything ships:
 
-## Learn more
+```bash
+pnpm typecheck        # tsc --noEmit
+pnpm test             # jest
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Shipping
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+JS-only changes go out over the air on the `preview` channel:
 
-## Join the community
+```bash
+npx expo export --platform android     # verify the bundle graph resolves
+npx eas-cli update --branch preview --platform android --skip-bundler --input-dir dist
+```
 
-Join our community of developers creating universal apps.
+Two rules that are not optional, both learned from incidents:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- **`runtimeVersion` in `app.json` is pinned to a literal** and must match the
+  installed binary, which is not the same as `version`. Check `eas build:list`
+  before changing it — a mismatch means the update is silently never delivered.
+- **No `@expo/ui` Compose view and no Reanimated worklet ships over the air.**
+  Both kill switches in `lib/native-ui.ts` stay `false`; `tests/native-ui-gate.test.ts`
+  enforces it. Native UI goes out in an `eas build`, verified against
+  `adb logcat *:E` on a real device.
+
+Anything that changes native dependencies (`package.json`, `app.json`, config
+plugins, permissions) needs an `eas build` — it cannot reach devices over OTA.

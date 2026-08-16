@@ -200,6 +200,14 @@ CLAUDE.md           distilled guidelines for every future agent session
 Latag-App-Context.md    original context (kept)
 ```
 
+> **Note (2026-07-31):** `Latag-App-Context.md` was removed during a docs
+> cleanup. Every claim in it had gone stale — it described Next.js 15, Upstash
+> Redis telemetry, and API routes "strictly for anonymous telemetry ingestion",
+> none of which exist, and it instructed builders to use Reanimated, which is
+> now kill-switched off. Its role is served by `PRODUCT.md`, `DESIGN.md`, and
+> the `AGENTS.md` files under `apps/*`. The layout above is preserved as the
+> historical record of this spec's sources.
+
 `CLAUDE.md` (written in the build phase) distills the hard rules: offline-first, media protocol, zero-typing, useLiveQuery pattern, repo-layer writes, OLED theme.
 
 ## 10. Phase Plan

@@ -107,7 +107,9 @@ From the React Native best-practices ruleset — binding for the build phase:
 
 - **Lists:** FlashList (not FlatList/ScrollView-map) for item grids and session lists; memoized item components; stable callbacks; no inline style objects in items.
 - **Images:** `expo-image` everywhere (thumbnails, carousel) with `recyclingKey` in lists; thumbnails render the compressed local file, never full-res.
-- **Animations:** Reanimated on transform/opacity only (SAVE flash, sheet slide, counter roll); wheel detents via `useDerivedValue`; `Gesture.Tap`/`Gesture.Pan` from gesture-handler for wheels and chips.
+- **Animations — SUPERSEDED, read this before writing motion code.** The original rule below is kept for context, but Reanimated is **switched off**: `NATIVE_ANIMATION_ENABLED` in `apps/mobile/lib/native-ui.ts` is `false`, and `tests/native-ui-gate.test.ts` fails the build if any source file reaches the worklet runtime. On 2026-07-27 an OTA shipped a Compose view that crash-looped a real device; a crash on the native UI thread never becomes a JS exception, so no error boundary catches it, and an OTA that crashes on launch is very nearly unrecallable. Worklets are in the same category and ship in a **native build only**, verified against `adb logcat` on a device.
+  - What is allowed today: plain `react-native-gesture-handler` with `runOnJS` callbacks (the module is already linked and mounted at the app root — see `components/EdgeSwipeNav.tsx`), and RN core animation primitives.
+  - *Original rule, pending a native build:* Reanimated on transform/opacity only (SAVE flash, sheet slide, counter roll); wheel detents via `useDerivedValue`; `Gesture.Tap`/`Gesture.Pan` from gesture-handler for wheels and chips.
 - **Pressables:** `Pressable` (never TouchableOpacity) with `hitSlop` to guarantee ≥48px targets where visuals are smaller.
 - **Navigation:** Expo Router native stack; New Session / Mark Sold as native modal presentation (`presentation: 'modal'`).
 - **Safe areas:** `react-native-safe-area-context` insets on every screen; bottom-anchored primary buttons sit above the home indicator.

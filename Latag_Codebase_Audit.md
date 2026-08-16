@@ -1,5 +1,24 @@
 # Latag Codebase Audit
 
+> **HISTORICAL SNAPSHOT — not current architecture.** Written before the
+> RevenueCat subscription migration. The analysis and the reasoning still hold,
+> but several concrete facts below have since changed. Do not treat this file as
+> a description of how the system works today; read `PRODUCT.md`, `DESIGN.md`,
+> and the phase plans under `docs/superpowers/` for that.
+>
+> Known superseded points, as of 2026-07-31:
+>
+> | This document says | Reality now |
+> |---|---|
+> | Pro is a one-time `latag-pro-lifetime` purchase at ₱499 | Pro is a **subscription** — ₱199/month or ₱1,799/year with a 14-day trial, billed through RevenueCat. `latag-pro-lifetime` survives only as a non-purchasable grandfathered SKU. |
+> | Admin grant inserts `sku='latag-pro-lifetime'` | Admin grants issue the dedicated comp SKU `latag-pro-comp`. Entitlement checks read `ENTITLING_SKUS` (buyable + comp + grandfathered), not `PRO_SKUS`. |
+> | `entitlements.logsUsed` tracks a usage cap | The column is gone. The free tier is uncapped; only the storefront is gated. |
+> | "Spec says 20 lifetime logs but code does not enforce it — dead code" | Resolved by removing the cap from the spec, not by enforcing it. Unlimited free logging is now the product. |
+> | Pricing table seeded with the lifetime SKU only | Migration `0008_subscriptions.sql` adds `expires_at`, widens the status check to include `expired`/`past_due`, and seeds the monthly and yearly SKUs. |
+>
+> Recommendations in this file that have since been acted on are not marked
+> individually — check git history rather than assuming an item is still open.
+
 Latag Codebase Audit (Honest Roast)
 
 Product: offline-first ukay ops tool (Expo mobile + Next web + Supabase).
