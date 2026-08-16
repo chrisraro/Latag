@@ -101,6 +101,36 @@
 - [ ] Tappable toast fires ONCE: Shop setup while signed out → "Sign in first to set up your shop" sticky toast → tap it twice fast → sign-in opens once and the toast dismisses
 - [ ] Vocabulary/regression sweep: nothing on Home, Inventory, Batches or Shop crashes or renders empty after the update; the tab bar is the acid floating bar that shipped before (see deferred note below)
 
+## Waves 1–4 — correctness, tokens, truthful copy, edge-swipe (device, current OTA)
+
+Shipped 2026-07-30/31 as OTA `019fb3f0` at runtime **1.1.0**. Open the app, fully
+close it, open it again — `expo-updates` applies a downloaded bundle on the next
+cold start, so nothing below is visible on the first launch after the download.
+
+- [ ] Pull-to-refresh on **Home** and **Shop** now shows the acid spinner (it was hardcoded off — the pull did nothing visible). Inventory and Batches were already correct; all four should now behave identically
+- [ ] Shop tab: an item whose publish has failed its 5 retries shows a "couldn't sync" banner. Follow its instruction — open the item and toggle Publish — and the item queues a fresh attempt. The banner must NOT tell you to toggle "off then on"; for an item you already unpublished that would re-publish it
+- [ ] Shop tab: the "N changes pending — syncs when you're online" count EXCLUDES permanently-failed rows. A fully-stuck queue must not claim it will sync
+- [ ] Batches tab with enough batches to overflow one screen: "New Batch" stays reachable at the bottom and does not get pushed off
+- [ ] Onboarding (fresh install / cleared data): the two "How do you source?" cards are **tappable**. Exactly one is selected at a time, neither looks selected before you pick, and your pick becomes the default mode in the next New Batch
+- [ ] Item detail: the asking price renders in plain ink, not acid. Acid stays reserved for profit, progress and the primary action
+- [ ] Batch dashboard (Bulto): the "break-even" label has no caret and is not tappable — it never navigated anywhere
+- [ ] Date/time sheet: the AM/PM control is a real 48px target, not a small pill with padding around it
+- [ ] **Edge-swipe between tabs** — swipe starting within ~24px of the left or right screen edge moves to the neighbouring tab in bar order (Home → Inventory → Batches → Shop). Verify carefully:
+  - [ ] Scrolling a list with your thumb near either screen edge must NOT freeze or cancel the scroll
+  - [ ] Pull-to-refresh started near an edge must still work
+  - [ ] Home's "Recent items" strip and Inventory's filter chip row must still scroll horizontally
+  - [ ] Honest expectation: on Android 10+ the system back-gesture owns both edge bands, so the swipe may rarely fire. That is acceptable; the tab bar is unchanged and is the primary path. What is NOT acceptable is broken scrolling
+- [ ] Paywall: "IG drop export" and offline support are **gone** from the Pro feature list — both were free, never gated. Nothing on the paywall claims Instagram posting happens automatically (the app saves to an album, copies the caption, and opens Instagram)
+- [ ] Settings → version row reads **v1.2.0** with an update id, not "embedded"
+- [ ] Regression sweep: every tab renders, nothing crashes on launch, the floating tab bar is unchanged
+
+### Web (browser, same wave)
+- [ ] `/terms` describes a **subscription** with auto-renewal and store-side cancellation — not a "one-time purchase" with a refund window
+- [ ] `/` pricing copy agrees with the pricing widget directly beneath it
+- [ ] `/privacy` and `/data` make no claim about analytics, usage counters, or an in-app opt-out — none of that exists
+- [ ] `/account` shows **PRO** for a comped or grandfathered account, and any price labelled "/month" is the monthly figure
+- [ ] `/faq` renders, and `/llms.txt` loads
+
 ### DEFERRED TO THE NEXT NATIVE BUILD — do NOT QA on this OTA
 A crash inside a Compose or Reanimated view is a native exception on the UI thread: no JS error boundary can catch it and an OTA that crashes on launch cannot be recalled by the device it is crashing (2026-07-27 incident). So `NATIVE_UI_ENABLED` and `NATIVE_ANIMATION_ENABLED` in `apps/mobile/lib/native-ui.ts` are both `false` — the code below is written and unit-tested but never renders over the air. It ships, and gets QA'd, in a native build verified against logcat on a real device.
 - [ ] Native floating toolbar (`HorizontalFloatingToolbar`) — the custom `FloatingTabBar` renders instead today
@@ -108,3 +138,4 @@ A crash inside a Compose or Reanimated view is a native exception on the UI thre
 - [ ] Swipe actions on inventory and batch rows (mark sold, publish/unpublish) — rows are plain rows today; every one of those actions is still reachable from the item screen
 - [ ] "Sold — tap to undo" / "Publishing — tap to undo" toasts — these are raised only by the swipe handlers, so they are unreachable until swipe ships
 - [ ] Entrance stagger, FAB→composer transition, tab cross-fade, and the reduced-motion path — lists render at rest today
+- [ ] **Purchases.** `react-native-purchases@10.5.0` was installed 2026-07-31 but is a native module — it is NOT in the 1.1.0 binary and cannot arrive over the air. Until a native build ships, every `import("react-native-purchases")` throws and is caught, `isRevenueCatConfigured()` is false (the API key is empty), and no purchase path exists. Do not QA subscribe/restore on an OTA. When the native build does ship, QA against corrected code: the deleted type stub had `getCustomerInfo()`/`restorePurchases()` wrapped in `{ customerInfo }` when the real SDK returns `CustomerInfo` directly, which would have made status checks fail 100% of the time and every restore report a fake network error
